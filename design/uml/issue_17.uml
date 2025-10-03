@@ -1,0 +1,16 @@
+sequenceDiagram
+    autonumber
+    actor AT as Attendee
+    participant EP as Event Page
+    participant DJ as Django Web App
+    participant PG as PostgreSQL
+    participant ES as Email Server
+
+    AT ->> EP: Complete Payment for an Order
+    EP ->> DJ: Request Event Confirmation
+    DJ ->> PG: Query Order Number
+    PG -->> DJ: Return Order Number
+    DJ ->> ES: Request Email Confirmation
+    ES -->> DJ: Send Confirmation
+    DJ -->> EP: Send Order Number and Confirmation
+    EP -->> AT: Display Order Number and Confirmation,<br>along with a link to help/support or resend

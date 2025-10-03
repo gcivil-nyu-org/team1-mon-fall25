@@ -1,0 +1,32 @@
+sequenceDiagram
+    autonumber
+    actor AT as Attendee
+    participant EEP as Edit Event Page
+    participant DJ as Django Web App
+    participant PG as PostgreSQL
+    participant OS as Object Storage
+
+    %% Open form
+    AT->>EEP: Open create / edit event page
+    EEP-->>AT: Display create / edit event form
+
+    %% Submit details
+    AT->>DJ: Submit event details, ticket info, optional media
+    DJ->>DJ: Validate inputs and business rules
+
+    %% Persist core data
+    DJ->>PG: Save core event details (title, desc, date, etc.)
+    DJ->>PG: Save ticket details (price, availability, categories)
+    DJ->>PG: Set slug and publish state
+    PG-->>DJ: Return success confirmation
+
+    %% Optional media
+    opt Upload media
+        DJ->>OS: Store images / banners / videos
+        OS-->>DJ: Return media URLs
+        DJ->>PG: Save media URLs
+        PG-->>DJ: Return success confirmation
+    end
+
+    %% Success and visibility
+    DJ-->>AT: Redirect / Display event page
