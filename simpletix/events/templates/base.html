@@ -1,6 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+{% extends "simpletix/nav.html" %}
+{% load static %}
+
+{% block head %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Events Portal{% endblock %}</title>
@@ -13,11 +14,11 @@
         .event-card:hover { transform: scale(1.02); transition: 0.2s; }
         footer { margin-top: 30px; text-align: center; color: #777; padding: 20px 0; }
     </style>
-</head>
-<body>
+{% endblock %}
+{% block body %}
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'event_list' %}">🎟 Event Portal</a>
+            <a class="navbar-brand" href="{% url 'events:event_list' %}">🎟 Event Portal</a>
         </div>
     </nav>
 
@@ -28,5 +29,4 @@
     <footer>
         <p>© 2025 Event Portal | All Rights Reserved</p>
     </footer>
-</body>
-</html>
+{% endblock %}

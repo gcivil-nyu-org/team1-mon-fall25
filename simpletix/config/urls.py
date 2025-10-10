@@ -21,8 +21,9 @@ from django.conf import settings
 
 
 urlpatterns = [
+    path('', include('simpletix.urls')),
     path('admin/', admin.site.urls),
-      path('events/', include('events.urls')),
+    path('events/', include('events.urls')),
 
 ]
 

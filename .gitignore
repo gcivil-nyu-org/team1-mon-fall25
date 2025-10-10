@@ -3,3 +3,5 @@
 .temp
 simpletix/events/__pycache__/*
 simpletix/config/__pycache__/*
+simpletix/simpletix/__pycache__/*
+simpletix/simpletix/migrations/*
