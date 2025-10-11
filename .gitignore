@@ -1,3 +1,5 @@
 # Ignore environment variables
 .env
 .temp
+simpletix/events/__pycache__/*
+simpletix/config/__pycache__/*
