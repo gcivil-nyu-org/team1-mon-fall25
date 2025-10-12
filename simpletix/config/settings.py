@@ -170,6 +170,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
-LOGOUT_REDIRECT_URL = '/'
-       
+# After logout, always go to the Get Started page
+LOGOUT_REDIRECT_URL = "/accounts/start/"
+
 

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Get Started · SimpleTix{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="card shadow-sm">
+  <div class="card-body">
+    <h3 class="card-title mb-3">Get Started</h3>
+    <p class="text-muted">Create an organizer account or log in to update your profile.</p>
+
+    {% if user.is_authenticated %}
+      <a href="{% url 'accounts:profile_edit' %}?next=/" class="btn btn-success w-100">
+        Edit Profile
+      </a>
+    {% else %}
+      <a href="{% url 'accounts:signup' %}?next=/" class="btn btn-success w-100 mb-2">
+        Create Account
+      </a>
+      <a href="{% url 'accounts:login' %}?next=/" class="btn btn-outline-secondary w-100">
+        Log in
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

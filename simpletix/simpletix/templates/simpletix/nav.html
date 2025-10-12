@@ -25,23 +25,31 @@
                             </ul>
                         </li>
                     </ul>
-                    <ul class="navbar-nav ms-auto">
-                      {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:profile_edit' %}">Edit Profile</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:logout' %}?next=/">Logout</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:signup' %}?next=/">Create Account</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:login' %}?next=/">Login</a>
-                        </li>
-                    {% endif %}
-                  </ul>
+
+                        <ul class="navbar-nav ms-auto">
+                            {% if user.is_authenticated %}
+                                <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userMenu"
+                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="rounded-circle bg-secondary text-white d-inline-flex justify-content-center align-items-center"
+                                        style="width:28px;height:28px;font-size:0.8rem;">
+                                    {{ user.username|first|upper }}
+                                    </span>
+                                    <span class="ms-2">{{ user.username }}</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                                    <li><a class="dropdown-item" href="{% url 'accounts:profile_edit' %}?next=/">Edit Profile</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <!-- no ?next= here -->
+                                    <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">Logout</a></li>
+                                </ul>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                <a class="btn btn-success ms-2" href="{% url 'accounts:start' %}">Get Started</a>
+                                </li>
+                            {% endif %}
+                            </ul>
                 </div>
             </div>
         </nav>
