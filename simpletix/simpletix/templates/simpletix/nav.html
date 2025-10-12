@@ -26,14 +26,22 @@
                         </li>
                     </ul>
                     <ul class="navbar-nav ms-auto">
+                      {% if user.is_authenticated %}
                         <li class="nav-item">
-                            {% if user.is_authenticated %}
-                                <a class="nav-link" href="{% url 'simpletix:webpage' 'Logout Page' %}">Logout</a>
-                            {% else %}
-                                <a class="nav-link" href="{% url 'simpletix:webpage' 'Login Page' %}">Login</a>
-                            {% endif %}
+                            <a class="nav-link" href="{% url 'accounts:profile_edit' %}">Edit Profile</a>
                         </li>
-                    </ul>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:logout' %}?next=/">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:signup' %}?next=/">Create Account</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:login' %}?next=/">Login</a>
+                        </li>
+                    {% endif %}
+                  </ul>
                 </div>
             </div>
         </nav>
