@@ -162,7 +162,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Auth redirects (used for ?next=… pattern)
-LOGIN_URL = '/accounts/login/'      
-LOGIN_REDIRECT_URL = '/'         
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
+LOGOUT_REDIRECT_URL = '/'
+       
 
