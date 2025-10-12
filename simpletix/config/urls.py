@@ -19,14 +19,22 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
 
 urlpatterns = [
     path('', include('simpletix.urls')),
     path('admin/', admin.site.urls),
     path('events/', include('events.urls')),
-
+    path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
+    path("", include(("home.urls", "home"), namespace="home")),  # your test home app
 ]
 
 '''if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)'''
 
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
