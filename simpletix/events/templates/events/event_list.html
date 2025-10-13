@@ -20,7 +20,7 @@
                 <h5 class="card-title">{{ event.title }}</h5>
                 <p class="card-text text-muted">{{ event.date }} at {{ event.time }}</p>
                 <p class="card-text">{{ event.location }}</p>
-                <a href="{% url 'event_detail' event.id %}" class="btn btn-primary">View Details</a>
+                <a href="{% url 'events:event_detail' event.id %}" class="btn btn-primary">View Details</a>
             </div>
         </div>
     </div>

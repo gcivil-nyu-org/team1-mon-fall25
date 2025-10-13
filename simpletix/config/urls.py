@@ -28,7 +28,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', include('simpletix.urls')),
     path('admin/', admin.site.urls),
-    path('events/', include('events.urls')),
+     path('events/', include(('events.urls', 'events'), namespace='events')),
     path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
     path("", include(("home.urls", "home"), namespace="home")),  # your test home app
 ]
