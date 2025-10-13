@@ -66,3 +66,12 @@ input:focus{border-color:var(--primary); box-shadow:0 0 0 3px rgba(110,231,183,.
 
 .flash .alert{padding:10px 14px;border-radius:10px;margin:10px 0;background:#132018;border:1px solid #1f3a2e}
 .alert.error{background:#2a1414;border-color:#4a2323}
+
+/* static/css/main.css */
+.navbar img.rounded-circle {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border: 1px solid rgba(0,0,0,.1);
+}
+
