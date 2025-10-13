@@ -17,7 +17,7 @@ def create_event(request):
                 ticket.event = event
                 ticket.save()
             messages.success(request, "Event created successfully!")
-            return redirect('event_detail', event.id)
+            return redirect('events:event_detail', event.id)
         else:
             messages.error(request, "Please fix the errors below.")
     else:
