@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'simpletix',
     'home',
     'accounts',
+    'algoliasearch_django',
 ]
 
 MIDDLEWARE = [
@@ -169,3 +170,8 @@ LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
 LOGOUT_REDIRECT_URL = "/accounts/start/"
 
 
+ALGOLIA = {
+    'APPLICATION_ID': os.getenv('ALGOLIA_APP_ID'),
+    'API_KEY': os.getenv('ALGOLIA_API_KEY'),
+    'INDEX_PREFIX': os.getenv('ALGOLIA_INDEX_PREFIX', 'simpletix'),
+}
