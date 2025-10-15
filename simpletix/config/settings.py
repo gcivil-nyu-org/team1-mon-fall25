@@ -144,20 +144,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = "/var/www"
+STATIC_ROOT = "/var/www/simpletix/static/"
 
 
 # Default primary key field type
@@ -172,4 +169,3 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
 # After logout, always go to the Get Started page
 LOGOUT_REDIRECT_URL = "/accounts/start/"
-
