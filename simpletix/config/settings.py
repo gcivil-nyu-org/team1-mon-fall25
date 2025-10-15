@@ -175,3 +175,4 @@ ALGOLIA = {
     'API_KEY': os.getenv('ALGOLIA_API_KEY'),
     'INDEX_PREFIX': os.getenv('ALGOLIA_INDEX_PREFIX', 'simpletix'),
 }
+
