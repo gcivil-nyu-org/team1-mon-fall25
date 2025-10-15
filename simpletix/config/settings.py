@@ -157,7 +157,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = str(BASE_DIR / 'staticfiles') + '/'
+STATIC_ROOT = "/var/www"
 
 
 # Default primary key field type
