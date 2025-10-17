@@ -17,16 +17,21 @@ Including another URLconf
 # config/urls.py
 from django.contrib import admin
 from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
+
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("", include("simpletix.urls")),  # main site at root
-    path("admin/", admin.site.urls),
-    path("events/", include(("events.urls", "events"), namespace="events")),
+    path('', include('simpletix.urls')),
+    path('admin/', admin.site.urls),
+    path('events/', include(('events.urls', 'events'), namespace='events')),
     path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
     # Removed: path("", include(("home.urls", "home"), namespace="home"))
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
