@@ -16,22 +16,47 @@ from config.secrets import get_secret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-STATICFILES_DIRS = [BASE_DIR / "static"]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-load_dotenv()
-ENVIRONMENT = os.environ.get('ENVIRONMENT', 'local')
 
-if ENVIRONMENT == "production":
-    SECRET_KEY = get_secret("SimpleTixProdDjangoSecretKey")["SECRET_KEY"]
-elif ENVIRONMENT == "development":
-    SECRET_KEY = get_secret("SimpleTixDevDjangoSecretKey")["SECRET_KEY"]
+# Load Env vars + get Database Secrets
+load_dotenv()
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
+
+if ENVIRONMENT in ["production", "development"]:
+    DJANGO_SECRET_KEY_NAME = os.getenv("DJANGO_SECRET_KEY_NAME")
+    DB_SECRETS_NAME = os.getenv("DB_SECRETS_NAME")
+
+    SECRET_KEY = get_secret(DJANGO_SECRET_KEY_NAME)["SECRET_KEY"]
+    secrets = get_secret(DB_SECRETS_NAME)
 else:
-    SECRET_KEY = 'django-insecure-f@9l!6sac-h=0gt!*3diu2+=+5*1emjnj_n(k&ooc57kwp^^re'
+    SECRET_KEY = "local-secret"
+    secrets = {
+        "username": os.getenv("POSTGRES_USER", "postgres"),
+        "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+        "host": os.getenv("POSTGRES_HOST", "localhost"),
+        "port": os.getenv("POSTGRES_PORT", "5432"),
+        "dbInstanceIdentifier": os.getenv("POSTGRES_DB", "simpletix-local-db"),
+        "dbname": os.getenv("POSTGRES_DB_NAME", "simpletix")
+    }
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": secrets["dbname"],
+        "USER": secrets["username"],
+        "PASSWORD": secrets["password"],
+        "HOST": secrets["host"],
+        "PORT": secrets["port"],
+    }
+}
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if ENVIRONMENT == "production":
@@ -41,7 +66,13 @@ elif ENVIRONMENT == "development":
 else:
     DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "simpletix-dev.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
+    "simpletix-prod.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
+    "172.31.0.0/16"
+]
 
 
 # Application definition
@@ -57,6 +88,7 @@ INSTALLED_APPS = [
     'simpletix',
     'home',
     'accounts',
+    'ebhealthcheck.apps.EBHealthCheckConfig'
 ]
 
 MIDDLEWARE = [
@@ -89,35 +121,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-
-if ENVIRONMENT == "production":
-    secrets = get_secret("SimpleTixProdDBSecrets")
-elif ENVIRONMENT == "development":
-    secrets = get_secret("SimpleTixDevDBSecrets")
-else:
-    # Local development
-    secrets = {
-        "POSTGRES_DB": os.environ.get("POSTGRES_DB", "simpletix-local-db"),
-        "POSTGRES_USER": os.environ.get("POSTGRES_USER", "postgres"),
-        "POSTGRES_PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
-        "POSTGRES_HOST": os.environ.get("POSTGRES_HOST", "localhost"),
-        "POSTGRES_PORT": os.environ.get("POSTGRES_PORT", "5432"),
-    }
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': secrets["POSTGRES_DB"],
-        'USER': secrets["POSTGRES_USER"],
-        'PASSWORD': secrets["POSTGRES_PASSWORD"],
-        'HOST': secrets["POSTGRES_HOST"],
-        'PORT': secrets["POSTGRES_PORT"],
-    }
-}
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -141,18 +144,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = "/var/www/simpletix/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 
 # Default primary key field type
@@ -167,5 +169,3 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
 # After logout, always go to the Get Started page
 LOGOUT_REDIRECT_URL = "/accounts/start/"
-
-

@@ -1,7 +1,11 @@
 # Ignore environment variables
 .env
 .temp
-simpletix/events/__pycache__/*
-simpletix/config/__pycache__/*
-simpletix/simpletix/__pycache__/*
+
+# pycache files
+simpletix/*/__pycache__/*
+simpletix/staticfiles/*
+*.pyc
+
+# migrations
 simpletix/simpletix/migrations/*
