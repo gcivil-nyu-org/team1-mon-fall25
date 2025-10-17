@@ -87,8 +87,7 @@ INSTALLED_APPS = [
     'events',
     'simpletix',
     'home',
-    'accounts',
-    'ebhealthcheck.apps.EBHealthCheckConfig'
+    'ebhealthcheck.apps.EBHealthCheckConfig',
     'accounts.apps.AccountsConfig',
 ]
 
