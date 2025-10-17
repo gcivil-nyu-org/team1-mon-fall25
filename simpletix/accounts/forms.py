@@ -3,8 +3,9 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+
 from io import BytesIO
-from PIL import Image  
+from PIL import Image, ImageOps  # ← ImageOps for EXIF orientation
 
 from .models import OrganizerProfile
 
@@ -38,12 +39,16 @@ class OrganizerProfileForm(forms.ModelForm):
 
     def clean_profile_photo(self):
         """
-        Validate size/type. If provided, verify it's a real image and
-        re-encode to strip EXIF/metadata (keeps things small and safe).
+        Validate and normalize the uploaded image:
+        - Size < 2MB
+        - Must be JPEG/PNG/WebP
+        - Verify it's an image
+        - EXIF-orientation fix, convert to RGB
+        - Re-encode as JPEG (strips EXIF/metadata to keep it small)
         """
         file = self.cleaned_data.get("profile_photo")
         if not file:
-            return file  # optional
+            return file  # optional field
 
         # 1) Size limit (2MB)
         max_bytes = 2 * 1024 * 1024
@@ -60,26 +65,27 @@ class OrganizerProfileForm(forms.ModelForm):
         try:
             file.seek(0)
             img = Image.open(file)
-            img.verify()  # quick integrity check
+            img.verify()  # integrity check (closes parser state)
         except Exception:
             raise ValidationError("That file is not a valid image.")
 
-        # 4) Re-open for processing (verify() closes the underlying parser)
+        # 4) Re-open for processing and normalize
         file.seek(0)
         img = Image.open(file)
 
-        # Convert to RGB to normalize (avoids mode issues on save)
-        # If you prefer to preserve transparency for PNG/WebP, you can branch here.
-        if img.mode not in ("RGB", "RGBA"):
+        # Fix EXIF orientation if present (prevents rotated avatars)
+        img = ImageOps.exif_transpose(img)
+
+        # JPEG can't store alpha/palette; ALWAYS normalize to RGB
+        if img.mode != "RGB":
             img = img.convert("RGB")
 
-        # 5) Re-encode to strip EXIF/metadata
-        # Default to JPEG for good compatibility/size
+        # 5) Re-encode as JPEG to strip EXIF/metadata
         buf = BytesIO()
         img.save(buf, format="JPEG", optimize=True, quality=85)
         buf.seek(0)
 
-        # 6) Return a fresh Django file object (with .jpg extension)
+        # 6) Wrap as Django file with .jpg extension
         base_name = (getattr(file, "name", "profile").rsplit(".", 1)[0] or "profile").replace(" ", "_")
         new_name = f"{base_name}.jpg"
         return ContentFile(buf.read(), name=new_name)

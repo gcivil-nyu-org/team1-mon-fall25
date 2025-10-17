@@ -72,8 +72,10 @@
                 </ul>
               </li>
             {% else %}
-              <li class="nav-item">
-                <a class="btn btn-success ms-lg-3" href="{% url 'accounts:start' %}">Get Started</a>
+              <li>
+              <a href="{% url 'accounts:start' %}" class="btn btn-primary">
+               Get Started
+              </a>
               </li>
             {% endif %}
           </ul>
