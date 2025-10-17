@@ -45,6 +45,12 @@
 
           <!-- RIGHT: auth / Get Started -->
           <ul class="navbar-nav ms-auto">
+          {# 🔹 Guest badge (shows when browsing as guest) #}
+            {% if is_guest %}
+              <li class="nav-item me-2 d-flex align-items-center">
+                <span class="badge rounded-pill text-bg-secondary">Guest mode</span>
+              </li>
+            {% endif %}
             {% if user.is_authenticated %}
               {% get_profile as prof %}
               <li class="nav-item dropdown">
@@ -62,7 +68,6 @@
                       {{ user.username|first|upper }}
                     </span>
                   {% endif %}
-
                   <span class="ms-2">{{ user.username }}</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
