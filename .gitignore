@@ -4,7 +4,6 @@
 
 # pycache files
 simpletix/*/__pycache__/*
-simpletix/staticfiles/*
 *.pyc
 
 # migrations
