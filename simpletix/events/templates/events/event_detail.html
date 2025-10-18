@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'events/base.html' %}
 
 {% block title %}{{ event.title }}{% endblock %}
 
@@ -31,7 +31,7 @@
             {% endfor %}
         </ul>
 
-        <a href="{% url 'event_list' %}" class="btn btn-secondary mt-4">Back to Events</a>
+        <a href="{% url 'events:event_list' %}" class="btn btn-secondary mt-4">Back to Events</a>
     </div>
 </div>
 {% endblock %}
