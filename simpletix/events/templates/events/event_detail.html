@@ -32,6 +32,9 @@
         </ul>
 
         <a href="{% url 'events:event_list' %}" class="btn btn-secondary mt-4">Back to Events</a>
+        <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning">Edit Event</a>
+<a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
+
     </div>
 </div>
 {% endblock %}
