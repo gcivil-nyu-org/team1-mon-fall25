@@ -1,0 +1,24 @@
+{% extends 'events/base.html' %}
+
+{% block title %}{% if event %}Edit Event{% else %}Create Event{% endif %}{% endblock %}
+
+{% block content %}
+<h1>{% if event %}Edit Event: {{ event.title }}{% else %}Create Event{% endif %}</h1>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <h4>Tickets</h4>
+    {{ formset.management_form }}
+    {% for ticket_form in formset %}
+        <div class="border p-2 mb-2">
+            {{ ticket_form.as_p }}
+        </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">{% if event %}Save Changes{% else %}Create Event{% endif %}</button>
+    {% if event %}
+        <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
+    {% else %}
+        <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
+    {% endif %}
+</form>
+{% endblock %}
