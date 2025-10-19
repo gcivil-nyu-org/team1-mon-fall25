@@ -93,8 +93,8 @@ INSTALLED_APPS = [
     'events',
     'simpletix',
     'home',
-    'accounts',
-    'ebhealthcheck.apps.EBHealthCheckConfig'
+    'ebhealthcheck.apps.EBHealthCheckConfig',
+    'accounts.apps.AccountsConfig',
 ]
 
 MIDDLEWARE = [
@@ -119,6 +119,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.session_flags',
             ],
         },
     },

@@ -3,7 +3,9 @@
 
 {% block content %}
   <div class="card">
-    <h1>Edit Organizer Profile</h1>
+    <h1 class="mb-1">
+      Edit {{ request.user.uprofile.role|default:"attendee"|title }} Profile
+    </h1>
     <p class="muted">Keep your public info up to date.</p>
 
     <!-- Important: action points to the view, include csrf, include hidden next -->

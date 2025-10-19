@@ -1,26 +1,51 @@
 {% extends "registration/base.html" %}
-{% block title %}Get Started · SimpleTix{% endblock %}
+{% load static %}
+
+{% block title %}Get Started • SimpleTix{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm">
-  <div class="card-body">
-    <div class="card shadow-sm">
-  <div class="card-body">
-    <h3 class="card-title mb-3">Get Started</h3>
-    <p class="text-muted">Create an organizer account or log in to update your profile.</p>
+  <div class="py-3">
+    <h1 class="mb-2">Get Started</h1>
+    <p class="text-muted mb-4">Choose how you want to continue.</p>
 
-    {% if user.is_authenticated %}
-      <a href="{% url 'accounts:profile_edit' %}?next=/" class="btn btn-success w-100">
-        Edit Profile
-      </a>
-    {% else %}
-      <a href="{% url 'accounts:signup' %}?next=/" class="btn btn-success w-100 mb-2">
-        Create Account
-      </a>
-      <a href="{% url 'accounts:login' %}?next=/" class="btn btn-outline-secondary w-100">
-        Log in
-      </a>
-    {% endif %}
+    <div class="row g-4">
+      <div class="col-12 col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">Organizer</h5>
+            <p class="card-text text-muted mb-4">Manage events, venues, and ticketing.</p>
+            <div class="mt-auto d-grid gap-2">
+              <a class="btn btn-primary" href="{% url 'accounts:login' %}?role=organizer">Log in</a>
+              <a class="btn btn-outline-primary" href="{% url 'accounts:signup' %}?role=organizer">Create account</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">Attendee</h5>
+            <p class="card-text text-muted mb-4">Discover events and save favorites.</p>
+            <div class="mt-auto d-grid gap-2">
+              <a class="btn btn-primary" href="{% url 'accounts:login' %}?role=attendee">Log in</a>
+              <a class="btn btn-outline-primary" href="{% url 'accounts:signup' %}?role=attendee">Create account</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">Continue as Guest</h5>
+            <p class="card-text text-muted mb-4">Browse events (view-only).</p>
+            <div class="mt-auto d-grid">
+              <a class="btn btn-secondary" href="{% url 'accounts:guest_entry' %}">Continue</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 {% endblock %}
