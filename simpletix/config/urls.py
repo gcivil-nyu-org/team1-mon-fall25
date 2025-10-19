@@ -18,10 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
+from config.health import health_check
 
 
 urlpatterns = [
     path('', include('simpletix.urls')),
+    path("health/", health_check, name="health_check"),
     path('admin/', admin.site.urls),
     path('events/', include(('events.urls', 'events'), namespace='events')),
     path("accounts/", include(("accounts.urls", "accounts"),
