@@ -1,0 +1,47 @@
+{% extends 'events/base.html' %}
+
+{% block title %}
+    {% if event %}Edit Event{% else %}Create Event{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg p-4">
+    <h2 class="mb-4">
+        {% if event %}
+            Edit Event: <span class="text-primary">{{ event.title }}</span>
+        {% else %}
+            Create New Event
+        {% endif %}
+    </h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-4">
+            {{ form.as_p }}
+        </div>
+
+        <h4 class="mt-4 mb-3">Tickets</h4>
+        {{ formset.management_form }}
+        {% for ticket_form in formset %}
+            <div class="border rounded p-3 mb-3 bg-light">
+                {{ ticket_form.as_p }}
+            </div>
+        {% empty %}
+            <p class="text-muted">No ticket forms available.</p>
+        {% endfor %}
+
+        <!-- ✅ Aligned buttons -->
+        <div class="d-flex justify-content-between mt-4">
+            <button type="submit" class="btn btn-primary">
+                {% if event %}Save Changes{% else %}Create Event{% endif %}
+            </button>
+
+            {% if event %}
+                <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
+            {% else %}
+                <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
