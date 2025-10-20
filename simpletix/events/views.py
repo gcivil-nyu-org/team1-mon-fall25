@@ -1,7 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import EventForm, TicketFormSet
+from .forms import EventForm
 from .models import Event
+from tickets.models import TicketInfo
+from tickets.forms import TicketFormSet
+from accounts.models import OrganizerProfile
 
 # Create Event
 def create_event(request):
@@ -9,19 +12,23 @@ def create_event(request):
         form = EventForm(request.POST, request.FILES)
         formset = TicketFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
-            event = form.save()
-            tickets = formset.save(commit=False)
-            for ticket in tickets:
-                ticket.event = event
-                ticket.save()
+            event = form.save(commit=False)
+            event.organizer = OrganizerProfile.objects.get(user=request.user)
+            event.save()
+            formset.instance = event
+            formset.save()
             messages.success(request, "Event created successfully!")
             return redirect('events:event_detail', event_id=event.id)
         else:
             messages.error(request, "Please fix the errors below.")
     else:
         form = EventForm()
-        formset = TicketFormSet()
+        initial_ticket_data = [
+            {'category': category} for category, _ in TicketInfo.CATEGORY_CHOICES
+        ]
+        formset = TicketFormSet(initial=initial_ticket_data)
     return render(request, 'events/create_event.html', {'form': form, 'formset': formset})
+
 
 # Edit Event
 def edit_event(request, event_id):

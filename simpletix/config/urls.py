@@ -31,6 +31,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('events/', include(('events.urls', 'events'), namespace='events')),
     path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
+    path("tickets/", include(("tickets.urls", "tickets"), namespace="tickets")),
     # Removed: path("", include(("home.urls", "home"), namespace="home"))
 ]
 
