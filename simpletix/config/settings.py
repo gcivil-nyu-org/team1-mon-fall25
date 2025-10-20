@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     'home',
     'ebhealthcheck.apps.EBHealthCheckConfig',
     'accounts.apps.AccountsConfig',
+    'tickets',
 ]
 
 MIDDLEWARE = [

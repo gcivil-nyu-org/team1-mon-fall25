@@ -1,6 +1,8 @@
 from django.db import models
+from accounts.models import OrganizerProfile
 
 class Event(models.Model):
+    organizer = models.ForeignKey(OrganizerProfile, on_delete=models.CASCADE, related_name="creates", null=True)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     date = models.DateField()
@@ -13,18 +15,3 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
-
-
-class Ticket(models.Model):
-    CATEGORY_CHOICES = [
-        ('general', 'General Admission'),
-        ('vip', 'VIP'),
-        ('earlybird', 'Early Bird'),
-    ]
-    event = models.ForeignKey(Event, related_name='tickets', on_delete=models.CASCADE)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
-    price = models.DecimalField(max_digits=8, decimal_places=2)
-    availability = models.PositiveIntegerField()
-
-    def __str__(self):
-        return f"{self.event.title} - {self.category}"

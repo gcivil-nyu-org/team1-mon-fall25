@@ -13,7 +13,13 @@
             Create New Event
         {% endif %}
     </h2>
-
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="mb-4">
@@ -22,14 +28,35 @@
 
         <h4 class="mt-4 mb-3">Tickets</h4>
         {{ formset.management_form }}
-        {% for ticket_form in formset %}
-            <div class="border rounded p-3 mb-3 bg-light">
-                {{ ticket_form.as_p }}
-            </div>
-        {% empty %}
-            <p class="text-muted">No ticket forms available.</p>
-        {% endfor %}
 
+        <table class="table table-hover">
+        <thead class="thead-light">
+            <tr>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Availability</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket_form in formset %}
+            <tr>
+                {{ ticket_form.id }}
+                {{ ticket_form.category }}
+                <td class="align-middle">
+                <label for="{{ form.price.id_for_label }}">{{ ticket_form.instance.category }}</label>
+                </td>
+                <td>
+                {{ ticket_form.price }}
+                {% if ticket_form.price.errors %}<div class="text-danger small">{{ ticket_form.price.errors }}</div>{% endif %}
+                </td>
+                <td>
+                {{ ticket_form.availability }}
+                {% if ticket_form.availability.errors %}<div class="text-danger small">{{ ticket_form.availability.errors }}</div>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
         <!-- ✅ Aligned buttons -->
         <div class="d-flex justify-content-between mt-4">
             <button type="submit" class="btn btn-primary">
