@@ -38,7 +38,9 @@
               <ul class="dropdown-menu" background-color="#0d6efd">
                 <li><a class="dropdown-item" href="{% url 'simpletix:webpage' 'Find Event Page' %}">Find Event</a></li>
                 <li><a class="dropdown-item" href="{% url 'events:event_list' %}">Event List</a></li>
+                {% if request.session.desired_role == 'organizer' %}
                 <li><a class="dropdown-item" href="{% url 'events:create_event' %}">Create Event</a></li>
+                {% endif %}
               </ul>
             </li>
             <li class="nav-item">
