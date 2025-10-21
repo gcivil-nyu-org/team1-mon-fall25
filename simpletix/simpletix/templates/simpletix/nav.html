@@ -53,10 +53,19 @@
                 <li><a class="dropdown-item" href="{% url 'events:create_event' %}">Create Event</a></li>
               </ul>
             </li>
+            <li class="nav-item">
+              <a class="nav-link text-white" href="{% url 'tickets:ticket_list' %}" role="button" aria-expanded="false">My Tickets</a>
+            </li>
           </ul>
 
           <!-- RIGHT: auth / Get Started -->
           <ul class="navbar-nav ms-auto">
+          {# 🔹 Guest badge (shows when browsing as guest) #}
+            {% if is_guest %}
+              <li class="nav-item me-2 d-flex align-items-center">
+                <span class="badge rounded-pill text-bg-secondary">Guest mode</span>
+              </li>
+            {% endif %}
             {% if user.is_authenticated %}
               {% get_profile as prof %}
               <li class="nav-item dropdown">
@@ -74,7 +83,6 @@
                       {{ user.username|first|upper }}
                     </span>
                   {% endif %}
-
                   <span class="ms-2">{{ user.username }}</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
@@ -84,8 +92,10 @@
                 </ul>
               </li>
             {% else %}
-              <li class="nav-item">
-                <a class="btn btn-success ms-lg-3" href="{% url 'accounts:start' %}">Get Started</a>
+              <li>
+              <a href="{% url 'accounts:start' %}" class="btn btn-primary">
+               Get Started
+              </a>
               </li>
             {% endif %}
           </ul>

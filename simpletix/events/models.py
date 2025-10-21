@@ -1,6 +1,8 @@
 from django.db import models
+from accounts.models import OrganizerProfile
 
 class Event(models.Model):
+    organizer = models.ForeignKey(OrganizerProfile, on_delete=models.CASCADE, related_name="creates", null=True)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     date = models.DateField()
@@ -13,6 +15,7 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
+<<<<<<< HEAD
 
     # 👇 Add these helper methods for Algolia
     @property
@@ -40,3 +43,5 @@ class Ticket(models.Model):
     def __str__(self):
         return f"{self.event.title} - {self.category}"
 
+=======
+>>>>>>> origin/develop

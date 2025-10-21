@@ -14,24 +14,27 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# config/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
+from config.health import health_check
 
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-
-
 urlpatterns = [
     path('', include('simpletix.urls')),
+    path("health/", health_check, name="health_check"),
     path('admin/', admin.site.urls),
-     path('events/', include(('events.urls', 'events'), namespace='events')),
+    path('events/', include(('events.urls', 'events'), namespace='events')),
     path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
-    path("", include(("home.urls", "home"), namespace="home")),  # your test home app
+    path("tickets/", include(("tickets.urls", "tickets"), namespace="tickets")),
+    # Removed: path("", include(("home.urls", "home"), namespace="home"))
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
