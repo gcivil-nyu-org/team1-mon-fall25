@@ -10,7 +10,9 @@ class EventIndex(AlgoliaIndex):
     settings = {
         'searchableAttributes': ['title', 'description', 'location'],
     }
-    index_name = 'events'
+    index_name = 'simpletix_events'
+
+    #index_name = 'events'
 
 
     # custom field conversion

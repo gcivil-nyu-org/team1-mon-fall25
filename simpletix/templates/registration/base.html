@@ -15,7 +15,6 @@
     {% if messages %}
       <div class="container py-2">
         {% for message in messages %}
-          <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
@@ -27,6 +26,11 @@
       {% block content %}{% endblock %}
     </main>
     
-    {% block extra_scripts %}{% endblock %}
+    {% block extra_scripts %}
+    <!-- Algolia & InstantSearch CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/instantsearch.js@4"></script>
+    <script defer src="{% static 'js/search.js' %}"></script>
+{% endblock %}
   </body>
 </html>

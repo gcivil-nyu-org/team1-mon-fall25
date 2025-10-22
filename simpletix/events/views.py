@@ -5,6 +5,9 @@ from .models import Event
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
 from accounts.models import OrganizerProfile
+from algoliasearch_django import save_record, delete_record
+
+
 
 # Create Event
 def create_event(request):
@@ -15,6 +18,7 @@ def create_event(request):
             event = form.save(commit=False)
             event.organizer = OrganizerProfile.objects.get(user=request.user)
             event.save()
+            save_record(event) # Add the event to Algolia
             formset.instance = event
             formset.save()
             messages.success(request, "Event created successfully!")
@@ -38,6 +42,8 @@ def edit_event(request, event_id):
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
         if form.is_valid() and formset.is_valid():
             form.save()
+            # ✅ Correct
+            save_record(event) # Update the event in Algolia
             formset.save()
             messages.success(request, "Event updated successfully!")
             return redirect('events:event_detail', event_id=event.id)
@@ -52,6 +58,7 @@ def edit_event(request, event_id):
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     if request.method == 'POST':
+        delete_record(event) # Remove the event from Algolia
         event.delete()
         messages.success(request, "Event deleted successfully!")
         return redirect('events:event_list')
