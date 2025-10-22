@@ -1,14 +1,19 @@
 // simpletix/static/js/search.js
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ Search script loaded"); // debug confirmation in console
+  console.log("✅ Search script loaded");
 
-  const ALGOLIA_APP_ID = "KFIC62EZAO";
-  const ALGOLIA_SEARCH_KEY = "4fe1741215a5a5ef75ed0847d66dbd64"; // Search-only API key
-  const ALGOLIA_INDEX = "simpletix_simpletix_events"; // Use your exact index name from Algolia
+  // Get values injected from Django template (nav.html)
+  const ALGOLIA_APP_ID = window.ALGOLIA_APP_ID;
+  const ALGOLIA_SEARCH_KEY = window.ALGOLIA_SEARCH_KEY;
+  const ALGOLIA_INDEX = window.ALGOLIA_INDEX;
 
-  // Ensure Algolia libraries are present
+  if (!ALGOLIA_APP_ID || !ALGOLIA_SEARCH_KEY || !ALGOLIA_INDEX) {
+    console.error("❌ Missing Algolia credentials from template context");
+    return;
+  }
+
   if (typeof algoliasearch === "undefined" || typeof instantsearch === "undefined") {
-    console.error("❌ Algolia libraries not found — check script order or network load");
+    console.error("❌ Algolia libraries not found — check script imports");
     return;
   }
 
@@ -64,7 +69,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   search.start();
 
-  // Hide results dropdown when clicking outside
   document.addEventListener("click", (e) => {
     if (!resultsPanel) return;
     const inside =

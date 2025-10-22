@@ -23,7 +23,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Load Env vars + get Database Secrets
-load_dotenv()
+
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(Path(__file__).resolve().parent.parent, ".env"))
+
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
 
 if ENVIRONMENT in ["production", "development"]:
@@ -116,6 +119,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.session_flags',
+                'config.context_processors.algolia_settings',
             ],
         },
     },
@@ -174,9 +178,11 @@ LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
 LOGOUT_REDIRECT_URL = "/accounts/start/"
 
 
+# --- ALGOLIA SETTINGS ---
 ALGOLIA = {
-    'APPLICATION_ID': os.getenv('ALGOLIA_APP_ID'),
-    'API_KEY': os.getenv('ALGOLIA_API_KEY'),
-    'INDEX_PREFIX': os.getenv('ALGOLIA_INDEX_PREFIX', 'simpletix'),
+    "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
+    "API_KEY": os.getenv("ALGOLIA_API_KEY", ""),  # Admin API key for Django backend
+    "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),  # Search-only key for frontend
+    "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
 }
 
