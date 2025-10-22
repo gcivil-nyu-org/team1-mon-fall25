@@ -15,7 +15,6 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
-<<<<<<< HEAD
 
     # 👇 Add these helper methods for Algolia
     @property
@@ -43,5 +42,3 @@ class Ticket(models.Model):
     def __str__(self):
         return f"{self.event.title} - {self.category}"
 
-=======
->>>>>>> origin/develop

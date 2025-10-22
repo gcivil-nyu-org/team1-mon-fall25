@@ -87,14 +87,10 @@ INSTALLED_APPS = [
     'events',
     'simpletix',
     'home',
-<<<<<<< HEAD
-    'accounts',
     'algoliasearch_django',
-=======
     'ebhealthcheck.apps.EBHealthCheckConfig',
     'accounts.apps.AccountsConfig',
     'tickets',
->>>>>>> origin/develop
 ]
 
 MIDDLEWARE = [
@@ -176,7 +172,6 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
 # After logout, always go to the Get Started page
 LOGOUT_REDIRECT_URL = "/accounts/start/"
-<<<<<<< HEAD
 
 
 ALGOLIA = {
@@ -185,5 +180,3 @@ ALGOLIA = {
     'INDEX_PREFIX': os.getenv('ALGOLIA_INDEX_PREFIX', 'simpletix'),
 }
 
-=======
->>>>>>> origin/develop
