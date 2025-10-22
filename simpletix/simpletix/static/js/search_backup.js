@@ -32,20 +32,35 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   search.addWidgets([
-    instantsearch.widgets.searchBox({
+      instantsearch.widgets.searchBox({
       container: "#searchbox",
       placeholder: "Search events...",
       showReset: false,
       showSubmit: false,
       searchAsYouType: true,
-      cssClasses: { input: "form-control" },
+      cssClasses: { input: "form-control", root: "w-100" },
+      templates: {
+        submit() { return ''; },
+        reset() { return ''; }
+      },
+      render(options, isFirstRender) {
+        if (isFirstRender) {
+          // clear any leftover input from the DOM (fixes double bar issue)
+          document.querySelector("#searchbox").innerHTML = "";
+        }
+        options.widgetParams.container.innerHTML = `
+          <input type="search" class="form-control" placeholder="Search events..." aria-label="Search">
+        `;
+      },
       queryHook(query, refine) {
         if (resultsPanel) {
           resultsPanel.style.display = query.trim() ? "block" : "none";
         }
         refine(query);
       },
+
     }),
+    
 
     instantsearch.widgets.hits({
       container: "#search-results",
@@ -67,6 +82,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }),
   ]);
 
+
+  
   search.start();
 
   document.addEventListener("click", (e) => {

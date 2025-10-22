@@ -90,7 +90,6 @@ INSTALLED_APPS = [
     'events',
     'simpletix',
     'home',
-    'algoliasearch_django',
     'ebhealthcheck.apps.EBHealthCheckConfig',
     'accounts.apps.AccountsConfig',
     'tickets',
@@ -120,6 +119,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.session_flags',
                 'config.context_processors.algolia_settings',
+
             ],
         },
     },
