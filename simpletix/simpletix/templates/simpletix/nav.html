@@ -112,13 +112,15 @@
     <script>
       window.ALGOLIA_APP_ID = "{{ ALGOLIA_APP_ID }}";
       window.ALGOLIA_SEARCH_KEY = "{{ ALGOLIA_SEARCH_KEY }}";
-      window.ALGOLIA_INDEX = "{{ ALGOLIA_INDEX }}";
+      window.ALGOLIA_INDEX = "simpletix_{{ ALGOLIA_INDEX }}";
+     
     </script>
 
     <!-- Your search logic -->
     <script src="{% static 'js/simple_search.js' %}"></script>
 
 
+    
 
 
       </body>
