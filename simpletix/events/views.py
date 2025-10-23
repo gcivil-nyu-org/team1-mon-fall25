@@ -1,13 +1,25 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.urls import NoReverseMatch, reverse
 from .forms import EventForm
 from .models import Event
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
 from accounts.models import OrganizerProfile
 
+def _redirect_to_login(request, msg):
+    messages.info(request, msg)
+    try:
+        login_url = reverse("accounts:login")
+    except NoReverseMatch:
+        login_url = "/accounts/login/"
+    return redirect(f"{login_url}?role=organizer")
+
 # Create Event
 def create_event(request):
+    if request.session.get('desired_role') != 'organizer':
+        return _redirect_to_login(request, "Please login as Organizer to continue.")
+    
     if request.method == 'POST':
         form = EventForm(request.POST, request.FILES)
         formset = TicketFormSet(request.POST)
@@ -32,6 +44,9 @@ def create_event(request):
 
 # Edit Event
 def edit_event(request, event_id):
+    if request.session.get('desired_role') != 'organizer':
+        return _redirect_to_login(request, "Please login as Organizer to continue.")
+    
     event = get_object_or_404(Event, id=event_id)
     if request.method == 'POST':
         form = EventForm(request.POST, request.FILES, instance=event)
@@ -50,6 +65,9 @@ def edit_event(request, event_id):
 
 # Delete Event
 def delete_event(request, event_id):
+    if request.session.get('desired_role') != 'organizer':
+        return _redirect_to_login(request, "Please login as Organizer to continue.")
+    
     event = get_object_or_404(Event, id=event_id)
     if request.method == 'POST':
         event.delete()
