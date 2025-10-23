@@ -4,4 +4,9 @@
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
+# Virtual environment
 venv/
+
+# Ignore uploaded media files
+media/
+

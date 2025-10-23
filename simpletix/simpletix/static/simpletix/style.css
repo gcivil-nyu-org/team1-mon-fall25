@@ -124,40 +124,45 @@
 }
 
 
-/* === Algolia Search Dropdown === */
-#search-results {
-  position: absolute;
-  top: 50px;
-  left: 0;
-  width: 100%;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  overflow-y: auto;
-  max-height: 400px;
-  display: none;
-  z-index: 1050;
+/* === Search Dropdown Fix === */
+.search-wrapper {
+  position: relative;
 }
 
-#search-results a {
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px); /* appear right under input */
+  left: 0;
+  width: 100%;
+  z-index: 2000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  display: none;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-dropdown a {
   display: block;
   padding: 10px 15px;
   text-decoration: none;
   color: #333;
 }
 
-#search-results a:hover {
+.search-dropdown a:hover {
   background-color: #f5f5f5;
 }
 
-#search-results strong {
+.search-dropdown strong {
   font-size: 0.95rem;
   color: #212529;
 }
 
-#search-results small {
+.search-dropdown small {
   display: block;
   color: #6c757d;
   margin-bottom: 4px;
 }
+
 

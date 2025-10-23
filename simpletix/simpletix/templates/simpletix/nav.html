@@ -18,16 +18,13 @@
           <img src="{% static 'simpletix/images/logo.png' %}" alt="SimpleTix" class="d-inline-block align-top">
         </a>
 
-        <!-- 🔍 Simple Algolia search -->
-          <div class="d-flex align-items-center ms-3" style="max-width:340px;">
-            <input id="search-input" class="form-control" type="search" placeholder="Search events..." aria-label="Search">
-          </div>
+        
+        <!-- 🔍 Search bar with dropdown -->
+        <div class="search-wrapper position-relative ms-3" style="max-width:340px;">
+          <input id="search-input" class="form-control" type="search" placeholder="Search events..." aria-label="Search">
+          <div id="search-results" class="search-dropdown"></div>
+        </div>
 
-          <!-- Search results dropdown -->
-          <div id="search-results"
-              class="position-absolute bg-white shadow rounded w-100"
-              style="z-index:1000; max-width:340px; top:60px; left:50%; transform:translateX(-50%); display:none;">
-          </div>
 
 
 

@@ -24,7 +24,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load Env vars + get Database Secrets
 
-from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(Path(__file__).resolve().parent.parent, ".env"))
 
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')

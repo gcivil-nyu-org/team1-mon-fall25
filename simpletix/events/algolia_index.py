@@ -10,10 +10,25 @@ class EventIndex(AlgoliaIndex):
     settings = {
         'searchableAttributes': ['title', 'description', 'location'],
     }
+
+    # NOTE: Manual prefix alignment for Algolia index name.
+    # Context:
+    # The backend (via algoliasearch_django) automatically prefixes index names using
+    # ALGOLIA_INDEX_PREFIX (e.g. "simpletix_"). However, the frontend search client was
+    # querying the base index name ("events"), leading to empty search results despite
+    # successful CRUD operations.
+    #
+    # Fix:
+    # I manually append "simpletix_" in the frontend (nav.html) so searches target
+    # the same Algolia index ("simpletix_simpletix_events") used by the backend.
+    # This keeps search and CRUD in sync across environments.
+    #
+    # Example resulting index:
+    #   ALGOLIA_INDEX_PREFIX = "simpletix"
+    #   final index_name     = "simpletix_simpletix_events"
+
     index_name = 'simpletix_events'
-
-    #index_name = 'events'
-
+    
 
     # custom field conversion
     def get_date_str(self, obj):
