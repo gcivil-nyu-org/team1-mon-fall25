@@ -7,17 +7,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0004_userprofile'),
-        ('events', '0002_alter_event_banner'),
+        ("accounts", "0004_userprofile"),
+        ("events", "0002_alter_event_banner"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='event',
-            name='organizer',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='creates', to='accounts.organizerprofile'),
+            model_name="event",
+            name="organizer",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="creates",
+                to="accounts.organizerprofile",
+            ),
         ),
         migrations.DeleteModel(
-            name='Ticket',
+            name="Ticket",
         ),
     ]

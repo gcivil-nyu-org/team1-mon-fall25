@@ -4,10 +4,13 @@ from django.urls import reverse
 APP = "accounts"
 
 # Project-specific knobs — set these once:
-GUEST_METHOD = "get"                 # "get" or "post" depending on the guest_entry view
-RESTRICTED_URL_NAME = f"{APP}:profile_edit"  # change if profile_edit isn't login_required
-EXPECTS_SESSION_FLAG = False         # True if the guest_entry sets a flag in session
-GUEST_SESSION_KEY = "is_guest"       # the flag key if set one
+GUEST_METHOD = "get"  # "get" or "post" depending on the guest_entry view
+RESTRICTED_URL_NAME = (
+    f"{APP}:profile_edit"  # change if profile_edit isn't login_required
+)
+EXPECTS_SESSION_FLAG = False  # True if the guest_entry sets a flag in session
+GUEST_SESSION_KEY = "is_guest"  # the flag key if set one
+
 
 @pytest.mark.django_db
 def test_guest_entry_is_accessible(client):
@@ -16,17 +19,21 @@ def test_guest_entry_is_accessible(client):
     """
     url = reverse(f"{APP}:guest_entry")
     res = getattr(client, GUEST_METHOD)(url, follow=True)
-    assert res.status_code in (200, 302), "Guest entry should render or redirect successfully"
+    assert res.status_code in (
+        200,
+        302,
+    ), "Guest entry should render or redirect successfully"
 
     # Optional: verify a session flag if your view sets one
     if EXPECTS_SESSION_FLAG:
-        assert client.session.get(GUEST_SESSION_KEY) is True, (
-            f"Expected session flag {GUEST_SESSION_KEY}=True after guest entry"
-        )
+        assert (
+            client.session.get(GUEST_SESSION_KEY) is True
+        ), f"Expected session flag {GUEST_SESSION_KEY}=True after guest entry"
 
     # Public page should remain browsable after guest entry
     start = client.get(reverse(f"{APP}:start"))
     assert start.status_code == 200
+
 
 @pytest.mark.django_db
 def test_guest_restricted_action_redirects_to_login(client, settings):
@@ -51,12 +58,13 @@ def test_guest_restricted_action_redirects_to_login(client, settings):
             login_url_from_setting = reverse(login_url_setting)
         except Exception:
             login_url_from_setting = login_url_setting  # assume it's already a path
-        ok_login_target = (login_url_from_setting in location)
+        ok_login_target = login_url_from_setting in location
     # Also allow the named route explicitly
     ok_login_target = ok_login_target or (login_url_named in location)
 
     assert ok_login_target, f"Expected redirect to login. Got: {location}"
     assert "next=" in location, "Expected ?next= param to preserve intended destination"
+
 
 @pytest.mark.django_db
 def test_guest_restricted_post_redirects_to_login(client, settings):
@@ -68,12 +76,13 @@ def test_guest_restricted_post_redirects_to_login(client, settings):
     assert res.status_code in (302, 303)
     assert "next=" in res["Location"]
 
+
 @pytest.mark.django_db
 def test_guest_entry_then_restricted_flow_again(client, settings):
     """
     Enter as guest first, then try restricted again — behavior should be the same (redirect to login).
     """
-    getattr(client, GUEST_METHOD)(reverse(f"{APP}:guest_entry")),  
+    getattr(client, GUEST_METHOD)(reverse(f"{APP}:guest_entry")),
     restricted = reverse(RESTRICTED_URL_NAME)
     res = client.get(restricted, follow=False)
     assert res.status_code in (302, 303)

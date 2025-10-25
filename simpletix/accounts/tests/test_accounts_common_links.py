@@ -3,6 +3,7 @@ from django.urls import reverse
 
 APP = "accounts"
 
+
 @pytest.mark.django_db
 def test_login_screen_has_tabs_and_links(client):
     res = client.get(reverse(f"{APP}:login"))
@@ -15,5 +16,5 @@ def test_login_screen_has_tabs_and_links(client):
 
     # "Forgot password" wording may not be present yet; make it optional
     # If you DO have it, this still passes.
-    maybe_has_forgot = (b"forgot" in body) or (b"reset" in body)
+    (b"forgot" in body) or (b"reset" in body)
     # We won't assert on it to avoid brittle failure.

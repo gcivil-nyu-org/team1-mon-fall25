@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 
+
 @pytest.mark.django_db
 def test_user_str_and_profiles_exist():
     """
@@ -9,12 +10,14 @@ def test_user_str_and_profiles_exist():
     should be enough to instantiate them.
     """
     User = get_user_model()
-    u = User.objects.create_user(username="m1", email="m1@example.com", password="Passw0rd1!")
+    u = User.objects.create_user(
+        username="m1", email="m1@example.com", password="Passw0rd1!"
+    )
     assert str(u)  # __str__ shouldn't crash
 
     # If you have related profiles, try to access them defensively:
     for attr in ("userprofile", "organizerprofile"):
         if hasattr(u, attr):
-            prof = getattr(u, attr, None)
+            getattr(u, attr, None)
             # Some projects use OneToOne lazy creation; access to trigger it
-            prof = getattr(u, attr, None)
+            getattr(u, attr, None)

@@ -8,6 +8,7 @@ from PIL import Image
 
 pytestmark = pytest.mark.django_db
 
+
 def make_png_bytes(size=(10, 10), mode="RGBA"):
     """Create an in-memory PNG image and return bytes."""
     img = Image.new(mode, size, (255, 0, 0, 128) if "A" in mode else (255, 0, 0))
@@ -15,8 +16,10 @@ def make_png_bytes(size=(10, 10), mode="RGBA"):
     img.save(buf, format="PNG")
     return buf.getvalue()
 
+
 def make_invalid_bytes():
     return b"not-an-image-at-all"
+
 
 def _make_user_with_org_profile(username="puser"):
     User = get_user_model()
@@ -45,6 +48,7 @@ def test_profile_photo_png_alpha_normalized_to_jpeg_and_saved(tmp_path, settings
     assert saved.profile_photo
     # name endswith .jpg as returned by clean_profile_photo
     assert saved.profile_photo.name.lower().endswith(".jpg")
+
 
 def test_profile_photo_optional_no_file_keeps_none():
     u, op = _make_user_with_org_profile("nofile")

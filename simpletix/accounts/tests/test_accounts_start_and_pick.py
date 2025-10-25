@@ -3,6 +3,7 @@ from django.urls import reverse
 
 APP = "accounts"
 
+
 @pytest.mark.django_db
 def test_start_has_three_role_options(client):
     res = client.get(reverse(f"{APP}:start"))
@@ -12,6 +13,7 @@ def test_start_has_three_role_options(client):
     assert b"attendee" in body
     # guest may be "continue as guest" or "guest"
     assert b"guest" in body or b"continue as guest" in body
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("role", ["organizer", "attendee"])

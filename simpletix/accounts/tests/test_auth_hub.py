@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
+
 class AuthHubTests(TestCase):
     def test_hub_loads(self):
         url = reverse("accounts:start")

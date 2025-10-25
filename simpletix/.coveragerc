@@ -1,0 +1,13 @@
+[run]
+branch = True
+source = accounts
+omit =
+    */migrations/*
+    manage.py
+    config/asgi.py
+    config/wsgi.py
+    config/settings/*
+    */__init__.py
+
+[report]
+show_missing = True

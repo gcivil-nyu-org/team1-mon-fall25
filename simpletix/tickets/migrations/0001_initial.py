@@ -9,34 +9,94 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('accounts', '0004_userprofile'),
-        ('events', '0003_event_organizer_delete_ticket'),
+        ("accounts", "0004_userprofile"),
+        ("events", "0003_event_organizer_delete_ticket"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TicketInfo',
+            name="TicketInfo",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('category', models.CharField(choices=[('General Admission', 'General Admission'), ('VIP', 'VIP'), ('Early Bird', 'Early Bird')], max_length=50)),
-                ('price', models.DecimalField(decimal_places=2, default=0, max_digits=8)),
-                ('availability', models.IntegerField(default=0)),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='ticketInfo', to='events.event')),
-                ('organizer', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='distributes', to='accounts.organizerprofile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "category",
+                    models.CharField(
+                        choices=[
+                            ("General Admission", "General Admission"),
+                            ("VIP", "VIP"),
+                            ("Early Bird", "Early Bird"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "price",
+                    models.DecimalField(decimal_places=2, default=0, max_digits=8),
+                ),
+                ("availability", models.IntegerField(default=0)),
+                (
+                    "event",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="ticketInfo",
+                        to="events.event",
+                    ),
+                ),
+                (
+                    "organizer",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="distributes",
+                        to="accounts.organizerprofile",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('event', 'category')},
+                "unique_together": {("event", "category")},
             },
         ),
         migrations.CreateModel(
-            name='Ticket',
+            name="Ticket",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('full_name', models.CharField(blank=True, max_length=120)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('phone', models.CharField(blank=True, max_length=30)),
-                ('attendee', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='holds', to='accounts.userprofile')),
-                ('ticketInfo', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='lists', to='tickets.ticketinfo')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("full_name", models.CharField(blank=True, max_length=120)),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=30)),
+                (
+                    "attendee",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="holds",
+                        to="accounts.userprofile",
+                    ),
+                ),
+                (
+                    "ticketInfo",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="lists",
+                        to="tickets.ticketinfo",
+                    ),
+                ),
             ],
         ),
     ]
