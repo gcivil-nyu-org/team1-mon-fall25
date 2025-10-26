@@ -39,4 +39,4 @@ static_root/
 htmlcov/
 .coverage
 .tox/
-.pytest_cache/
+.pytest_cache/.DS_Store
