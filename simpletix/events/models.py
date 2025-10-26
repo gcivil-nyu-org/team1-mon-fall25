@@ -16,7 +16,6 @@ class Event(models.Model):
     def __str__(self):
         return self.title
 
-    # 👇 Add these helper methods for Algolia
     @property
     def date_str(self):
         return self.date.isoformat() if self.date else None
@@ -24,8 +23,6 @@ class Event(models.Model):
     @property
     def time_str(self):
         return self.time.strftime("%H:%M:%S") if self.time else None
-
-
 
 
 class Ticket(models.Model):
