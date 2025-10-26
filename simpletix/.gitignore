@@ -1,5 +1,42 @@
-
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+# Environment variables
+.env
+venv/
+env/
+
+# IDE and editor folders
+.vscode/
+.idea/
+*.swp
+
+# Media files (locally uploaded images/videos)
+media/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Compiled or temporary files
+*.log
+*.pot
+*.pyc
+
+# Django static and collected files
+staticfiles/
+static_root/
+*.sqlite3
+
+# Elastic Beanstalk configuration
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+# Coverage and test artifacts
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
