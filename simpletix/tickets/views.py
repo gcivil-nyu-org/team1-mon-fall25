@@ -1,13 +1,10 @@
-from django.shortcuts import get_object_or_404, render, redirect
 from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
 
+from accounts.models import UserProfile
 from events.models import Event
 from .forms import OrderForm
 from .models import Ticket
-from accounts.models import UserProfile
-
-
-# Create your views here.
 
 
 def index(request):
@@ -36,23 +33,28 @@ def order(request, id):
                     ticket_info.availability -= 1
                     ticket_info.save()
 
-                # messages.success(request, "Your ticket has been successfully booked!")
                 return redirect("tickets:ticket_details", id=ticket.id)
-            except Exception as e:
-                # messages.error(request, "An unexpected error occurred. Please try again.")
-                print(e)  # For debugging
+            except Exception as e:  # pragma: no cover (optional)
+                # You may want to log this instead of print in production
+                print(e)
     else:
         # For a GET request, pass the event object to the form
         form = OrderForm(event=event)
 
-    return render(request, "tickets/order.html", {"event": event, "form": form})
+    return render(
+        request,
+        "tickets/order.html",
+        {"event": event, "form": form},
+    )
 
 
 def details(request, id):
     ticket = get_object_or_404(Ticket, id=id)
     event = get_object_or_404(Event, id=ticket.ticketInfo.event.id)
     return render(
-        request, "tickets/ticket_details.html", {"event": event, "ticket": ticket}
+        request,
+        "tickets/ticket_details.html",
+        {"event": event, "ticket": ticket},
     )
 
 
@@ -64,6 +66,7 @@ def ticket_list(request):
     else:
         filtername = "all"
         tickets = Ticket.objects.all()
+
     return render(
         request,
         "tickets/ticket_list.html",

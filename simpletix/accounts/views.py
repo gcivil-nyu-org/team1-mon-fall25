@@ -15,8 +15,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import TemplateView
 from PIL import Image, ImageOps
 
-from .forms import SignupForm, OrganizerProfileForm
-from .models import OrganizerProfile, UserProfile  # ← import role profile
+from .forms import OrganizerProfileForm, SignupForm
+from .models import OrganizerProfile, UserProfile
 
 
 ALLOWED_ROLES = {"organizer", "attendee"}  # guest handled separately
@@ -46,12 +46,6 @@ def _role_default_redirect(request, role: str):
 
 
 class RoleLoginView(auth_views.LoginView):
-    """
-    Login view that remembers intended role and redirects accordingly.
-    If the requested role doesn't match the stored role, we ignore the
-    request and take the user to their stored role's destination.
-    """
-
     template_name = "accounts/login.html"  # keep as you configured
 
     def form_valid(self, form):
@@ -84,10 +78,11 @@ class RoleLoginView(auth_views.LoginView):
         )
 
         if requested != stored:
-            messages.info(
-                self.request,
-                f"You’re signed up as {stored.title()}. Showing the {stored.title()} view.",
+            msg = (
+                f"You’re signed up as {stored.title()}. "
+                f"Showing the {stored.title()} view."
             )
+            messages.info(self.request, msg)
             return _role_default_redirect(self.request, stored)
 
         return _role_default_redirect(self.request, stored)
