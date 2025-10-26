@@ -36,12 +36,12 @@
 
         <div class="mt-4 d-flex justify-content-between">
             <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Back to Events</a>
-            {% if request.session.desired_role == 'organizer' %}
+            {% if request.session.desired_role == 'organizer' and event.organizer.user == user %}
             <div>
                 <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning me-2">Edit Event</a>
                 <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
             </div>
-            {% else %}
+            {% elif request.session.desired_role != 'organizer' %}
                 <a href="{% url 'tickets:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
             {% endif %}
         </div>
