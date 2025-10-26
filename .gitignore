@@ -8,3 +8,4 @@ simpletix/*/__pycache__/*
 
 # migrations
 simpletix/simpletix/migrations/*
+__pycache__/
