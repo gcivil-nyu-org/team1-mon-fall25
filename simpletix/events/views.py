@@ -18,14 +18,14 @@ def custom_login_required(
     login_url=None,
     extra_params=None,
 ):
-    # """
-    # Decorator for views that checks that the user is logged in, redirecting
-    # to the log-in page if necessary. Adds custom query parameters to the
-    # redirect URL.
+    """
+    Decorator for views that checks that the user is logged in, redirecting
+    to the log-in page if necessary. Adds custom query parameters to the
+    redirect URL.
 
-    # Args:
-    #     extra_params (dict): A dictionary of parameters to add to the redirect URL.
-    # """
+    Args:
+        extra_params (dict): A dictionary of parameters to add to the redirect URL.
+    """
 
     def decorator(view_func):
         @wraps(view_func)
