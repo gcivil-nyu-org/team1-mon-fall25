@@ -15,3 +15,28 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
+    
+    @property
+    def date_str(self):
+        return self.date.isoformat() if self.date else None
+
+    @property
+    def time_str(self):
+        return self.time.strftime("%H:%M:%S") if self.time else None
+
+
+class Ticket(models.Model):
+    CATEGORY_CHOICES = [
+        ('general', 'General Admission'),
+        ('vip', 'VIP'),
+        ('earlybird', 'Early Bird'),
+    ]
+    event = models.ForeignKey(Event, related_name='tickets', on_delete=models.CASCADE)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    price = models.DecimalField(max_digits=8, decimal_places=2)
+    availability = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.event.title} - {self.category}"
+
+

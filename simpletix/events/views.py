@@ -11,6 +11,7 @@ from .models import Event
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
 from accounts.models import OrganizerProfile
+from algoliasearch_django import save_record, delete_record 
 
 
 def custom_login_required(view_func=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url=None, extra_params=None):
@@ -93,6 +94,7 @@ def create_event(request):
             event = form.save(commit=False)
             event.organizer = OrganizerProfile.objects.get(user=request.user)
             event.save()
+            save_record(event) # Sync with Algolia
             formset.instance = event
             formset.save()
             messages.success(request, "Event created successfully!")
@@ -118,6 +120,7 @@ def edit_event(request, event_id):
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
         if form.is_valid() and formset.is_valid():
             form.save()
+            save_record(event) # Sync with Algolia
             formset.save()
             messages.success(request, "Event updated successfully!")
             return redirect('events:event_detail', event_id=event.id)
@@ -134,6 +137,7 @@ def edit_event(request, event_id):
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     if request.method == 'POST':
+        delete_record(event)  # Remove from Algolia
         event.delete()
         messages.success(request, "Event deleted successfully!")
         return redirect('events:event_list')

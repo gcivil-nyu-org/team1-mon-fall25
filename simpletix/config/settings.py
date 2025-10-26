@@ -115,6 +115,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.session_flags',
+                'config.context_processors.algolia_settings',
             ],
         },
     },
@@ -171,3 +172,11 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
 # After logout, always go to the Get Started page
 LOGOUT_REDIRECT_URL = "/accounts/start/"
+
+# --- ALGOLIA SETTINGS ---
+ALGOLIA = {
+    "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
+    "API_KEY": os.getenv("ALGOLIA_API_KEY", ""),        # Admin API key for backend sync
+    "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),  # Search-only key for frontend
+    "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
+}
