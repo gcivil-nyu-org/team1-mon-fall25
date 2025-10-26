@@ -16,7 +16,7 @@ from django.views.generic import TemplateView
 from PIL import Image, ImageOps
 
 from .forms import SignupForm, OrganizerProfileForm
-from .models import OrganizerProfile, UserProfile  # ← import role profile
+from .models import OrganizerProfile, UserProfile  # role profile
 
 
 ALLOWED_ROLES = {"organizer", "attendee"}  # guest handled separately
@@ -28,6 +28,10 @@ class GetStartedView(TemplateView):
 
 # ---------- Role-aware redirects ----------
 def _role_default_redirect(request, role: str):
+    """
+    Return a URL (string) to redirect to for a given role.
+    LoginView.get_success_url expects a URL, not an HttpResponse.
+    """
     role = (role or "").lower()
     if role == "organizer":
         # Try organizer dashboard; fall back to events list; then root.
@@ -47,20 +51,28 @@ def _role_default_redirect(request, role: str):
 
 class RoleLoginView(auth_views.LoginView):
     """
-    Login view that remembers intended role and redirects accordingly.
-    If the requested role doesn't match the stored role, we ignore the
-    request and take the user to their stored role's destination.
+    Hardened login:
+    - If a user is already authenticated in this session, log them out first.
+    - After successful login: clear guest / desired_role hints and rotate the session key.
+    - Redirect based on the user's persisted role (never the session-picked hint).
     """
-    template_name = "accounts/login.html"  # keep as you configured
+
+    template_name = "accounts/login.html"
 
     def form_valid(self, form):
-        # Persist chosen role hint (from hub) so templates can read it
-        role = self.request.POST.get("role") or self.request.GET.get("role")
-        if role:
-            self.request.session["desired_role"] = role
-        # Always clear guest on successful login
+        # Guard: avoid cross-role contamination in a shared browser session
+        if self.request.user.is_authenticated:
+            auth_logout(self.request)
+
+        # Let Django authenticate & attach the user to the session
+        response = super().form_valid(form)
+
+        # Clean session hints and rotate key
         self.request.session.pop("guest", None)
-        return super().form_valid(form)
+        self.request.session.pop("desired_role", None)
+        self.request.session.cycle_key()
+
+        return response
 
     def get_success_url(self):
         # Respect a safe ?next=
@@ -70,34 +82,28 @@ class RoleLoginView(auth_views.LoginView):
         ):
             return next_url
 
-        # Compare requested role vs stored role on the user profile
-        requested = (
-            self.request.POST.get("role")
-            or self.request.GET.get("role")
-            or self.request.session.get("desired_role")
-            or "attendee"
-        ).lower()
-
-        stored = getattr(getattr(self.request.user, "uprofile", None), "role", "attendee")
-
-        if requested != stored:
-            messages.info(
-                self.request,
-                f"You’re signed up as {stored.title()}. Showing the {stored.title()} view."
-            )
-            return _role_default_redirect(self.request, stored)
-
+        # Derive role strictly from DB-backed profile
+        stored = getattr(
+            getattr(self.request.user, "uprofile", None), "role", "attendee"
+        )
         return _role_default_redirect(self.request, stored)
 
 
 # ---------- Entry points ----------
 def pick_role(request, role: str):
+    """
+    Store a role hint ONLY for anonymous users.
+    Authenticated users should always follow their persisted role.
+    """
     role = (role or "").lower()
     if role not in ALLOWED_ROLES:
         messages.error(request, "Invalid choice. Please pick Organizer or Attendee.")
         return redirect("accounts:start")
 
-    request.session["desired_role"] = role
+    # Only store a hint for guests/anonymous
+    if not request.user.is_authenticated:
+        request.session["desired_role"] = role
+        request.session.cycle_key()
 
     try:
         login_url = reverse("accounts:login")
@@ -114,7 +120,16 @@ def guest_entry(request):
 
 
 def signup(request):
+    """
+    Create a user, persist chosen role on the profile, and log in safely:
+    - logout any pre-existing authenticated user in this session
+    - clear guest/desired_role hints and rotate the key after login
+    """
     if request.method == "POST":
+        # If someone is already authenticated on this session, reset it first
+        if request.user.is_authenticated:
+            auth_logout(request)
+
         form = SignupForm(request.POST)
         if form.is_valid():
             user = form.save()
@@ -129,24 +144,30 @@ def signup(request):
                 or request.GET.get("role")
                 or request.session.get("desired_role")
                 or "attendee"
-            ).lower()
+            )
+            selected_role = selected_role.lower()
             if selected_role not in ALLOWED_ROLES:
                 selected_role = "attendee"
 
-            # Store the role on the persistent profile
+            # Persist the role
             uprof.role = selected_role
             uprof.save()
 
-            # Log in, clear guest, keep the hint for templates
+            # Log in the new user
             auth_login(request, user)
+
+            # Clean hints & rotate session key
             request.session.pop("guest", None)
-            request.session["desired_role"] = selected_role
+            request.session.pop("desired_role", None)
+            request.session.cycle_key()
 
             messages.success(request, "Account created. Welcome to SimpleTix!")
 
-            # Redirect preference: ?next= if safe, else role default
+            # Redirect preference: safe ?next= else role default
             next_url = request.GET.get("next") or request.POST.get("next")
-            if next_url:
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url, allowed_hosts={request.get_host()}
+            ):
                 return redirect(next_url)
             return redirect(_role_default_redirect(request, selected_role))
     else:
@@ -210,9 +231,10 @@ def profile_edit(request):
 # ---------- Logout ----------
 def logout_then_home(request):
     auth_logout(request)
-    # Clean session flags on logout
+    # Clean session flags on logout and rotate
     request.session.pop("guest", None)
     request.session.pop("desired_role", None)
+    request.session.cycle_key()
     return redirect(getattr(settings, "LOGOUT_REDIRECT_URL", "/"))
 
 
