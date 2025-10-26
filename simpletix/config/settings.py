@@ -174,9 +174,15 @@ LOGIN_REDIRECT_URL = '/'     # where to send users if ?next isn’t provided
 LOGOUT_REDIRECT_URL = "/accounts/start/"
 
 # --- ALGOLIA SETTINGS ---
-ALGOLIA = {
-    "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
-    "API_KEY": os.getenv("ALGOLIA_API_KEY", ""),        # Admin API key for backend sync
-    "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),  # Search-only key for frontend
-    "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
-}
+
+
+if ENVIRONMENT in ["production", "development"]:
+    ALGOLIA = get_secret(os.getenv("ALGOLIA_SECRETS_NAME"))
+else:
+    ALGOLIA = {
+        "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
+        "API_KEY": os.getenv("ALGOLIA_API_KEY", ""),
+        "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
+        "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
+    }
+
