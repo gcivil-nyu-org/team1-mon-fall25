@@ -6,6 +6,9 @@ python: "3.12"
 services:
   - postgresql
 
+addons:
+  postgresql: "14"
+
 env:
   global:
     - DJANGO_SETTINGS_MODULE=config.settings
