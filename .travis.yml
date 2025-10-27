@@ -1,7 +1,7 @@
 # .travis.yml
 dist: focal
 language: python
-python: "3.11"
+python: "3.12"
 
 cache: pip
 
@@ -13,7 +13,6 @@ branches:
 env:
   global:
     # Set this in Travis repo settings > Environment Variables
-    # - COVERALLS_REPO_TOKEN=<your-token>
     - DJANGO_SETTINGS_MODULE=config.settings
     - PYTHONWARNINGS=ignore
 
