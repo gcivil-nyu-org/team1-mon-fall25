@@ -1,5 +1,5 @@
 # .travis.yml
-dist: focal
+dist: jammy
 language: python
 python: "3.12"
 
@@ -26,6 +26,7 @@ install:
 
 before_script:
   # Create DB and run migrations
+  - sudo service postgresql start
   - psql -c "CREATE DATABASE $POSTGRES_DB;" -U $POSTGRES_USER
   - python manage.py migrate --noinput
 
