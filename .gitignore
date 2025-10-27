@@ -35,8 +35,13 @@ static_root/
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
+# Migrations
+simpletix/simpletix/migrations/*
+
 # Coverage and test artifacts
-htmlcov/
 .coverage
+.coverage.*
+htmlcov/
+coverage.xml
 .tox/
-.pytest_cache/.DS_Store
+.pytest_cache/
