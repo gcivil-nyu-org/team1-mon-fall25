@@ -61,7 +61,7 @@ def details(request, id):
 def ticket_list(request):
     if request.session.get("desired_role") == "attendee":
         attendee = UserProfile.objects.get(user=request.user)
-        filtername = attendee.user
+        filtername = str(attendee.user)
         tickets = Ticket.objects.filter(attendee=attendee)
     else:
         filtername = "all"
