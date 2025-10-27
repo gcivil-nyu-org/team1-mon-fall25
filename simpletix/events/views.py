@@ -154,12 +154,9 @@ def edit_event(request, event_id):
 @organizer_owns_event
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-<<<<<<< HEAD
+
     if request.method == 'POST':
         delete_record(event)  # Remove from Algolia
-=======
-    if request.method == "POST":
->>>>>>> develop
         event.delete()
         messages.success(request, "Event deleted successfully!")
         return redirect("events:event_list")
