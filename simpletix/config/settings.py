@@ -177,7 +177,16 @@ LOGOUT_REDIRECT_URL = "/accounts/start/"
 # --- ALGOLIA SETTINGS ---
 
 
-if ENVIRONMENT in ["production", "development"]:
+# --- ALGOLIA SETTINGS ---
+if os.getenv("CI", "false").lower() == "true":
+    # Disable Algolia in CI builds
+    ALGOLIA = {
+        "APPLICATION_ID": "dummy",
+        "API_KEY": "dummy",
+        "SEARCH_KEY": "dummy",
+        "INDEX_PREFIX": "ci-test",
+    }
+elif ENVIRONMENT in ["production", "development"]:
     ALGOLIA = get_secret(os.getenv("ALGOLIA_SECRETS_NAME"))
 else:
     ALGOLIA = {
@@ -186,4 +195,5 @@ else:
         "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
+
 
