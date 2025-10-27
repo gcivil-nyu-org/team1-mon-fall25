@@ -10,7 +10,7 @@ env:
   global:
     - DJANGO_SETTINGS_MODULE=config.settings
     - PYTHONWARNINGS=ignore
-    - POSTGRES_DB=test_db
+    - POSTGRES_DB=simpletix
     - POSTGRES_USER=postgres
     - POSTGRES_PASSWORD=   # can be empty for CI
 
