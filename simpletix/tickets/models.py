@@ -45,4 +45,8 @@ class Ticket(models.Model):
     phone = models.CharField(max_length=30, blank=True)
 
     def __str__(self):
-        return f"{self.ticketInfo.event.title} - {self.ticketInfo.category} - {self.attendee.user}"
+        return (
+            f"{self.ticketInfo.event.title} - "
+            f"{self.ticketInfo.category} - "
+            f"{self.attendee.user}"
+        )
