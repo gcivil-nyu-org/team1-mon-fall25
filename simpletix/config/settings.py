@@ -75,7 +75,6 @@ ALLOWED_HOSTS = [
     "172.31.0.0/16",
 ]
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -129,7 +128,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation."
+        "UserAttributeSimilarityValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -169,6 +169,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/"  # where to send users if ?next isn’t provided
-# After logout, always go to the Get Started page
+LOGIN_REDIRECT_URL = "/"
+# Where to send users if ?next isn't provided.
 LOGOUT_REDIRECT_URL = "/accounts/start/"

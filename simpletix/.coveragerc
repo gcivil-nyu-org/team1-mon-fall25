@@ -6,8 +6,10 @@ omit =
     manage.py
     config/asgi.py
     config/wsgi.py
-    config/settings/*
+    config/settings.py
+    config/urls.py 
     */__init__.py
+    
 
 [report]
 show_missing = True

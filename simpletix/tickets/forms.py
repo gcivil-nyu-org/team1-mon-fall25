@@ -1,8 +1,8 @@
 from django import forms
-from events.models import Event
 from django.forms import inlineformset_factory
 
-from .models import TicketInfo, Ticket
+from events.models import Event
+from .models import Ticket, TicketInfo
 
 
 class TicketInfoForm(forms.ModelForm):
@@ -57,14 +57,12 @@ class OrderForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if event:
-            # Filter the queryset to only include tickets for this event
-            # with availability greater than zero.
-            available_tickets = TicketInfo.objects.filter(
-                event=event, availability__gt=0
-            )
-            self.fields["ticketInfo"].queryset = available_tickets
+            # Only include tickets for this event with availability > 0.
+            available = TicketInfo.objects.filter(event=event, availability__gt=0)
+            self.fields["ticketInfo"].queryset = available
 
-            # Customize the label for each choice in the dropdown
+            # Pretty dropdown labels, wrapped to stay under 88 chars.
             self.fields["ticketInfo"].label_from_instance = lambda obj: (
-                f"{obj.get_category_display()} (${obj.price}) - {obj.availability} available"
+                f"{obj.get_category_display()} (${obj.price}) - "
+                f"{obj.availability} available"
             )
