@@ -1,0 +1,45 @@
+# .travis.yml
+dist: focal
+language: python
+python: "3.11"
+
+cache: pip
+
+branches:
+  only:
+    - main
+    - develop
+
+env:
+  global:
+    # Set this in Travis repo settings > Environment Variables
+    # - COVERALLS_REPO_TOKEN=<your-token>
+    - DJANGO_SETTINGS_MODULE=config.settings
+    - PYTHONWARNINGS=ignore
+
+install:
+  - pip install --upgrade pip
+  - pip install -r requirements-dev.txt
+
+before_script:
+  - python manage.py migrate --noinput
+
+script:
+  # Code style & lint
+  - black --check .
+  - flake8 .
+  # Tests + coverage (pytest.ini carries the cov/threshold)
+  - pytest
+
+after_success:
+  - coveralls
+
+# --- Optional: CD stages (uncomment + edit for your AWS) ---
+# jobs:
+#   include:
+#     - stage: deploy
+#       if: branch = develop AND type != pull_request
+#       script: ./scripts/deploy_integration.sh
+#     - stage: deploy
+#       if: branch = main AND type != pull_request
+#       script: ./scripts/deploy_production.sh

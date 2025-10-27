@@ -8,3 +8,10 @@ simpletix/*/__pycache__/*
 
 # migrations
 simpletix/simpletix/migrations/*
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
