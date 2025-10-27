@@ -1,0 +1,29 @@
+language: python
+python:
+  - "3.11"
+
+services:
+  - postgresql
+
+env:
+  global:
+    - DJANGO_SETTINGS_MODULE=team1monfall25.settings
+    - DATABASE_URL=postgres://postgres@localhost/travis_ci_test
+
+install:
+  - pip install -r requirements.txt
+  - pip install pytest pytest-django pytest-cov flake8 black coverage coveralls
+
+before_script:
+  - psql -c 'create database travis_ci_test;' -U postgres
+
+script:
+  # 1️⃣ Lint checks
+  - black . --check
+  - flake8 .
+
+  # 2️⃣ Run tests with coverage (fail if coverage <90%)
+  - pytest --cov=events --cov-report=term-missing --cov-fail-under=90
+
+after_success:
+  - coveralls
