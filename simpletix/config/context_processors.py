@@ -1,5 +1,6 @@
 from django.conf import settings
 
+
 def algolia_settings(request):
     return {
         "ALGOLIA_APP_ID": settings.ALGOLIA.get("APPLICATION_ID", ""),
