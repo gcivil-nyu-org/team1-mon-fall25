@@ -1,0 +1,4 @@
+[flake8]
+exclude = .git,__pycache__,migrations,venv,.venv
+max-line-length = 100
+ignore = F401,F811

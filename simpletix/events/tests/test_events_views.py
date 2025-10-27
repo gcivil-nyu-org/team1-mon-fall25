@@ -3,12 +3,14 @@ from django.urls import reverse
 from events.models import Event
 from django.utils import timezone
 
+
 @pytest.mark.django_db
 def test_event_list_view(client):
     url = reverse("events:event_list")
     response = client.get(url)
     assert response.status_code == 200
     assert "Upcoming Events" in response.content.decode()
+
 
 @pytest.mark.django_db
 def test_event_detail_view(client):

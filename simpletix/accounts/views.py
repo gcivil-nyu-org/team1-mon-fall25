@@ -51,6 +51,7 @@ class RoleLoginView(auth_views.LoginView):
     If the requested role doesn't match the stored role, we ignore the
     request and take the user to their stored role's destination.
     """
+
     template_name = "accounts/login.html"  # keep as you configured
 
     def form_valid(self, form):
@@ -78,12 +79,14 @@ class RoleLoginView(auth_views.LoginView):
             or "attendee"
         ).lower()
 
-        stored = getattr(getattr(self.request.user, "uprofile", None), "role", "attendee")
+        stored = getattr(
+            getattr(self.request.user, "uprofile", None), "role", "attendee"
+        )
 
         if requested != stored:
             messages.info(
                 self.request,
-                f"You’re signed up as {stored.title()}. Showing the {stored.title()} view."
+                f"You’re signed up as {stored.title()}. Showing the {stored.title()} view.",
             )
             return _role_default_redirect(self.request, stored)
 

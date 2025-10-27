@@ -2,6 +2,7 @@ import pytest
 from events.models import Event
 from django.utils import timezone
 
+
 @pytest.mark.django_db
 def test_event_creation():
     event = Event.objects.create(
