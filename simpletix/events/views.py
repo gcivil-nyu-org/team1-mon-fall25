@@ -10,7 +10,17 @@ from .models import Event
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
 from accounts.models import OrganizerProfile
-from algoliasearch_django import save_record, delete_record
+
+# Only import Algolia if not running in CI
+if not os.environ.get("CI"):
+    from algoliasearch_django import save_record, delete_record
+else:
+    # Define no-op versions for CI
+    def save_record(instance):
+        return None
+
+    def delete_record(instance):
+        return None
 
 
 def custom_login_required(
