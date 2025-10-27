@@ -12,7 +12,7 @@ env:
     - PYTHONWARNINGS=ignore
     - POSTGRES_DB=simpletix
     - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=   # can be empty for CI
+    - POSTGRES_PASSWORD=  # can be empty for CI
 
 before_install:
   - cd simpletix
