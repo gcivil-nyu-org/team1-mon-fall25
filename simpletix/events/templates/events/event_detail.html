@@ -1,0 +1,50 @@
+{% extends 'events/base.html' %}
+
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg">
+    {% if event.banner %}
+        <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}">
+    {% endif %}
+    <div class="card-body">
+        <h2 class="card-title">{{ event.title }}</h2>
+        <p class="text-muted">{{ event.date }} at {{ event.time }}</p>
+        <p><strong>Location:</strong> {{ event.location }}</p>
+        <p class="mt-3">{{ event.description }}</p>
+
+        {% if event.video %}
+        <div class="mt-3">
+            <video width="100%" controls>
+                <source src="{{ event.video.url }}">
+            </video>
+        </div>
+        {% endif %}
+
+        <h4 class="mt-4">Tickets</h4>
+        <table class="table table-hover">
+            <tbody>
+                {% for ticket in event.ticketInfo.all %}
+                <tr>
+                    <td>{{ ticket.get_category_display }}</td>
+                    <td>{{ ticket.price }}</td>
+                    <td>{{ ticket.availability }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="mt-4 d-flex justify-content-between">
+            <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Back to Events</a>
+            {% if request.session.desired_role == 'organizer' and event.organizer.user == user %}
+            <div>
+                <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning me-2">Edit Event</a>
+                <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
+            </div>
+            {% elif request.session.desired_role != 'organizer' %}
+                <a href="{% url 'tickets:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

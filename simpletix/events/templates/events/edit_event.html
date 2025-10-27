@@ -1,0 +1,74 @@
+{% extends 'events/base.html' %}
+
+{% block title %}
+    {% if event %}Edit Event{% else %}Create Event{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg p-4">
+    <h2 class="mb-4">
+        {% if event %}
+            Edit Event: <span class="text-primary">{{ event.title }}</span>
+        {% else %}
+            Create New Event
+        {% endif %}
+    </h2>
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-4">
+            {{ form.as_p }}
+        </div>
+
+        <h4 class="mt-4 mb-3">Tickets</h4>
+        {{ formset.management_form }}
+
+        <table class="table table-hover">
+        <thead class="thead-light">
+            <tr>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Availability</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket_form in formset %}
+            <tr>
+                {{ ticket_form.id }}
+                {{ ticket_form.category }}
+                <td class="align-middle">
+                <label for="{{ form.price.id_for_label }}">{{ ticket_form.instance.category }}</label>
+                </td>
+                <td>
+                {{ ticket_form.price }}
+                {% if ticket_form.price.errors %}<div class="text-danger small">{{ ticket_form.price.errors }}</div>{% endif %}
+                </td>
+                <td>
+                {{ ticket_form.availability }}
+                {% if ticket_form.availability.errors %}<div class="text-danger small">{{ ticket_form.availability.errors }}</div>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+        <!-- ✅ Aligned buttons -->
+        <div class="d-flex justify-content-between mt-4">
+            <button type="submit" class="btn btn-primary">
+                {% if event %}Save Changes{% else %}Create Event{% endif %}
+            </button>
+
+            {% if event %}
+                <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
+            {% else %}
+                <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

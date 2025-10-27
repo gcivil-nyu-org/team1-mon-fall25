@@ -1,0 +1,17 @@
+# Ignore environment variables
+.env
+.temp
+
+# pycache files
+simpletix/*/__pycache__/*
+*.pyc
+
+# migrations
+simpletix/simpletix/migrations/*
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+

@@ -1,0 +1,82 @@
+{% extends "simpletix/nav.html" %}
+{% load static %}
+
+{% block title %}Homepage • SimpleTix{% endblock %}
+
+{% block body %}
+  <!-- HERO (static, CSS-only) -->
+  <section class="home-hero-card">
+    <div class="hero-media" style="--hero-url: url('{% static "simpletix/images/hero2.jpg" %}');">
+      <div class="hero-overlay"></div>
+      <div class="hero-content container">
+        <h4 class="hero-title">
+          This season, make it a <span class="aria">moment</span>
+        </h4>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIES (simple links, ring style) -->
+  <section class="container py-4">
+    <div class="cat-grid">
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">🎃</span></span>
+        <span class="lbl">Halloween</span>
+      </a>
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">🎵</span></span>
+        <span class="lbl">Music</span>
+      </a>
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">🌙</span></span>
+        <span class="lbl">Nightlife</span>
+      </a>
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">🎭</span></span>
+        <span class="lbl">Arts</span>
+      </a>
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">💻</span></span>
+        <span class="lbl">Tech</span>
+      </a>
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">🎮</span></span>
+        <span class="lbl">Esports</span>
+      </a>
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">🏃‍♀️</span></span>
+        <span class="lbl">Sports</span>
+      </a>
+      <a href="{% url 'events:event_list' %}" class="cat">
+        <span class="ring"><span class="ico">🍸</span></span>
+        <span class="lbl">Food & Drink</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- POPULAR (kept as simple links, just prettier cards) -->
+  <section class="container py-5">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h4 mb-0">Popular near you</h2>
+      <a href="{% url 'events:event_list' %}" class="link-primary">View all</a>
+    </div>
+
+    <div class="row g-4">
+      {% for i in "1234" %}
+      <div class="col-12 col-sm-6 col-lg-3">
+        <a class="ev-card" href="{% url 'events:event_list' %}">
+          <div class="ev-thumb t{{ forloop.counter }}"></div>
+          <div class="ev-body">
+            <div class="ev-title">
+              {% if forloop.counter == 1 %}TechFest NYC 2025{% elif forloop.counter == 2 %}Late Night Laughs{% elif forloop.counter == 3 %}City Marathon 10K{% else %}Indie Music Night{% endif %}
+            </div>
+            <div class="ev-meta">
+              {% if forloop.counter == 1 %}Thu • Javits Center{% elif forloop.counter == 2 %}Fri • Irving Plaza{% elif forloop.counter == 3 %}Sun • Central Park{% else %}Sat • Brooklyn Steel{% endif %}
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

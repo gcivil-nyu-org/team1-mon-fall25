@@ -1,0 +1,21 @@
+{% extends "registration/base.html" %}
+{% block title %}Log in · SimpleTix{% endblock %}
+{% block content %}
+  <div class="card">
+    <h1>Log in</h1>
+    <form method="post" action="{% url 'accounts:login' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.GET.next|default:'/' }}">
+      {{ form.non_field_errors }}
+      <div class="row">
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+      </div>
+      <div class="row">
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+      </div>
+      <button class="btn btn-primary" type="submit">Log in</button>
+    </form>
+  </div>
+{% endblock %}

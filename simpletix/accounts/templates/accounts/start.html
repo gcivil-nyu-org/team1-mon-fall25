@@ -1,0 +1,263 @@
+{% extends "registration/base.html" %}
+{% load static %}
+
+{% block title %}Get Started • SimpleTix{% endblock %}
+
+{% block content %}
+  <!-- Decorative Background (no interaction) -->
+  <div class="ui-bg" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+    <span class="dots"></span>
+    <span class="glow"></span>
+  </div>
+  <div class="py-3 position-relative on-dark">
+    <h1 class="mb-2">Get Started</h1>
+    <p class="text-muted mb-4">Choose how you want to continue.</p>
+
+    <div class="row justify-content-center g-4">
+      <!-- Single Role-Toggle Card -->
+      <div class="col-12 col-md-8 col-lg-6">
+        <div class="card card-glass shadow-xl border-0 rounded-4 card-animate">
+          <div class="card-body p-4 p-md-5">
+            <!-- Role Toggle Header -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                <h5 class="card-title mb-1">Choose your role</h5>
+                <div id="role-desc" class="text-muted small">
+                  Manage events, venues, and ticketing.
+                </div>
+              </div>
+              <span class="badge text-bg-light fw-semibold">SimpleTix</span>
+            </div>
+
+            <!-- Toggle Buttons -->
+            <div class="btn-group w-100 mb-4" role="tablist" aria-label="Choose role">
+              <button type="button"
+                      class="btn btn-outline-primary toggle-chip active"
+                      data-role="organizer"
+                      aria-pressed="true">
+                🧑‍💼 Organizer
+              </button>
+              <button type="button"
+                      class="btn btn-outline-primary toggle-chip"
+                      data-role="attendee"
+                      aria-pressed="false">
+                🎟️ Attendee
+              </button>
+            </div>
+
+            <!-- Primary Actions -->
+            <div class="d-grid gap-2 d-sm-flex">
+              <!-- Defaults to organizer; JS swaps ?role=... -->
+              <a id="btn-login"
+                 class="btn btn-success btn-lg px-4 btn-soft"
+                 href="{% url 'accounts:login' %}?role=organizer">
+                Log in
+              </a>
+              <a id="btn-signup"
+                 class="btn btn-outline-secondary btn-lg px-4 btn-soft"
+                 href="{% url 'accounts:signup' %}?role=organizer">
+                Create account
+              </a>
+            </div>
+
+            <!-- Divider -->
+            <div class="text-center my-4">
+              <span class="text-muted small">or</span>
+            </div>
+
+            <!-- Guest CTA (unchanged) -->
+            <div class="d-grid">
+              <a class="btn btn-secondary btn-lg btn-soft" href="{% url 'accounts:guest_entry' %}">
+                Continue as Guest
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-center text-muted mt-3 mb-0 small">
+          You can switch roles anytime from your profile.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Minimal JS to toggle role and keep your ?role=... contract -->
+  <script>
+    (function () {
+      const roleCopy = {
+        organizer: "Manage events, venues, and ticketing.",
+        attendee:  "Discover events and save favorites."
+      };
+
+      const $roleButtons = Array.from(document.querySelectorAll('[data-role]'));
+      const $desc  = document.getElementById('role-desc');
+      const $login = document.getElementById('btn-login');
+      const $signup = document.getElementById('btn-signup');
+
+      let current = localStorage.getItem('simpletix.role') || 'organizer';
+      applyRole(current);
+
+      $roleButtons.forEach(btn => {
+        btn.addEventListener('click', () => applyRole(btn.dataset.role));
+      });
+
+      function applyRole(role) {
+        if (!roleCopy[role]) return;
+
+        // visual/ARIA
+        $roleButtons.forEach(b => {
+          const isActive = b.dataset.role === role;
+          b.classList.toggle('active', isActive);
+          b.setAttribute('aria-pressed', String(isActive));
+        });
+
+        // description
+        $desc.textContent = roleCopy[role];
+
+        // swap ?role=... while preserving routes
+        const stripRole = (href) =>
+          href.replace(/([\?&])role=(organizer|attendee)&?/,'$1')
+              .replace(/[?&]$/,'');
+        const loginBase  = stripRole($login.getAttribute('href'));
+        const signupBase = stripRole($signup.getAttribute('href'));
+        const s1 = loginBase.includes('?')  ? '&' : '?';
+        const s2 = signupBase.includes('?') ? '&' : '?';
+        $login.setAttribute('href',  loginBase  + s1 + 'role=' + role);
+        $signup.setAttribute('href', signupBase + s2 + 'role=' + role);
+
+        localStorage.setItem('simpletix.role', role);
+      }
+    })();
+  </script>
+
+  <!-- Modern look & motion (lightweight, accessible) -->
+  <style>
+    /* ---------- Background Layer ---------- */
+    .ui-bg{
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(117, 64, 238, .08), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(0, 180, 255, .08), transparent 60%),
+        linear-gradient(180deg, #f8fbff 0%, #f7f5ff 100%);
+    }
+    .ui-bg .blob{
+      position: absolute;
+      width: 42vmax;
+      height: 42vmax;
+      filter: blur(28px);
+      opacity: .45;
+      border-radius: 50%;
+      transform: translate3d(0,0,0);
+      animation: floaty 18s ease-in-out infinite alternate;
+    }
+    .ui-bg .b1{ background: radial-gradient(circle at 30% 30%, #8b5cf6 0%, #6d28d9 55%, transparent 60%);
+               top: -12vmax; left: -8vmax; animation-delay: -2s; }
+    .ui-bg .b2{ background: radial-gradient(circle at 60% 40%, #22c55e 0%, #10b981 55%, transparent 60%);
+               bottom: -10vmax; right: -6vmax; animation-delay: -6s; }
+    .ui-bg .b3{ background: radial-gradient(circle at 40% 60%, #38bdf8 0%, #0ea5e9 55%, transparent 60%);
+               top: 30%; left: 65%; width: 34vmax; height: 34vmax; animation-delay: -10s; }
+
+    .ui-bg .dots{
+      position: absolute;
+      inset: 0;
+      opacity: .25;
+      background-image:
+        radial-gradient(currentColor 1px, transparent 1.5px);
+      background-size: 18px 18px;
+      color: #cad3ff;
+      mask-image: radial-gradient(60% 60% at 50% 40%, #000 0%, transparent 80%);
+    }
+    .ui-bg .glow{
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(1000px 480px at 50% 0%, rgba(255,255,255,.9), rgba(255,255,255,0) 70%);
+      mix-blend-mode: screen;
+      opacity: .7;
+    }
+
+    @keyframes floaty{
+      0%   { transform: translate3d(0,0,0) rotate(0deg); }
+      100% { transform: translate3d(0,-20px,0) rotate(8deg); }
+    }
+
+    /* ---------- Card: Glass look ---------- */
+    .card-glass{
+      position: relative;
+      z-index: 1;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(255,255,255,.45);
+      box-shadow:
+        0 15px 40px rgba(24, 39, 75, .12),
+        0 3px 10px rgba(24, 39, 75, .06);
+      backdrop-filter: blur(12px) saturate(135%);
+    }
+
+    /* Entrance animation */
+    .card-animate{ animation: pop .45s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes pop{
+      0%{ transform: translateY(12px) scale(.98); opacity: 0; }
+      100%{ transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    /* Toggle "chip" buttons */
+    .toggle-chip{
+      border-width: 2px;
+      transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease;
+      border-radius: 14px;
+      padding: .55rem .9rem;
+      font-weight: 600;
+    }
+    .toggle-chip.active{
+      box-shadow: 0 6px 18px rgba(37, 99, 235, .25);
+      transform: translateY(-1px);
+      background: #0d6efd; /* uses bootstrap primary tone */
+      color: #fff;
+      border-color: #0d6efd;
+    }
+
+    /* Soft buttons micro-interaction */
+    .btn-soft{
+      transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
+      will-change: transform;
+    }
+    .btn-soft:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(16,24,40,.12);
+    }
+    .btn-soft:active{
+      transform: translateY(0);
+      box-shadow: 0 4px 10px rgba(16,24,40,.12);
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .card-animate, .ui-bg .blob{ animation: none !important; }
+      *{ scroll-behavior: auto !important; }
+    }
+
+    /* Optional dark mode polish */
+    @media (prefers-color-scheme: dark){
+      .card-glass{
+        background: rgba(20,20,24,.55);
+        border-color: rgba(255,255,255,.08);
+        box-shadow:
+          0 15px 40px rgba(0,0,0,.35),
+          0 3px 10px rgba(0,0,0,.25);
+      }
+      .ui-bg{
+        background:
+          radial-gradient(1200px 600px at 10% -10%, rgba(117, 64, 238, .18), transparent 60%),
+          radial-gradient(900px 500px at 110% 10%, rgba(0, 180, 255, .15), transparent 60%),
+          linear-gradient(180deg, #0b0b10 0%, #0f1220 100%);
+      }
+      .ui-bg .dots{ color: #28304a; }
+    }
+  </style>
+{% endblock %}
