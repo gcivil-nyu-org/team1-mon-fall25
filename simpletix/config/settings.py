@@ -115,6 +115,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.session_flags",
+                "config.context_processors.algolia_settings",
             ],
         },
     },
@@ -172,3 +173,26 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 # Where to send users if ?next isn't provided.
 LOGOUT_REDIRECT_URL = "/accounts/start/"
+
+# --- ALGOLIA SETTINGS ---
+
+
+# --- ALGOLIA SETTINGS ---
+if os.getenv("CI", "false").lower() == "true":
+    # Disable Algolia entirely in CI builds
+    ALGOLIA = {
+        "APPLICATION_ID": "",
+        "API_KEY": "",
+        "SEARCH_KEY": "",
+        "INDEX_PREFIX": "ci-skip",
+    }
+    ALGOLIA_ENABLED = False
+elif ENVIRONMENT in ["production", "development"]:
+    ALGOLIA = get_secret(os.getenv("ALGOLIA_SECRETS_NAME"))
+else:
+    ALGOLIA = {
+        "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
+        "API_KEY": os.getenv("ALGOLIA_API_KEY", ""),
+        "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
+        "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
+    }
