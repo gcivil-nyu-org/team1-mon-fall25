@@ -15,9 +15,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import TemplateView
 from PIL import Image, ImageOps
 
-from .forms import SignupForm, OrganizerProfileForm
-from .models import OrganizerProfile, UserProfile  # ← import role profile
-
+from .forms import OrganizerProfileForm, SignupForm
+from .models import OrganizerProfile, UserProfile
 
 ALLOWED_ROLES = {"organizer", "attendee"}  # guest handled separately
 
@@ -52,7 +51,7 @@ class RoleLoginView(auth_views.LoginView):
     request and take the user to their stored role's destination.
     """
 
-    template_name = "accounts/login.html"  # keep as you configured
+    template_name = "accounts/login.html"
 
     def form_valid(self, form):
         # Persist chosen role hint (from hub) so templates can read it
@@ -84,10 +83,11 @@ class RoleLoginView(auth_views.LoginView):
         )
 
         if requested != stored:
-            messages.info(
-                self.request,
-                f"You’re signed up as {stored.title()}. Showing the {stored.title()} view.",
+            msg = (
+                f"You’re signed up as {stored.title()}. "
+                f"Showing the {stored.title()} view."
             )
+            messages.info(self.request, msg)
             return _role_default_redirect(self.request, stored)
 
         return _role_default_redirect(self.request, stored)
@@ -162,12 +162,8 @@ def signup(request):
     )
 
 
-# ---------- (Optional) image util; kept for future use ----------
+# ---------- (Optional) image util ----------
 def _to_jpeg_rgb(uploaded_file) -> InMemoryUploadedFile:
-    """
-    Convert an uploaded image (possibly RGBA/Palette) to RGB JPEG in-memory.
-    Returns an InMemoryUploadedFile suitable for assigning to an ImageField.
-    """
     uploaded_file.seek(0)
     img = Image.open(uploaded_file)
     img = ImageOps.exif_transpose(img)
@@ -196,7 +192,7 @@ def profile_edit(request):
     if request.method == "POST":
         form = OrganizerProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
-            form.save()  # OrganizerProfileForm normalizes images
+            form.save()
             messages.success(request, "Profile updated successfully.")
             next_url = request.POST.get("next") or request.GET.get("next") or "/"
             return redirect(next_url)
@@ -213,7 +209,6 @@ def profile_edit(request):
 # ---------- Logout ----------
 def logout_then_home(request):
     auth_logout(request)
-    # Clean session flags on logout
     request.session.pop("guest", None)
     request.session.pop("desired_role", None)
     return redirect(getattr(settings, "LOGOUT_REDIRECT_URL", "/"))
@@ -221,7 +216,6 @@ def logout_then_home(request):
 
 # ---------- Hub ----------
 def start(request):
-    # Clear any queued messages so the hub looks clean on refresh
     for _ in messages.get_messages(request):
         pass
     return render(request, "accounts/start.html")

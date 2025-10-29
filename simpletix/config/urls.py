@@ -22,10 +22,6 @@ from django.conf.urls.static import static
 from django.conf import settings
 from config.health import health_check
 
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-
 urlpatterns = [
     path("", include("simpletix.urls")),
     path("health/", health_check, name="health_check"),
