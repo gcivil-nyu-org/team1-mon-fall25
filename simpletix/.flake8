@@ -1,8 +1,7 @@
 [flake8]
-exclude = .git,__pycache__,migrations,venv,.venv
-max-line-length = 100
-ignore = F401,F811
 max-line-length = 88
-extend-ignore = E203, W503
+ignore = F401,F811
+extend-ignore = E203,W503
 exclude = .git,__pycache__,*/migrations/*,venv,.venv
-per-file-ignores = accounts/tests/*: E501
+per-file-ignores = 
+    accounts/tests/*:E501
