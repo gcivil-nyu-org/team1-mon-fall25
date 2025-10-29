@@ -18,11 +18,6 @@ from config.secrets import get_secret
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-
 # Load Env vars + get Database Secrets
 load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
@@ -45,8 +40,6 @@ else:
     }
 
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -58,8 +51,7 @@ DATABASES = {
     }
 }
 
-
-# SECURITY WARNING: don't run with debug turned on in production!
+# Security / Debug
 if ENVIRONMENT == "production":
     DEBUG = False
 elif ENVIRONMENT == "development":
@@ -71,13 +63,11 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "simpletix-dev.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
-    "simpletix-prod.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
+    ("simpletix-prod." "eba-fygzzpfp.us-east-1.elasticbeanstalk.com"),
     "172.31.0.0/16",
 ]
 
-
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -123,52 +113,56 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-
 # Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        ),
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": ("django.contrib.auth.password_validation." "MinimumLengthValidator"),
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": ("django.contrib.auth.password_validation." "CommonPasswordValidator"),
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": ("django.contrib.auth.password_validation." "NumericPasswordValidator"),
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# Static & Media
 STATIC_URL = "/static/"
 STATIC_ROOT = "/var/www/simpletix/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Default primary key field type
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Authentication redirects
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"  # where to send users if ?next isn’t provided
-# After logout, always go to the Get Started page
-LOGOUT_REDIRECT_URL = "/accounts/start/"
+LOGOUT_REDIRECT_URL = "/accounts/start/"  # After logout, go to Get Started
+
+# Algolia Search
+ALGOLIA = {
+    "APPLICATION_ID": os.getenv(
+        "ALGOLIA_APP_ID",
+        "dummy",
+    ),
+    "API_KEY": os.getenv(
+        "ALGOLIA_API_KEY",
+        "dummy",
+    ),
+    "INDEX_PREFIX": "simpletix_",  # optional
+}

@@ -66,5 +66,6 @@ class OrderForm(forms.ModelForm):
 
             # Customize the label for each choice in the dropdown
             self.fields["ticketInfo"].label_from_instance = lambda obj: (
-                f"{obj.get_category_display()} (${obj.price}) - {obj.availability} available"
+                f"{obj.get_category_display()} (${obj.price}) - "
+                f"{obj.availability} available"
             )
