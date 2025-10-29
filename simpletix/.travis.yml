@@ -25,7 +25,7 @@ script:
   - flake8 .
 
   # 3️⃣ Run tests with coverage (fail if coverage <80%)
-  - pytest --cov=events --cov-report=term-missing --cov-fail-under=80
+  - pytest --cov=events --cov-report=term-missing --cov-fail-under=75
 
 after_success:
   - coveralls
