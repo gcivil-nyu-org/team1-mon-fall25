@@ -4,6 +4,7 @@
 !.elasticbeanstalk/*.global.yml
 
 # Environment variables
+.temp
 .env
 venv/
 env/
