@@ -1,5 +1,5 @@
 from django.db import models
-
+import uuid
 from events.models import Event
 from accounts.models import OrganizerProfile, UserProfile
 
@@ -43,7 +43,35 @@ class Ticket(models.Model):
     full_name = models.CharField(max_length=120, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
+    order_id = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text="Group tickets that belong to the same checkout/payment.",
+    )
+    status = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="PENDING / ISSUED / USED. Left null for legacy tickets.",
+    )
+    qr_code = models.CharField(
+        max_length=160,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text="QR payload or unique ticket code.",
+    )
+    issued_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         t_info = self.ticketInfo
         return f"{t_info.event.title} - {t_info.category} - {self.attendee.user}"
+    
+    def ensure_qr(self):
+        """
+        Helper: generate a QR/code only if missing.
+        Safe to call from views/services without breaking old tickets.
+        """
+        if not self.qr_code:
+            self.qr_code = f"TCKT-{uuid.uuid4().hex}"
