@@ -1,5 +1,6 @@
 # accounts/context_processors.py
 
+
 def session_flags(request):
     """
     Injects session-based flags into every template:

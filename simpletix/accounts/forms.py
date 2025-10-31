@@ -44,9 +44,15 @@ class OrganizerProfileForm(forms.ModelForm):
         model = OrganizerProfile
         fields = ["full_name", "contact_email", "phone", "profile_photo"]
         widgets = {
-            "full_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Your name"}),
-            "contact_email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "you@example.com"}),
-            "phone": forms.TextInput(attrs={"class": "form-control", "placeholder": "(555) 123-4567"}),
+            "full_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Your name"}
+            ),
+            "contact_email": forms.EmailInput(
+                attrs={"class": "form-control", "placeholder": "you@example.com"}
+            ),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "(555) 123-4567"}
+            ),
             "profile_photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
@@ -99,6 +105,8 @@ class OrganizerProfileForm(forms.ModelForm):
         buf.seek(0)
 
         # 6) Wrap as Django file with .jpg extension
-        base_name = (getattr(file, "name", "profile").rsplit(".", 1)[0] or "profile").replace(" ", "_")
+        base_name = (
+            getattr(file, "name", "profile").rsplit(".", 1)[0] or "profile"
+        ).replace(" ", "_")
         new_name = f"{base_name}.jpg"
         return ContentFile(buf.read(), name=new_name)
