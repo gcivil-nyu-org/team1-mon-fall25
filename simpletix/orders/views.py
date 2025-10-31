@@ -62,9 +62,10 @@ def process_payment(request, order_id):
     """
 
     order = get_object_or_404(Order, id = order_id)
+    event_id = order.ticket_info.event.id
 
     if order.status != 'pending':
-        return redirect('payment_cancel')
+        return redirect('payment_cancel', event_id=event_id)
     
     ticket_info = order.ticket_info
 
@@ -100,7 +101,7 @@ def process_payment(request, order_id):
             },
             # Redirect URLs
             success_url='http://127.0.0.1:8000'+reverse('orders:payment_success', args = [order.id]),
-            cancel_url='http://127.0.0.1:8000'+reverse('orders:payment_cancel'),
+            cancel_url='http://127.0.0.1:8000'+reverse('orders:payment_cancel', args=[event_id]),
         )
 
         order.stripe_session_id = session.id
@@ -115,7 +116,7 @@ def process_payment(request, order_id):
         order.status = 'failed'
         order.save()
         # You should log this error e
-        return redirect('orders:payment_cancel') # Show the cancel page
+        return redirect('orders:payment_cancel', event_id=event_id) # Show the cancel page
 
 def payment_success(request, order_id):
     """
@@ -126,12 +127,13 @@ def payment_success(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     return render(request, 'orders/payment_success.html', {"order": order})
 
-def payment_cancel(request):
+def payment_cancel(request, event_id):
     """
     This page is shown when the user cancels the payment
     or if an error occurred.
     """
-    return render(request, 'orders/payment_cancel.html')
+    event = get_object_or_404(Event, id=event_id)
+    return render(request, 'orders/payment_cancel.html', {"event": event})
 
 @csrf_exempt # Exempt from CSRF token, as Stripe is posting to this
 def stripe_webhook(request):
