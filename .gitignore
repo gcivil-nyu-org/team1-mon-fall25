@@ -21,6 +21,7 @@ media/
 Thumbs.db
 
 # Compiled or temporary files
+.temp
 *.log
 *.pot
 *.pyc
@@ -31,9 +32,7 @@ static_root/
 *.sqlite3
 
 # Elastic Beanstalk configuration
-.elasticbeanstalk/*
-!.elasticbeanstalk/*.cfg.yml
-!.elasticbeanstalk/*.global.yml
+simpletix/.elasticbeanstalk/*
 
 # Migrations
 simpletix/simpletix/migrations/*
