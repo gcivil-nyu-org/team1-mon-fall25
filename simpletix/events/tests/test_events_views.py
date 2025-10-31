@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from events.models import Event
-from accounts.models import OrganizerProfile  
+from accounts.models import OrganizerProfile
 
 
 class SimpleEventViewTests(TestCase):
@@ -11,8 +11,8 @@ class SimpleEventViewTests(TestCase):
         self.organizer = OrganizerProfile.objects.create(
             user=self.user,
             full_name="Test Organizer",
-                contact_email="testorg@example.com",
-        phone="1234567890",
+            contact_email="testorg@example.com",
+            phone="1234567890",
         )
         self.event = Event.objects.create(
             title="Test Event",
@@ -23,15 +23,15 @@ class SimpleEventViewTests(TestCase):
             organizer=self.organizer,
         )
 
-    # Mark user session as organizer
+        # Mark user session as organizer
         session = self.client.session
-        session['desired_role'] = 'organizer'
+        session["desired_role"] = "organizer"
         session.save()
 
     def login(self):
         self.client.login(username="testuser", password="pass123")
         session = self.client.session
-        session['desired_role'] = 'organizer'
+        session["desired_role"] = "organizer"
         session.save()
 
     def test_event_list_view(self):

@@ -7,6 +7,7 @@ from .forms import EventForm
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
 
+
 # ---------------------------
 # Decorators
 # ---------------------------
@@ -15,7 +16,9 @@ def organizer_required(view_func):
         if request.session.get("desired_role") != "organizer":
             raise PermissionDenied("You must be an organizer to perform this action.")
         return view_func(request, *args, **kwargs)
+
     return _wrapped_view
+
 
 def organizer_owns_event(view_func):
     def _wrapped_view(request, *args, **kwargs):
@@ -26,11 +29,14 @@ def organizer_owns_event(view_func):
         if event.organizer.user != request.user:
             raise PermissionDenied("You are not allowed to modify this event.")
         return view_func(request, *args, **kwargs)
+
     return _wrapped_view
+
 
 # ---------------------------
 # Event Views
 # ---------------------------
+
 
 def event_list(request):
     events = Event.objects.all().prefetch_related("ticketInfo")
@@ -59,9 +65,13 @@ def create_event(request):
             messages.error(request, "Please fix the errors below.")
     else:
         form = EventForm()
-        initial_ticket_data = [{"category": category} for category, _ in TicketInfo.CATEGORY_CHOICES]
+        initial_ticket_data = [
+            {"category": category} for category, _ in TicketInfo.CATEGORY_CHOICES
+        ]
         formset = TicketFormSet(initial=initial_ticket_data)
-    return render(request, "events/create_event.html", {"form": form, "formset": formset})
+    return render(
+        request, "events/create_event.html", {"form": form, "formset": formset}
+    )
 
 
 @organizer_required
@@ -81,7 +91,11 @@ def edit_event(request, event_id):
     else:
         form = EventForm(instance=event)
         formset = TicketFormSet(instance=event)
-    return render(request, "events/edit_event.html", {"form": form, "formset": formset, "event": event})
+    return render(
+        request,
+        "events/edit_event.html",
+        {"form": form, "formset": formset, "event": event},
+    )
 
 
 @organizer_required
