@@ -42,7 +42,7 @@
                 <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
             </div>
             {% elif request.session.desired_role != 'organizer' %}
-                <a href="{% url 'tickets:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
+                <a href="{% url 'orders:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
             {% endif %}
         </div>
     </div>
