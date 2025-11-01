@@ -71,6 +71,10 @@ def process_payment(request, order_id):
 
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
+    scheme = request.scheme
+    host = request.get_host()
+    DOMAIN = f"{scheme}://{host}"
+
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -96,8 +100,8 @@ def process_payment(request, order_id):
                 'order_id': order.id
             },
             # Redirect URLs
-            success_url='http://127.0.0.1:8000'+reverse('orders:payment_success', args = [order.id]),
-            cancel_url='http://127.0.0.1:8000'+reverse('orders:payment_cancel', args=[order.id]),
+            success_url = DOMAIN + reverse('orders:payment_success', args = [order.id]),
+            cancel_url = DOMAIN + reverse('orders:payment_cancel', args=[order.id]),
         )
 
         order.stripe_session_id = session.id
