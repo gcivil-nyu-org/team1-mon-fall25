@@ -41,7 +41,6 @@ def order(request, event_id):
 
                     # Save the form to create the ticket instance
                     order = form.save(commit=False)
-                    order.status='pending'
                     if request.session.get("desired_role") == "attendee":
                         order.attendee = UserProfile.objects.get(user=request.user)
                     order.save()
@@ -192,7 +191,7 @@ def stripe_webhook(request):
         # Invalid signature
         return HttpResponse(status=400)
 
-    print("event['type']:", event.type)
+    print("event['type']:", event['type'])
 
     def order_failed_handler(session):
         try:
