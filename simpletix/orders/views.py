@@ -70,10 +70,9 @@ def process_payment(request, order_id):
     """
 
     order = get_object_or_404(Order, id = order_id)
-    event_id = order.ticket_info.event.id
 
     if order.status != 'pending':
-        return redirect('payment_cancel', event_id=event_id)
+        return redirect('payment_cancel', order_id=order_id)
     
     ticket_info = order.ticket_info
 
@@ -193,8 +192,20 @@ def stripe_webhook(request):
         # Invalid signature
         return HttpResponse(status=400)
 
-    # --- Handle the "checkout.session.completed" event ---
     print("event['type']:", event.type)
+
+    def order_failed_handler(session):
+        try:
+            order_id = session.get('metadata', {}).get('order_id')
+            order = Order.objects.get(id=order_id)
+            order_failed(order)
+        except Order.DoesNotExist:
+            print(f"ERROR: Order {order_id} not found in webhook.")
+        except Exception as e:
+            print(f"ERROR fulfilling order {order_id}: {e}")
+            # You should email yourself an error alert here
+            return HttpResponse(status=500)
+        
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         
@@ -235,13 +246,18 @@ def stripe_webhook(request):
                 print(f"ERROR fulfilling order {order_id}: {e}")
                 # You should email yourself an error alert here
                 return HttpResponse(status=500)
+        else:
+            session = event['data']['object']
+            response = order_failed_handler(session)
+            if response is not None:
+                return response
     
     # Handle abandoned/expired payment session
     elif event['type'] == 'checkout.session.expired':
         session = event['data']['object']
-        order_id = session.get('metadata', {}).get('order_id')
-        order = Order.objects.get(id=order_id)
-        order_failed(order)
+        response = order_failed_handler(session)
+        if response is not None:
+            return response
     else:
         # Handle other event types (e.g., checkout.session.expired)
         print(f"Unhandled event type: {event['type']}")
