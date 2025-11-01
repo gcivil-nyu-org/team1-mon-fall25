@@ -1,14 +1,16 @@
 import stripe
+import time
 from django.db import transaction
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages 
 
 from .models import Order, BillingInfo
 from .forms import OrderForm
-from tickets.models import Ticket
+from tickets.models import Ticket, TicketInfo
 from accounts.models import UserProfile
 from events.models import Event
 
@@ -26,17 +28,23 @@ def order(request, event_id):
             try:
                 # Use a database transaction to ensure data integrity
                 with transaction.atomic():
+                    # Decrement the availability of the chosen TicketInfo
+                    ticket_info = form.cleaned_data["ticket_info"]
+                    ticket_info = TicketInfo.objects.select_for_update().get(id=ticket_info.id)
+
+                    if ticket_info.availability < 1:
+                        messages.error(request, "Sorry, this ticket is now sold out.")
+                        return redirect('orders:order', event_id=event.id)
+
+                    ticket_info.availability -= 1
+                    ticket_info.save()
+
                     # Save the form to create the ticket instance
                     order = form.save(commit=False)
                     order.status='pending'
                     if request.session.get("desired_role") == "attendee":
                         order.attendee = UserProfile.objects.get(user=request.user)
                     order.save()
-
-                    # Decrement the availability of the chosen TicketInfo
-                    ticket_info = form.cleaned_data["ticket_info"]
-                    ticket_info.availability -= 1
-                    ticket_info.save()
 
                 return redirect("orders:process_payment", order_id=order.id)
             except Exception as e:  # pragma: no cover (optional)
@@ -99,6 +107,7 @@ def process_payment(request, order_id):
             metadata={
                 'order_id': order.id
             },
+            expires_at=int(time.time()) + 1800,
             # Redirect URLs
             success_url = DOMAIN + reverse('orders:payment_success', args = [order.id]),
             cancel_url = DOMAIN + reverse('orders:payment_cancel', args=[order.id]),
@@ -107,14 +116,28 @@ def process_payment(request, order_id):
         order.stripe_session_id = session.id
         order.save()
 
+        # for test
+        print("session id:", session.id)
+
         # Redirect the user to Stripe's payment page
         return redirect(session.url, code=303)
 
     except Exception as e:
         print(f"Stripe Error: {e}")
-        # Handle any Stripe errors
-        order.status = 'failed'
-        order.save()
+        
+        try:
+            with transaction.atomic():
+                order = Order.objects.get(id=order_id)
+                if order.status == 'pending':
+                    order.status = 'failed'
+                    order.save()
+
+                    ticket_info = order.ticket_info
+                    ticket_info.availability += 1
+                    ticket_info.save()
+        except Exception as inner_e: # pragma: no cover
+            print(f"CRITICAL ERROR: Failed to restock ticket for order {order_id}: {inner_e}")
+
         # You should log this error e
         return redirect('orders:payment_cancel', order_id=order_id) # Show the cancel page
 
@@ -127,18 +150,23 @@ def payment_success(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     return render(request, 'orders/payment_success.html', {"order": order})
 
+def order_failed(order):
+    if order.status == 'pending':
+        order.status = 'failed'
+        order.save()
+        
+        ticket_info = order.ticket_info
+        ticket_info.availability += 1
+        ticket_info.save()
+
 def payment_cancel(request, order_id):
     """
     This page is shown when the user cancels the payment
     or if an error occurred.
     """
     order = get_object_or_404(Order, id=order_id)
-
-    ticket_info = order.ticket_info
-    ticket_info.availability += 1
-    ticket_info.save()
-
-    event = ticket_info.event
+    order_failed(order)
+    event = order.ticket_info.event
     return render(request, 'orders/payment_cancel.html', {"event": event})
 
 @csrf_exempt # Exempt from CSRF token, as Stripe is posting to this
@@ -166,6 +194,7 @@ def stripe_webhook(request):
         return HttpResponse(status=400)
 
     # --- Handle the "checkout.session.completed" event ---
+    print("event['type']:", event.type)
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         
@@ -206,7 +235,13 @@ def stripe_webhook(request):
                 print(f"ERROR fulfilling order {order_id}: {e}")
                 # You should email yourself an error alert here
                 return HttpResponse(status=500)
-                
+    
+    # Handle abandoned/expired payment session
+    elif event['type'] == 'checkout.session.expired':
+        session = event['data']['object']
+        order_id = session.get('metadata', {}).get('order_id')
+        order = Order.objects.get(id=order_id)
+        order_failed(order)
     else:
         # Handle other event types (e.g., checkout.session.expired)
         print(f"Unhandled event type: {event['type']}")

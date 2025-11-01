@@ -9,7 +9,7 @@ from tickets.models import TicketInfo
 
 class BillingInfo(models.Model):
     # Store billing info (can be filled in by webhook or form)
-    full_name = models.CharField(max_length=120, blank=True)
+    full_name = models.CharField(max_length=120, null=True, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
 
