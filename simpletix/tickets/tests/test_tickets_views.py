@@ -13,16 +13,19 @@ pytestmark = pytest.mark.django_db
 
 # --- Views:details ---
 
+
 @pytest.fixture
 def organizer_user():
     """Fixture for the organizer user."""
     return User.objects.create_user(username="org_viewer", password="Passw0rd1!")
+
 
 @pytest.fixture
 def organizer_profile(organizer_user):
     """Fixture for the organizer profile."""
     profile, _ = OrganizerProfile.objects.get_or_create(user=organizer_user)
     return profile
+
 
 @pytest.fixture
 def test_event(organizer_profile):
@@ -34,10 +37,12 @@ def test_event(organizer_profile):
         time=timezone.now().time(),
     )
 
+
 @pytest.fixture
 def attendee_user():
     """Fixture for the attendee user."""
     return User.objects.create_user(username="att_viewer", password="Passw0rd1!")
+
 
 @pytest.fixture
 def attendee_profile(attendee_user):
@@ -45,12 +50,14 @@ def attendee_profile(attendee_user):
     profile, _ = UserProfile.objects.get_or_create(user=attendee_user)
     return profile
 
+
 @pytest.fixture
 def login_url():
     """Fixture for the login URL."""
     # Construct the URL with the role parameter for attendee
     base_url = reverse("accounts:login")
     return f"{base_url}?role=attendee"
+
 
 @pytest.fixture
 def logged_in_attendee_client(client, login_url, attendee_user):
@@ -61,6 +68,7 @@ def logged_in_attendee_client(client, login_url, attendee_user):
     # Verify session is set correctly after login
     assert client.session.get("desired_role") == "attendee"
     return client
+
 
 @pytest.fixture
 def details_ticket_info(test_event):

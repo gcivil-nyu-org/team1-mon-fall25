@@ -1,6 +1,4 @@
 import pytest
-import stripe
-from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -101,6 +99,7 @@ def logged_in_attendee_client(client, login_url, attendee_user):
     assert client.session.get("desired_role") == "attendee"
     return client
 
+
 @pytest.fixture
 def pending_order(db, ticket_info_ga, attendee_profile):
     """Fixture for a pending order, created by an attendee."""
@@ -112,19 +111,20 @@ def pending_order(db, ticket_info_ga, attendee_profile):
         phone="1234567890",
     )
 
+
 @pytest.fixture
 def mock_stripe():
     """Mocks the stripe API calls."""
     with patch("orders.views.stripe") as mock_stripe_module:
         # Mock the checkout session
         mock_session = MagicMock()
-        mock_session.id="sess_12345ABC"
+        mock_session.id = "sess_12345ABC"
         mock_session.url = "https://stripe.com/mock_payment_url"
         mock_stripe_module.checkout.Session.create.return_value = mock_session
 
         # Mock the webhook construction
         mock_stripe_module.Webhook.construct_event.return_value = {}
-        
+
         yield mock_stripe_module
 
 
@@ -132,4 +132,3 @@ def mock_stripe():
 def webhook_url():
     """Fixture for the webhook URL."""
     return reverse("orders:stripe_webhook")
-

@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 from orders.models import Order, BillingInfo
-from tickets.models import Ticket, TicketInfo
+from tickets.models import Ticket
 
 
 pytestmark = pytest.mark.django_db
@@ -29,7 +29,7 @@ def test_order_view_get_request(
     # Check that the form's queryset is correctly filtered
     form = response.context["form"]
     form_queryset = form.fields["ticket_info"].queryset
-    
+
     assert form_queryset.count() == 2  # VIP and GA
     assert ticket_info_vip in form_queryset
     assert ticket_info_ga in form_queryset
@@ -110,12 +110,10 @@ def test_order_view_post_success(
     assert ticket_info_ga.availability == initial_availability - 1
 
 
-
 # --- View: process_payment ---
 
-def test_process_payment_success(
-    logged_in_attendee_client, pending_order, mock_stripe
-):
+
+def test_process_payment_success(logged_in_attendee_client, pending_order, mock_stripe):
     """Tests the successful creation of a Stripe checkout session."""
     url = reverse("orders:process_payment", args=[pending_order.id])
     response = logged_in_attendee_client.get(url)
@@ -139,6 +137,7 @@ def test_process_payment_success(
 
 # --- View: payment_success ---
 
+
 def test_payment_success_view(logged_in_attendee_client, pending_order):
     """Tests the simple 'payment success' info page."""
     url = reverse("orders:payment_success", args=[pending_order.id])
@@ -150,6 +149,7 @@ def test_payment_success_view(logged_in_attendee_client, pending_order):
 
 
 # --- View: payment_cancel ---
+
 
 def test_payment_cancel_view(logged_in_attendee_client, pending_order):
     """
@@ -175,6 +175,7 @@ def test_payment_cancel_view(logged_in_attendee_client, pending_order):
 
 # --- View: stripe_webhook ---
 
+
 def test_webhook_session_completed_paid(
     client, webhook_url, mock_stripe, pending_order
 ):
@@ -199,7 +200,6 @@ def test_webhook_session_completed_paid(
     assert Ticket.objects.count() == 0
     assert BillingInfo.objects.count() == 0
 
-
     def post_webhook(client, webhook_url, payload, sig="sig_123"):
         """Helper function to post to the webhook."""
         return client.post(
@@ -223,9 +223,7 @@ def test_webhook_session_completed_paid(
     ticket = Ticket.objects.first()
     assert ticket.ticketInfo == pending_order.ticket_info
     assert ticket.full_name == pending_order.full_name
-    
+
     billing_info = BillingInfo.objects.first()
     assert billing_info.full_name == "Billing Name"
     assert pending_order.billing_info == billing_info
-
-

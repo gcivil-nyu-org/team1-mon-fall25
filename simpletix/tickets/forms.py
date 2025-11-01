@@ -2,7 +2,7 @@ from django import forms
 from django.forms import inlineformset_factory
 
 from events.models import Event
-from .models import Ticket, TicketInfo
+from .models import TicketInfo
 
 
 class TicketInfoForm(forms.ModelForm):

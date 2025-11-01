@@ -6,7 +6,6 @@ from tickets.models import TicketInfo
 # Create your models here.
 
 
-
 class BillingInfo(models.Model):
     # Store billing info (can be filled in by webhook or form)
     full_name = models.CharField(max_length=120, null=True, blank=True)
@@ -16,11 +15,12 @@ class BillingInfo(models.Model):
     def __str__(self):
         return f"{self.full_name} - {self.email} - {self.phone}"
 
+
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
+        ("pending", "Pending"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
     ]
 
     attendee = models.ForeignKey(
@@ -29,38 +29,39 @@ class Order(models.Model):
 
     # Link directly to the *type* of ticket being bought
     ticket_info = models.ForeignKey(
-        TicketInfo, 
-        on_delete=models.PROTECT, # Don't delete an order if the TicketInfo is deleted
-        related_name="ticketInOrder"
+        TicketInfo,
+        on_delete=models.PROTECT,  # Don't delete an order if the TicketInfo is deleted
+        related_name="ticketInOrder",
     )
 
     # Link directly to the billing info
     billing_info = models.ForeignKey(
-        BillingInfo, 
-        on_delete=models.PROTECT, # Don't delete an order if the BillingInfo is deleted
+        BillingInfo,
+        on_delete=models.PROTECT,  # Don't delete an order if the BillingInfo is deleted
         related_name="billingfor",
         null=True,
-        blank=True
+        blank=True,
     )
-    
+
     # Store attendee info
     full_name = models.CharField(max_length=120, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
 
     # Order status and tracking
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
+
     # Store the price at the time of purchase
     price_at_purchase = models.DecimalField(max_digits=8, decimal_places=2)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     # Store the Stripe ID for reconciliation
     stripe_session_id = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
-        return f"Order {self.id} ({self.status}) - {self.ticket_info.category} for {self.full_name}"
+        order_info = f"{self.id} ({self.status}) - {self.ticket_info.category}"
+        return f"Order {order_info} for {self.full_name}"
 
     def save(self, *args, **kwargs):
         # Set the price automatically when the item is first created

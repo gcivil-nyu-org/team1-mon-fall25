@@ -1,13 +1,10 @@
 import pytest
 from django.contrib.auth.models import User
 from django.utils import timezone
-from decimal import Decimal
-from django import forms
 
 from events.models import Event
 from accounts.models import OrganizerProfile
 from tickets.models import TicketInfo
-from tickets.forms import TicketFormSet
 from orders.forms import OrderForm
 
 pytestmark = pytest.mark.django_db
@@ -169,4 +166,6 @@ def test_order_form_invalid_ticket_choice(
 
     # Use standard assert statements
     assert form.is_valid() is False
-    assert "ticket_info" in form.errors  # Fails validation against the filtered queryset
+    assert (
+        "ticket_info" in form.errors
+    )  # Fails validation against the filtered queryset

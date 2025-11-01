@@ -122,4 +122,3 @@ def test_formset_invalid_data_missing_field(test_event_for_formset, formset_pref
     assert len(formset.errors) == 3  # Expect errors for 3 forms
     assert "price" in formset.errors[1]  # Check specific error in 2nd form
     assert "This field is required." in formset.errors[1]["price"]
-
