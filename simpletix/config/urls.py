@@ -21,7 +21,7 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 from config.health import health_check
-from simpletix.views import permission_denied_view 
+from simpletix.views import permission_denied_view
 
 urlpatterns = [
     path("", include("simpletix.urls")),
