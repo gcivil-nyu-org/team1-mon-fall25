@@ -61,6 +61,14 @@ def order(request, event_id):
         {"event": event, "form": form},
     )
 
+def order_failed(order):
+    if order.status == "pending":
+        order.status = "failed"
+        order.save()
+
+        ticket_info = order.ticket_info
+        ticket_info.availability += 1
+        ticket_info.save()
 
 # test card:
 # https://docs.stripe.com/testing
@@ -132,13 +140,7 @@ def process_payment(request, order_id):
         try:
             with transaction.atomic():
                 order = Order.objects.get(id=order_id)
-                if order.status == "pending":
-                    order.status = "failed"
-                    order.save()
-
-                    ticket_info = order.ticket_info
-                    ticket_info.availability += 1
-                    ticket_info.save()
+                order_failed(order)
         except Exception as inner_e:  # pragma: no cover
             order_info = f"{order_id}: {inner_e}"
             print(f"CRITICAL ERROR: Failed to restock ticket for order {order_info}")
@@ -157,17 +159,6 @@ def payment_success(request, order_id):
     """
     order = get_object_or_404(Order, id=order_id)
     return render(request, "orders/payment_success.html", {"order": order})
-
-
-def order_failed(order):
-    if order.status == "pending":
-        order.status = "failed"
-        order.save()
-
-        ticket_info = order.ticket_info
-        ticket_info.availability += 1
-        ticket_info.save()
-
 
 def payment_cancel(request, order_id):
     """

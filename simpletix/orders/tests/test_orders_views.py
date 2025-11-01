@@ -175,7 +175,15 @@ def test_payment_cancel_view(logged_in_attendee_client, pending_order):
 
 # --- View: stripe_webhook ---
 
-
+def post_webhook(client, webhook_url, payload, sig="sig_123"):
+    """Helper function to post to the webhook."""
+    return client.post(
+        webhook_url,
+        data=payload,
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE=sig,
+    )
+    
 def test_webhook_session_completed_paid(
     client, webhook_url, mock_stripe, pending_order
 ):
@@ -200,15 +208,6 @@ def test_webhook_session_completed_paid(
     assert Ticket.objects.count() == 0
     assert BillingInfo.objects.count() == 0
 
-    def post_webhook(client, webhook_url, payload, sig="sig_123"):
-        """Helper function to post to the webhook."""
-        return client.post(
-            webhook_url,
-            data=payload,
-            content_type="application/json",
-            HTTP_STRIPE_SIGNATURE=sig,
-        )
-
     response = post_webhook(client, webhook_url, mock_event)
 
     assert response.status_code == 200
@@ -227,3 +226,28 @@ def test_webhook_session_completed_paid(
     billing_info = BillingInfo.objects.first()
     assert billing_info.full_name == "Billing Name"
     assert pending_order.billing_info == billing_info
+
+def test_webhook_session_expired(client, webhook_url, mock_stripe, pending_order):
+    """Tests the webhook handler for an expired session."""
+    mock_event = {
+        "type": "checkout.session.expired",
+        "data": {
+            "object": {
+                "id": "sess_123",
+                "metadata": {"order_id": pending_order.id},
+            }
+        },
+    }
+    mock_stripe.Webhook.construct_event.return_value = mock_event
+    ticket_info = pending_order.ticket_info
+    initial_availability = ticket_info.availability
+
+    response = post_webhook(client, webhook_url, mock_event)
+
+    assert response.status_code == 200
+    
+    # Order should be failed and ticket restocked
+    pending_order.refresh_from_db()
+    assert pending_order.status == "failed"
+    ticket_info.refresh_from_db()
+    assert ticket_info.availability == initial_availability + 1
