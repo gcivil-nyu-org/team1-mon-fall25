@@ -61,6 +61,7 @@ def order(request, event_id):
         {"event": event, "form": form},
     )
 
+
 def order_failed(order):
     if order.status == "pending":
         order.status = "failed"
@@ -69,6 +70,7 @@ def order_failed(order):
         ticket_info = order.ticket_info
         ticket_info.availability += 1
         ticket_info.save()
+
 
 # test card:
 # https://docs.stripe.com/testing
@@ -159,6 +161,7 @@ def payment_success(request, order_id):
     """
     order = get_object_or_404(Order, id=order_id)
     return render(request, "orders/payment_success.html", {"order": order})
+
 
 def payment_cancel(request, order_id):
     """
