@@ -69,10 +69,6 @@ def process_payment(request, order_id):
     
     ticket_info = order.ticket_info
 
-    if ticket_info.availability < 1:
-        # Handle error: sold out
-        return redirect('sold out') # Redirect to a "sold out" page
-
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
     try:
@@ -101,7 +97,7 @@ def process_payment(request, order_id):
             },
             # Redirect URLs
             success_url='http://127.0.0.1:8000'+reverse('orders:payment_success', args = [order.id]),
-            cancel_url='http://127.0.0.1:8000'+reverse('orders:payment_cancel', args=[event_id]),
+            cancel_url='http://127.0.0.1:8000'+reverse('orders:payment_cancel', args=[order.id]),
         )
 
         order.stripe_session_id = session.id
@@ -116,7 +112,7 @@ def process_payment(request, order_id):
         order.status = 'failed'
         order.save()
         # You should log this error e
-        return redirect('orders:payment_cancel', event_id=event_id) # Show the cancel page
+        return redirect('orders:payment_cancel', order_id=order_id) # Show the cancel page
 
 def payment_success(request, order_id):
     """
@@ -127,12 +123,18 @@ def payment_success(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     return render(request, 'orders/payment_success.html', {"order": order})
 
-def payment_cancel(request, event_id):
+def payment_cancel(request, order_id):
     """
     This page is shown when the user cancels the payment
     or if an error occurred.
     """
-    event = get_object_or_404(Event, id=event_id)
+    order = get_object_or_404(Order, id=order_id)
+
+    ticket_info = order.ticket_info
+    ticket_info.availability += 1
+    ticket_info.save()
+
+    event = ticket_info.event
     return render(request, 'orders/payment_cancel.html', {"event": event})
 
 @csrf_exempt # Exempt from CSRF token, as Stripe is posting to this
