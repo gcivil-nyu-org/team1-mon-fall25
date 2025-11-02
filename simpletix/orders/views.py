@@ -90,7 +90,7 @@ def process_payment(request, order_id):
 
     ticket_info = order.ticket_info
 
-    stripe.api_key = settings.STRIPE_SECRET_KEY
+    stripe.api_key = settings.STRIPE.get("STRIPE_SECRET_KEY", "")
 
     scheme = request.scheme
     host = request.get_host()
@@ -185,7 +185,7 @@ def stripe_webhook(request):
     event = None
 
     # Use the webhook secret from settings.py
-    endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
+    endpoint_secret = settings.STRIPE.get("STRIPE_WEBHOOK_SECRET", "")
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)

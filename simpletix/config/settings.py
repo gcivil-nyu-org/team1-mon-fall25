@@ -203,6 +203,16 @@ else:
     }
 
 # STRIPE CONFIGURATION
-STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
-STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+if ENVIRONMENT in ["production", "development"]:
+    secrets = get_secret(os.getenv("STRIPE_SECRETS_NAME"))
+    STRIPE = {
+        "STRIPE_PUBLISHABLE_KEY": secrets.get("STRIPE_PUBLISHABLE_KEY", ""),
+        "STRIPE_SECRET_KEY": secrets.get("STRIPE_SECRET_KEY", ""),
+        "STRIPE_WEBHOOK_SECRET": secrets.get("STRIPE_WEBHOOK_SECRET", "")
+    }
+else:
+    STRIPE = {
+        "STRIPE_PUBLISHABLE_KEY": os.getenv("STRIPE_PUBLISHABLE_KEY", ""),
+        "STRIPE_SECRET_KEY": os.getenv("STRIPE_SECRET_KEY", ""),
+        "STRIPE_WEBHOOK_SECRET": os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    }
