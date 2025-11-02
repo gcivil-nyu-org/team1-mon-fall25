@@ -18,7 +18,7 @@ class EventsConfig(AppConfig):
 
         # only import when not disabled
         try:
-            import events.algolia_index  # noqa: F401
+            import events.algolia_index 
         except Exception:
             # don't blow up the app if Algolia isn't configured in local
             pass
