@@ -1,17 +1,75 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404, resolve_url
+import os
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from .models import Event
-from accounts.models import OrganizerProfile
+from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME
+from functools import wraps
+from urllib.parse import urlencode
 from .forms import EventForm
+from .models import Event
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
+from accounts.models import OrganizerProfile
+
+# Only import Algolia if not running in CI
+if not os.environ.get("CI"):
+    from algoliasearch_django import save_record, delete_record
+else:
+    # Define no-op versions for CI
+    def save_record(instance):
+        return None
+
+    def delete_record(instance):
+        return None
 
 
-# ---------------------------
-# Decorators
-# ---------------------------
+def custom_login_required(
+    view_func=None,
+    redirect_field_name=REDIRECT_FIELD_NAME,
+    login_url=None,
+    extra_params=None,
+):
+    """
+    Decorator for views that checks that the user is logged in, redirecting
+    to the log-in page if necessary. Adds custom query parameters to the
+    redirect URL.
+
+    Args:
+        extra_params (dict): A dictionary of parameters to add to the redirect URL.
+    """
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if request.user.is_authenticated:
+                return view_func(request, *args, **kwargs)
+
+            # --- Construct the redirect URL ---
+            path = request.build_absolute_uri()
+            resolved_login_url = resolve_url(login_url or settings.LOGIN_URL)
+
+            # Start with the standard 'next' parameter
+            login_url_parts = {redirect_field_name: path}
+
+            # Add any extra parameters provided
+            if extra_params:
+                login_url_parts.update(extra_params)
+
+            # Combine the base login URL with the encoded parameters
+            final_login_url = f"{resolved_login_url}?{urlencode(login_url_parts)}"
+
+            return redirect(final_login_url)
+
+        return _wrapped_view
+
+    if view_func:
+        return decorator(view_func)
+    return decorator
+
+
 def organizer_required(view_func):
+    @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if request.session.get("desired_role") != "organizer":
             raise PermissionDenied("You must be an organizer to perform this action.")
@@ -21,33 +79,34 @@ def organizer_required(view_func):
 
 
 def organizer_owns_event(view_func):
+    """
+    Decorator to ensure that:
+    - User is logged in
+    - User is an organizer
+    - User is the organizer who owns the event
+    """
+
+    @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
+        # Check for organizer profile
         event_id = kwargs.get("event_id")
         if event_id is None:
             raise PermissionDenied("No event ID provided.")
+
+        if request.session.get("desired_role") != "organizer":
+            raise PermissionDenied("You must be an organizer to perform this action.")
+
         event = get_object_or_404(Event, id=event_id)
         if event.organizer.user != request.user:
             raise PermissionDenied("You are not allowed to modify this event.")
+
         return view_func(request, *args, **kwargs)
 
     return _wrapped_view
 
 
-# ---------------------------
-# Event Views
-# ---------------------------
-
-
-def event_list(request):
-    events = Event.objects.all().prefetch_related("ticketInfo")
-    return render(request, "events/event_list.html", {"events": events})
-
-
-def event_detail(request, event_id):
-    event = get_object_or_404(Event.objects.prefetch_related("ticketInfo"), id=event_id)
-    return render(request, "events/event_detail.html", {"event": event})
-
-
+# Create Event
+@custom_login_required(extra_params={"role": "organizer"})
 @organizer_required
 def create_event(request):
     if request.method == "POST":
@@ -57,6 +116,7 @@ def create_event(request):
             event = form.save(commit=False)
             event.organizer = OrganizerProfile.objects.get(user=request.user)
             event.save()
+            save_record(event)  # Sync with Algolia
             formset.instance = event
             formset.save()
             messages.success(request, "Event created successfully!")
@@ -74,7 +134,8 @@ def create_event(request):
     )
 
 
-@organizer_required
+# Edit Event
+@custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event
 def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -83,6 +144,7 @@ def edit_event(request, event_id):
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
         if form.is_valid() and formset.is_valid():
             form.save()
+            save_record(event)  # Sync with Algolia
             formset.save()
             messages.success(request, "Event updated successfully!")
             return redirect("events:event_detail", event_id=event.id)
@@ -98,12 +160,27 @@ def edit_event(request, event_id):
     )
 
 
-@organizer_required
+# Delete Event
+@custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+
     if request.method == "POST":
+        delete_record(event)  # Remove from Algolia
         event.delete()
         messages.success(request, "Event deleted successfully!")
         return redirect("events:event_list")
     return render(request, "events/delete_event.html", {"event": event})
+
+
+# Event List
+def event_list(request):
+    events = Event.objects.all()
+    return render(request, "events/event_list.html", {"events": events})
+
+
+# Event Detail
+def event_detail(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    return render(request, "events/event_detail.html", {"event": event})
