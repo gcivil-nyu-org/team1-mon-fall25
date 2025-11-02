@@ -1,6 +1,7 @@
 # simpletix/simpletix/middleware/multi_session_middleware.py
 from django.conf import settings
 
+
 class MultiSessionMiddleware:
     """
     Allows multiple parallel Django sessions in the same browser by

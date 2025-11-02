@@ -1,22 +1,17 @@
 # accounts/views.py
-from io import BytesIO
-from pathlib import Path
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.shortcuts import redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import TemplateView
-from PIL import Image, ImageOps
 
 from .forms import SignupForm, OrganizerProfileForm
-from .models import OrganizerProfile, UserProfile  # role profile
+from .models import OrganizerProfile, UserProfile
 
 
 ALLOWED_ROLES = {"organizer", "attendee"}  # guest handled separately
@@ -68,10 +63,15 @@ class RoleLoginView(auth_views.LoginView):
         # drop guest flags
         self.request.session.pop("guest", None)
 
-        # restore real role into session (for old templates)
-        _sync_session_role_from_user(self.request)
+        # 1) if request had an explicit role (?role=organizer), keep that
+        explicit_role = (self.request.GET.get("role") or "").lower()
+        if explicit_role in {"organizer", "attendee"}:
+            self.request.session["desired_role"] = explicit_role
+        else:
+            # 2) otherwise sync from DB
+            _sync_session_role_from_user(self.request)
 
-        # rotate
+        # rotate for safety
         self.request.session.cycle_key()
         return resp
 

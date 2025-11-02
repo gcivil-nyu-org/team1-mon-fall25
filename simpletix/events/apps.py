@@ -1,5 +1,6 @@
-from django.apps import AppConfig
+# events/apps.py
 import os
+from django.apps import AppConfig
 
 
 class EventsConfig(AppConfig):
@@ -7,6 +8,17 @@ class EventsConfig(AppConfig):
     name = "events"
 
     def ready(self):
-        # Only import Algolia index when not in CI
-        if not os.environ.get("CI"):
+        """
+        Register Algolia indexes only in real/runtime envs.
+        Skip during tests/CI to avoid external HTTP calls.
+        """
+        disable = os.environ.get("DJANGO_DISABLE_ALGOLIA") or os.environ.get("CI")
+        if disable:
+            return
+
+        # only import when not disabled
+        try:
             import events.algolia_index  # noqa: F401
+        except Exception:
+            # don't blow up the app if Algolia isn't configured in local
+            pass

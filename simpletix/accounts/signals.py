@@ -7,7 +7,6 @@ from django.dispatch import receiver
 from .models import UserProfile
 
 
-
 @receiver(user_logged_in)
 def clear_guest_on_login(sender, user, request, **kwargs):
     """

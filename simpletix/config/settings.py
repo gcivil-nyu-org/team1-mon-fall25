@@ -86,21 +86,20 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "events",
     "simpletix",
-    "home",
     "ebhealthcheck.apps.EBHealthCheckConfig",
     "accounts.apps.AccountsConfig",
     "tickets",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'config.middleware.multi_session_middleware.MultiSessionMiddleware'
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.middleware.multi_session_middleware.MultiSessionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

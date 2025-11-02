@@ -11,5 +11,5 @@ def session_flags(request):
     if request.user.is_authenticated:
         role = getattr(getattr(request.user, "uprofile", None), "role", None)
     else:
-        role = request.session.get("auth_role")    
+        role = request.session.get("auth_role")
     return {"auth_role": role}
