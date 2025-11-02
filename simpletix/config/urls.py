@@ -21,6 +21,7 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 from config.health import health_check
+from simpletix.views import permission_denied_view
 
 urlpatterns = [
     path("", include("simpletix.urls")),
@@ -32,6 +33,8 @@ urlpatterns = [
     # Removed: path("", include(("home.urls", "home"), namespace="home")),
     path("orders/", include(("orders.urls", "orders"), namespace="orders")),
 ]
+
+handler403 = permission_denied_view
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
