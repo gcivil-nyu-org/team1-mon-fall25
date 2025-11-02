@@ -166,13 +166,29 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+
+# --- Media files ---
+
+if ENVIRONMENT in ["production", "development"]:
+    # Use S3 for media
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_MEDIA_BUCKET_NAME")
+    AWS_QUERYSTRING_AUTH = True  # generate signed URLs for private objects
+    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
+else:
+    # Local filesystem fallback
+    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+
+
+# --- Login ---
 
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 # Where to send users if ?next isn't provided.
 LOGOUT_REDIRECT_URL = "/accounts/start/"
+
 
 # --- ALGOLIA SETTINGS ---
 
