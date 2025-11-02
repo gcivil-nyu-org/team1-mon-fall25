@@ -8,17 +8,13 @@ class EventsConfig(AppConfig):
     name = "events"
 
     def ready(self):
-        """
-        Register Algolia indexes only in real/runtime envs.
-        Skip during tests/CI to avoid external HTTP calls.
-        """
-        disable = os.environ.get("DJANGO_DISABLE_ALGOLIA") or os.environ.get("CI")
-        if disable:
+        # Skip Algolia wiring in CI / tests
+        if os.environ.get("DJANGO_DISABLE_ALGOLIA"):
             return
 
-        # only import when not disabled
+        # Local/dev: register index
         try:
-            import events.algolia_index 
+            import events.algolia_index  # noqa: F401
         except Exception:
-            # don't blow up the app if Algolia isn't configured in local
+            # don’t break app startup if Algolia isn’t configured
             pass
