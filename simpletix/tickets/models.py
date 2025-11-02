@@ -1,9 +1,8 @@
 from django.db import models
 import uuid
+
 from events.models import Event
 from accounts.models import OrganizerProfile, UserProfile
-
-# Create your models here.
 
 
 class TicketInfo(models.Model):
@@ -43,12 +42,15 @@ class Ticket(models.Model):
     full_name = models.CharField(max_length=120, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
+
+    # keep this because orders app is NOT on this branch yet
     order_id = models.CharField(
         max_length=64,
         blank=True,
         null=True,
         help_text="Group tickets that belong to the same checkout/payment.",
     )
+
     status = models.CharField(
         max_length=20,
         blank=True,
@@ -65,9 +67,25 @@ class Ticket(models.Model):
     issued_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        t_info = self.ticketInfo
-        return f"{t_info.event.title} - {t_info.category} - {self.attendee.user}"
-    
+        """
+        Be defensive so we don't crash admin/templates
+        if ticketInfo or attendee is missing.
+        """
+        base = f"Ticket #{self.pk}"
+        pieces = [base]
+
+        if self.ticketInfo:
+            event_title = getattr(self.ticketInfo.event, "title", None)
+            if event_title:
+                pieces.append(f"for {event_title}")
+            pieces.append(f"({self.ticketInfo.category})")
+
+        # attendee can be null
+        if self.attendee and getattr(self.attendee, "user", None):
+            pieces.append(f"- {self.attendee.user}")
+
+        return " ".join(pieces)
+
     def ensure_qr(self):
         """
         Helper: generate a QR/code only if missing.

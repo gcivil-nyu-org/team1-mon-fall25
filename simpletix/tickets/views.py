@@ -5,6 +5,11 @@ from accounts.models import UserProfile
 from events.models import Event
 from .forms import OrderForm
 from .models import Ticket
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from . import services
+from .models import TicketInfo
 
 
 def index(request):
@@ -72,3 +77,30 @@ def ticket_list(request):
         "tickets/ticket_list.html",
         {"filtername": filtername, "tickets": tickets},
     )
+
+@csrf_exempt
+def payment_confirm(request):
+    """
+    Temporary endpoint to be called by payment flow.
+    Expects: order_id, ticket_info_id, full_name, email, phone
+    Once orders app is merged, we will switch to FK.
+    """
+    data = json.loads(request.body)
+    order_id = data.get("order_id")
+    ticket_info_id = data.get("ticket_info_id")
+
+    if not order_id or not ticket_info_id:
+        return JsonResponse({"error": "order_id and ticket_info_id required"}, status=400)
+
+    ti = TicketInfo.objects.get(id=ticket_info_id)
+
+    ticket = services.issue_ticket_for_order_id(
+        order_id=order_id,
+        ticket_info=ti,
+        full_name=data.get("full_name", ""),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+    )
+
+    # TODO: later attach PDF + send email
+    return JsonResponse({"status": "ok", "ticket_id": ticket.id})
