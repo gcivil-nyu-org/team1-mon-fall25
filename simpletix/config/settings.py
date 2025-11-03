@@ -24,8 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Load Env vars + get Database Secrets
-load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+if ENVIRONMENT == "local":
+    load_dotenv()
 
 if ENVIRONMENT in ["production", "development"]:
     DJANGO_SECRET_KEY_NAME = os.getenv("DJANGO_SECRET_KEY_NAME")
