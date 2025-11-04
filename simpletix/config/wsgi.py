@@ -12,7 +12,6 @@ import json
 import subprocess
 from pathlib import Path
 
-
 # --- Force-load EB environment vars before Django settings ---
 eb_env_path = Path("/opt/elasticbeanstalk/bin/get-config")
 
@@ -26,7 +25,6 @@ if eb_env_path.exists():
             os.environ.setdefault(k, v)
     except Exception as e:
         print(f"Failed to load EB environment variables: {e}")
-
 
 # --- Set storage backend early ---
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
@@ -43,15 +41,10 @@ else:
     )
     os.environ.setdefault("MEDIA_URL", "/media/")
 
+# --- Clear Django's lazy default_storage cache ---
+from django.core.files.storage import default_storage  # noqa: E402
 
-# --- Clear any cached storage backend ---
-from django.core.files import storage as storage_module  # noqa: E402
-
-try:
-    storage_module.storages._storages.clear()
-except AttributeError:
-    storage_module.storages._storages = {}
-
+default_storage._wrapped = None
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
