@@ -44,3 +44,6 @@ htmlcov/
 coverage.xml
 .tox/
 .pytest_cache/
+
+# Precommit
+.pre-commit-config.yaml
