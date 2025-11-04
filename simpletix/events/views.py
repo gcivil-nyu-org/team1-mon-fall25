@@ -130,9 +130,10 @@ def create_event(request):
         ]
         formset = TicketFormSet(initial=initial_ticket_data)
     return render(
-        request, "events/create_event.html", 
+        request,
+        "events/create_event.html",
         {
-            "form": form, 
+            "form": form,
             "formset": formset,
             "GOOGLE_MAPS_API_KEY": settings.GOOGLE_MAPS_API_KEY,
         },
@@ -162,8 +163,8 @@ def edit_event(request, event_id):
         request,
         "events/edit_event.html",
         {
-            "form": form, 
-            "formset": formset, 
+            "form": form,
+            "formset": formset,
             "event": event,
             "GOOGLE_MAPS_API_KEY": settings.GOOGLE_MAPS_API_KEY,
         },

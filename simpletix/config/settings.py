@@ -204,7 +204,12 @@ else:
 # --- GOOGLE MAPS SETTINGS ---
 
 if os.getenv("CI", "false").lower() == "true":
-    ALGOLIA = {"APPLICATION_ID": "", "API_KEY": "", "SEARCH_KEY": "", "INDEX_PREFIX": "ci-skip"}
+    ALGOLIA = {
+        "APPLICATION_ID": "",
+        "API_KEY": "",
+        "SEARCH_KEY": "",
+        "INDEX_PREFIX": "ci-skip",
+    }
     GOOGLE_MAPS_API_KEY = ""
     ALGOLIA_ENABLED = False
 elif ENVIRONMENT in ["production", "development"]:
