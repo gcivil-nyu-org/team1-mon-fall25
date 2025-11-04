@@ -15,7 +15,6 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from config.secrets import get_secret
-import django.core.files.storage as storage
 
 
 # Configure a temporary logger for settings.py
@@ -24,13 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 def log_storage_initialization(name):
+    import django.core.files.storage as storage  # noqa: E402
+
     logger.info(
         f"Storage backend initialized: {type(storage.default_storage).__name__}"
         f" at settings line {name}"
     )
 
-
-log_storage_initialization("TOP")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,8 +42,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load Env vars + get Database Secrets
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 logger.info(">>> ENVIRONMENT=%r", ENVIRONMENT)
+
 if ENVIRONMENT == "local":
     load_dotenv()
+
+# --- Media files ---
+
+if ENVIRONMENT in ["production", "development"]:
+    # Use S3 for media
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_MEDIA_BUCKET_NAME")
+    AWS_QUERYSTRING_AUTH = True  # generate signed URLs for private objects
+    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
+    log_storage_initialization("AFTER DEFAULT_FILE_STORAGE SET")
+else:
+    # Local filesystem fallback
+    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+
+logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
+logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
+logger.info(">>> FINAL MEDIA_URL=%r", MEDIA_URL)
+
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
 
 if ENVIRONMENT in ["production", "development"]:
     DJANGO_SECRET_KEY_NAME = os.getenv("DJANGO_SECRET_KEY_NAME")
@@ -62,10 +86,6 @@ else:
         "dbInstanceIdentifier": os.getenv("POSTGRES_DB", "simpletix-local-db"),
         "dbname": os.getenv("POSTGRES_DB_NAME", "simpletix"),
     }
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -186,26 +206,6 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-
-# --- Media files ---
-
-if ENVIRONMENT in ["production", "development"]:
-    # Use S3 for media
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    log_storage_initialization("AFTER DEFAULT_FILE_STORAGE SET")
-    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_MEDIA_BUCKET_NAME")
-    AWS_QUERYSTRING_AUTH = True  # generate signed URLs for private objects
-    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
-else:
-    # Local filesystem fallback
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-    MEDIA_URL = "/media/"
-    MEDIA_ROOT = BASE_DIR / "media"
-
-logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
-logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
-logger.info(">>> FINAL MEDIA_URLE=%r", MEDIA_URL)
 
 
 # --- Login ---
