@@ -11,9 +11,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from config.secrets import get_secret
+
+# Configure a temporary logger for settings.py
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +30,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load Env vars + get Database Secrets
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+logger.info(">>> ENVIRONMENT=%r", ENVIRONMENT)
 if ENVIRONMENT == "local":
     load_dotenv()
 
@@ -182,6 +188,10 @@ else:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
 
+logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
+logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
+logger.info(">>> FINAL MEDIA_URLE=%r", MEDIA_URL)
+
 
 # --- Login ---
 
@@ -217,3 +227,18 @@ else:
         "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}
