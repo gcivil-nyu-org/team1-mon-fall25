@@ -194,10 +194,6 @@ logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
 logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
 logger.info(">>> FINAL MEDIA_URLE=%r", MEDIA_URL)
 
-# clear any cached storage instances
-from django.core.files.storage import storages  # noqa: E402
-
-storages._storages = {}
 
 # --- Login ---
 
@@ -248,3 +244,15 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+# --- Final safeguard: clear cached storage backends ---
+from django.core.files.storage import storages  # noqa: E402
+
+try:
+    storages._storages.clear()
+except AttributeError:
+    storages._storages = {}
+
+logger.info(
+    ">>> Cleared cached Django storage backends to enforce correct S3 configuration"
+)
