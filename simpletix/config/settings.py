@@ -258,29 +258,10 @@ LOGGING = {
     },
 }
 
-# --- Final safeguard: clear cached storage backends ---
-from django.core.files.storage import storages  # noqa: E402
-
-try:
-    storages._storages.clear()
-except AttributeError:
-    storages._storages = {}
+# --- Verify final storage backend ---
+from django.core.files.storage import default_storage  # noqa: E402
 
 logger.info(
-    ">>> Cleared cached Django storage backends to enforce correct S3 configuration"
+    ">>> Effective default_storage after settings load: %s",
+    type(default_storage).__name__,
 )
-log_storage_initialization("AFTER STORAGE CACHE CLEAR")
-
-
-# --- Force rebuild of default_storage backend ---
-from django.utils.module_loading import import_string  # noqa: E402
-from django.core.files.storage import storages as _storages  # noqa: E402
-
-try:
-    # Import the storage class dynamically based on the final DEFAULT_FILE_STORAGE
-    storage_class = import_string(DEFAULT_FILE_STORAGE)
-    # Reinitialize the default storage backend to ensure S3 is used
-    _storages.backends["default"] = storage_class
-    logger.info(">>> Reinitialized Django default_storage to %s", storage_class)
-except Exception as e:
-    logger.error(">>> Failed to reinitialize default_storage: %s", e)
