@@ -9,24 +9,25 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 
 import os
 import json
+import subprocess
 from pathlib import Path
 from django.core.wsgi import get_wsgi_application
 
-# --- Load Elastic Beanstalk environment variables manually if not already present ---
-try:
-    eb_env_path = Path(
-        "/opt/elasticbeanstalk/deploy/configuration/containerconfiguration"
-    )
-    if eb_env_path.exists():
-        with open(eb_env_path) as f:
-            data = json.load(f)
-        env_vars = data.get("container", {}).get("environment", {})
+# --- Force-load EB environment vars before Django settings ---
+eb_env_path = Path("/opt/elasticbeanstalk/bin/get-config")
 
-        for key, value in env_vars.items():
-            if key not in os.environ:
-                os.environ[key] = value
-except Exception as e:
-    print(f"Warning: could not preload EB environment vars: {e}")
+if eb_env_path.exists():
+    try:
+        output = subprocess.check_output(
+            ["/opt/elasticbeanstalk/bin/get-config", "environment"]
+        )
+        env_data = json.loads(output.decode().strip())
+        for k, v in env_data.items():
+            os.environ.setdefault(k, v)
+    except Exception as e:
+        print(f"Failed to load EB environment variables: {e}")
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
 application = get_wsgi_application()
