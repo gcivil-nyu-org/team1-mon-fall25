@@ -11,7 +11,6 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from django.core.wsgi import get_wsgi_application
 
 # --- Force-load EB environment vars before Django settings ---
 eb_env_path = Path("/opt/elasticbeanstalk/bin/get-config")
@@ -29,5 +28,7 @@ if eb_env_path.exists():
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+from django.core.wsgi import get_wsgi_application  # noqa: E402
 
 application = get_wsgi_application()
