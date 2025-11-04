@@ -11,24 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from config.secrets import get_secret
-
-
-# Configure a temporary logger for settings.py
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-def log_storage_initialization(name):
-    import django.core.files.storage as storage  # noqa: E402
-
-    logger.info(
-        f"Storage backend initialized: {type(storage.default_storage).__name__}"
-        f" at settings line {name}"
-    )
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,31 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 
-# Load Env vars + get Database Secrets
+# Load env var
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
-logger.info(">>> ENVIRONMENT=%r", ENVIRONMENT)
 
 if ENVIRONMENT == "local":
     load_dotenv()
 
 # # --- Media files ---
-
-# if ENVIRONMENT in ["production", "development"]:
-#     # Use S3 for media
-#     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-#     AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_MEDIA_BUCKET_NAME")
-#     AWS_QUERYSTRING_AUTH = True  # generate signed URLs for private objects
-#     MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
-#     log_storage_initialization("AFTER DEFAULT_FILE_STORAGE SET")
-# else:
-#     # Local filesystem fallback
-#     DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-#     MEDIA_URL = "/media/"
-#     MEDIA_ROOT = BASE_DIR / "media"
-
-# logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
-# logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
-# logger.info(">>> FINAL MEDIA_URL=%r", MEDIA_URL)
 
 if ENVIRONMENT in ["production", "development"]:
     STORAGES = {
@@ -123,7 +90,6 @@ DATABASES = {
         "PORT": secrets["port"],
     }
 }
-
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if ENVIRONMENT == "production":
@@ -243,7 +209,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/start/"
 
 
-# --- ALGOLIA SETTINGS ---
+# --- Algoila Settings ---
 
 if os.getenv("CI", "false").lower() == "true":
     # Disable Algolia entirely in CI builds
@@ -269,26 +235,3 @@ else:
         "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
-
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-}
-
-# --- Verify final storage backend ---
-from django.core.files.storage import default_storage  # noqa: E402
-
-logger.info(
-    ">>> Effective default_storage after settings load: %s",
-    type(default_storage).__name__,
-)

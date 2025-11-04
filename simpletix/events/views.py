@@ -110,18 +110,6 @@ def organizer_owns_event(view_func):
 @organizer_required
 def create_event(request):
     if request.method == "POST":
-        # --- DEBUG LOGGING START ---
-        import logging
-
-        logger = logging.getLogger(__name__)
-        import os
-        from django.core.files.storage import default_storage
-
-        logger.info("=== Upload Debug Info ===")
-        logger.info("ENVIRONMENT=%s", os.getenv("ENVIRONMENT"))
-        logger.info("DEFAULT_FILE_STORAGE=%s", default_storage.__class__)
-        logger.info("AWS_MEDIA_BUCKET_NAME=%s", os.getenv("AWS_MEDIA_BUCKET_NAME"))
-        # --- DEBUG LOGGING END ---
         form = EventForm(request.POST, request.FILES)
         formset = TicketFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
