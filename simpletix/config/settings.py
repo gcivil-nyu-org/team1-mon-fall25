@@ -15,10 +15,22 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from config.secrets import get_secret
+import django.core.files.storage as storage
+
 
 # Configure a temporary logger for settings.py
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def log_storage_initialization(name):
+    logger.info(
+        f"Storage backend initialized: {type(storage.default_storage).__name__}"
+        f" at settings line {name}"
+    )
+
+
+log_storage_initialization("TOP")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -181,6 +193,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 if ENVIRONMENT in ["production", "development"]:
     # Use S3 for media
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    log_storage_initialization("AFTER DEFAULT_FILE_STORAGE SET")
     AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_MEDIA_BUCKET_NAME")
     AWS_QUERYSTRING_AUTH = True  # generate signed URLs for private objects
     MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
@@ -256,3 +269,4 @@ except AttributeError:
 logger.info(
     ">>> Cleared cached Django storage backends to enforce correct S3 configuration"
 )
+log_storage_initialization("AFTER STORAGE CACHE CLEAR")
