@@ -11,6 +11,19 @@ import os
 import json
 import subprocess
 from pathlib import Path
+import logging
+from django.core.files.storage import default_storage
+
+# Simple logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("wsgi_debug")
+
+# Log before loading EB env vars
+logger.info(
+    "BEFORE EB ENV LOAD, DEFAULT_FILE_STORAGE=%s",
+    os.environ.get("DEFAULT_FILE_STORAGE"),
+)
+logger.info("default_storage._wrapped=%r", default_storage._wrapped)
 
 
 # --- Force-load EB environment vars before Django settings ---
@@ -54,6 +67,11 @@ except AttributeError:
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+logger.info(
+    "AFTER EB ENV LOAD, DEFAULT_FILE_STORAGE=%s", os.environ.get("DEFAULT_FILE_STORAGE")
+)
+logger.info("default_storage._wrapped=%r", default_storage._wrapped)
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402
 
