@@ -74,21 +74,13 @@ elif ENVIRONMENT == "development":
 else:
     DEBUG = True
 
-# ALLOWED_HOSTS = [
-#     "localhost",
-#     "127.0.0.1",
-#     "simpletix-dev.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
-#     "simpletix-prod.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
-#     "172.31.0.0/16",
-# ]
-
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "*.us-east-1.elasticbeanstalk.com",
+    "simpletix-dev.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
+    "simpletix-prod.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
     "172.31.0.0/16",
 ]
-
 
 # Application definition
 
