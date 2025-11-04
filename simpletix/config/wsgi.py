@@ -26,6 +26,21 @@ if eb_env_path.exists():
     except Exception as e:
         print(f"Failed to load EB environment variables: {e}")
 
+# --- Set storage backend early ---
+ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+
+if ENVIRONMENT in ["production", "development"]:
+    os.environ.setdefault(
+        "DEFAULT_FILE_STORAGE", "storages.backends.s3boto3.S3Boto3Storage"
+    )
+    os.environ.setdefault("AWS_STORAGE_BUCKET_NAME", os.getenv("AWS_MEDIA_BUCKET_NAME"))
+    os.environ.setdefault("AWS_QUERYSTRING_AUTH", "True")
+else:
+    os.environ.setdefault(
+        "DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage"
+    )
+    os.environ.setdefault("MEDIA_URL", "/media/")
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
