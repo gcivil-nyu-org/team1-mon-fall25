@@ -26,6 +26,7 @@ if eb_env_path.exists():
     except Exception as e:
         print(f"Failed to load EB environment variables: {e}")
 
+
 # --- Set storage backend early ---
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 
@@ -41,11 +42,16 @@ else:
     )
     os.environ.setdefault("MEDIA_URL", "/media/")
 
-# --- Clear Django's lazy default_storage cache ---
+
+# --- Clear any cached storage backend and force re-init ---
 from django.core.files.storage import default_storage  # noqa: E402
 
-default_storage._wrapped = None
+if hasattr(default_storage, "_wrapped"):
+    default_storage._wrapped = None  # clear old lazy object
+default_storage._setup()  # re-initialize with the current DEFAULT_FILE_STORAGE
 
+
+# --- Load Django WSGI application ---
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402
