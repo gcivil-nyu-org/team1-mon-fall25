@@ -280,7 +280,7 @@ try:
     # Import the storage class dynamically based on the final DEFAULT_FILE_STORAGE
     storage_class = import_string(DEFAULT_FILE_STORAGE)
     # Reinitialize the default storage backend to ensure S3 is used
-    _storages.backends["default"] = storage_class()
+    _storages.backends["default"] = storage_class
     logger.info(">>> Reinitialized Django default_storage to %s", storage_class)
 except Exception as e:
     logger.error(">>> Failed to reinitialize default_storage: %s", e)
