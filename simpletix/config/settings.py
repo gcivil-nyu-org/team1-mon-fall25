@@ -82,6 +82,7 @@ ALLOWED_HOSTS = [
     "172.31.0.0/16",
 ]
 
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -96,6 +97,7 @@ INSTALLED_APPS = [
     "ebhealthcheck.apps.EBHealthCheckConfig",
     "accounts.apps.AccountsConfig",
     "tickets",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -192,6 +194,10 @@ logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
 logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
 logger.info(">>> FINAL MEDIA_URLE=%r", MEDIA_URL)
 
+# clear any cached storage instances
+from django.core.files.storage import storages  # noqa: E402
+
+storages._storages = {}
 
 # --- Login ---
 
