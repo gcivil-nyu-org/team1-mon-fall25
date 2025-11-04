@@ -46,24 +46,51 @@ logger.info(">>> ENVIRONMENT=%r", ENVIRONMENT)
 if ENVIRONMENT == "local":
     load_dotenv()
 
-# --- Media files ---
+# # --- Media files ---
+
+# if ENVIRONMENT in ["production", "development"]:
+#     # Use S3 for media
+#     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+#     AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_MEDIA_BUCKET_NAME")
+#     AWS_QUERYSTRING_AUTH = True  # generate signed URLs for private objects
+#     MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
+#     log_storage_initialization("AFTER DEFAULT_FILE_STORAGE SET")
+# else:
+#     # Local filesystem fallback
+#     DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+#     MEDIA_URL = "/media/"
+#     MEDIA_ROOT = BASE_DIR / "media"
+
+# logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
+# logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
+# logger.info(">>> FINAL MEDIA_URL=%r", MEDIA_URL)
 
 if ENVIRONMENT in ["production", "development"]:
-    # Use S3 for media
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_MEDIA_BUCKET_NAME")
-    AWS_QUERYSTRING_AUTH = True  # generate signed URLs for private objects
-    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
-    log_storage_initialization("AFTER DEFAULT_FILE_STORAGE SET")
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "OPTIONS": {
+                "bucket_name": os.getenv("AWS_MEDIA_BUCKET_NAME"),
+                "querystring_auth": True,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f"https://{os.getenv('AWS_MEDIA_BUCKET_NAME')}.s3.amazonaws.com/"
 else:
-    # Local filesystem fallback
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {"location": BASE_DIR / "media"},
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
-
-logger.info(">>> FINAL DEFAULT_FILE_STORAGE=%r", DEFAULT_FILE_STORAGE)
-logger.info(">>> FINAL AWS_MEDIA_BUCKET_NAME=%r", AWS_STORAGE_BUCKET_NAME)
-logger.info(">>> FINAL MEDIA_URL=%r", MEDIA_URL)
 
 
 # Database
