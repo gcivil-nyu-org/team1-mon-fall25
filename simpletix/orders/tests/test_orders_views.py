@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 import stripe
+import os
 
 from orders.models import Order, BillingInfo
 from tickets.models import Ticket
@@ -223,7 +224,10 @@ def test_webhook_session_completed_paid(
         "data": {
             "object": {
                 "id": "sess_123",
-                "metadata": {"order_id": pending_order.id},
+                "metadata": {
+                    "order_id": pending_order.id,
+                    "environment": os.getenv("ENVIRONMENT"),
+                },
                 "payment_status": "paid",
                 "customer_details": {
                     "name": "Billing Name",
@@ -267,7 +271,10 @@ def test_webhook_session_completed_not_paid(
         "data": {
             "object": {
                 "id": "sess_123",
-                "metadata": {"order_id": pending_order.id},
+                "metadata": {
+                    "order_id": pending_order.id,
+                    "environment": os.getenv("ENVIRONMENT"),
+                },
                 "payment_status": "unpaid",  # <-- Not paid
             }
         },
@@ -295,7 +302,10 @@ def test_webhook_session_expired(client, webhook_url, mock_stripe, pending_order
         "data": {
             "object": {
                 "id": "sess_123",
-                "metadata": {"order_id": pending_order.id},
+                "metadata": {
+                    "order_id": pending_order.id,
+                    "environment": os.getenv("ENVIRONMENT"),
+                },
             }
         },
     }
@@ -316,7 +326,16 @@ def test_webhook_session_expired(client, webhook_url, mock_stripe, pending_order
 
 def test_webhook_unhandled_event(client, webhook_url, mock_stripe):
     """Tests that other events are received but not acted upon."""
-    mock_event = {"type": "payment_intent.succeeded"}
+    mock_event = {
+        "type": "payment_intent.succeeded",
+        "data": {
+            "object": {
+                "metadata": {
+                    "environment": os.getenv("ENVIRONMENT"),
+                }
+            }
+        },
+    }
     mock_stripe.Webhook.construct_event.return_value = mock_event
 
     response = post_webhook(client, webhook_url, mock_event)
@@ -330,7 +349,31 @@ def test_webhook_handler_order_not_found(client, webhook_url, mock_stripe):
         "data": {
             "object": {
                 "id": "sess_123",
-                "metadata": {"order_id": 99999},  # <-- Fake ID
+                "metadata": {
+                    "order_id": 99999,
+                    "environment": os.getenv("ENVIRONMENT"),
+                },  # <-- Fake ID
+            }
+        },
+    }
+    mock_stripe.Webhook.construct_event.return_value = mock_event
+
+    response = post_webhook(client, webhook_url, mock_event)
+    # Should not crash, just prints an error and returns 200
+    assert response.status_code == 200
+
+
+def test_webhook_handler_env_not_found(client, webhook_url, mock_stripe, pending_order):
+    """Tests that the handler safely exits if the order ID is invalid."""
+    mock_event = {
+        "type": "checkout.session.expired",
+        "data": {
+            "object": {
+                "id": "sess_123",
+                "metadata": {
+                    "order_id": pending_order.id,
+                    "environment": "other_env",
+                },  # <-- Fake ID
             }
         },
     }
