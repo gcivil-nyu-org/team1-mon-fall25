@@ -19,9 +19,10 @@ env:
 
 before_install:
   - cd simpletix
+  - pip install --upgrade pip
+  - pip install --upgrade awsebcli
 
 install:
-  - pip install --upgrade pip
   - pip install -r requirements-dev.txt
 
 before_script:
@@ -37,3 +38,17 @@ script:
 
 after_success:
   - coveralls
+
+deploy:
+  provider: script
+  script: |
+    echo "Deploying branch: $TRAVIS_BRANCH"
+    if [ "$TRAVIS_BRANCH" = "main" ]; then
+      eb deploy simpletix-prod
+    elif [ "$TRAVIS_BRANCH" = "develop" ]; then
+      eb deploy simpletix-dev
+    else
+      echo "No deploy target for branch $TRAVIS_BRANCH"
+    fi
+  on:
+    all_branches: true
