@@ -8,7 +8,8 @@ from django.utils import timezone
 from events.models import Event
 from accounts.models import OrganizerProfile, UserProfile
 from tickets.models import TicketInfo
-from orders.models import Order
+from orders.models import Order, BillingInfo
+
 
 # Mark all tests in this file as needing database access
 pytestmark = pytest.mark.django_db
@@ -124,7 +125,6 @@ def mock_stripe():
 
         # Mock the webhook construction
         mock_stripe_module.Webhook.construct_event.return_value = {}
-
         yield mock_stripe_module
 
 
@@ -132,3 +132,28 @@ def mock_stripe():
 def webhook_url():
     """Fixture for the webhook URL."""
     return reverse("orders:stripe_webhook")
+
+
+@pytest.fixture
+def billing_info(db):
+    """Fixture for a sample BillingInfo object."""
+    return BillingInfo.objects.create(
+        full_name="Test Billing",
+        email="billing@example.com",
+        phone="123-456-7890",
+    )
+
+
+@pytest.fixture
+def order(db, attendee_profile, ticket_info_ga, billing_info):
+    """
+    Fixture for an Order object linked to billing info.
+    This fixture also implicitly tests the create part of the save() method.
+    """
+    return Order.objects.create(
+        attendee=attendee_profile,
+        ticket_info=ticket_info_ga,
+        billing_info=billing_info,
+        full_name="Test Order User",
+        email="order@example.com",
+    )

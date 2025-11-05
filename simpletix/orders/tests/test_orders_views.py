@@ -1,5 +1,7 @@
 import pytest
 from django.urls import reverse
+import stripe
+
 from orders.models import Order, BillingInfo
 from tickets.models import Ticket
 
@@ -135,6 +137,32 @@ def test_process_payment_success(logged_in_attendee_client, pending_order, mock_
     assert call_args["line_items"][0]["price_data"]["unit_amount"] == expected_price
 
 
+def test_process_payment_stripe_api_error(
+    logged_in_attendee_client, pending_order, mock_stripe
+):
+    """Tests the error handling when Stripe API fails."""
+    # Simulate a Stripe API exception
+    mock_stripe.checkout.Session.create.side_effect = stripe._error.StripeError(
+        "API Connection Error"
+    )
+
+    ticket_info = pending_order.ticket_info
+    initial_availability = ticket_info.availability
+
+    url = reverse("orders:process_payment", args=[pending_order.id])
+    response = logged_in_attendee_client.get(url)
+
+    # Should redirect to cancel page
+    assert response.status_code == 302
+    assert response.url == reverse("orders:payment_cancel", args=[pending_order.id])
+
+    # Order should be marked as 'failed' and ticket restocked
+    pending_order.refresh_from_db()
+    assert pending_order.status == "failed"
+    ticket_info.refresh_from_db()
+    assert ticket_info.availability == initial_availability + 1
+
+
 # --- View: payment_success ---
 
 
@@ -230,6 +258,36 @@ def test_webhook_session_completed_paid(
     assert pending_order.billing_info == billing_info
 
 
+def test_webhook_session_completed_not_paid(
+    client, webhook_url, mock_stripe, pending_order
+):
+    """Tests webhook for a completed session that was NOT paid."""
+    mock_event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": {
+                "id": "sess_123",
+                "metadata": {"order_id": pending_order.id},
+                "payment_status": "unpaid",  # <-- Not paid
+            }
+        },
+    }
+    mock_stripe.Webhook.construct_event.return_value = mock_event
+    ticket_info = pending_order.ticket_info
+    initial_availability = ticket_info.availability
+
+    response = post_webhook(client, webhook_url, mock_event)
+
+    assert response.status_code == 200
+
+    # Order should be failed and ticket restocked
+    pending_order.refresh_from_db()
+    assert pending_order.status == "failed"
+    assert Ticket.objects.count() == 0
+    ticket_info.refresh_from_db()
+    assert ticket_info.availability == initial_availability + 1
+
+
 def test_webhook_session_expired(client, webhook_url, mock_stripe, pending_order):
     """Tests the webhook handler for an expired session."""
     mock_event = {
@@ -254,3 +312,30 @@ def test_webhook_session_expired(client, webhook_url, mock_stripe, pending_order
     assert pending_order.status == "failed"
     ticket_info.refresh_from_db()
     assert ticket_info.availability == initial_availability + 1
+
+
+def test_webhook_unhandled_event(client, webhook_url, mock_stripe):
+    """Tests that other events are received but not acted upon."""
+    mock_event = {"type": "payment_intent.succeeded"}
+    mock_stripe.Webhook.construct_event.return_value = mock_event
+
+    response = post_webhook(client, webhook_url, mock_event)
+    assert response.status_code == 200
+
+
+def test_webhook_handler_order_not_found(client, webhook_url, mock_stripe):
+    """Tests that the handler safely exits if the order ID is invalid."""
+    mock_event = {
+        "type": "checkout.session.expired",
+        "data": {
+            "object": {
+                "id": "sess_123",
+                "metadata": {"order_id": 99999},  # <-- Fake ID
+            }
+        },
+    }
+    mock_stripe.Webhook.construct_event.return_value = mock_event
+
+    response = post_webhook(client, webhook_url, mock_event)
+    # Should not crash, just prints an error and returns 200
+    assert response.status_code == 200
