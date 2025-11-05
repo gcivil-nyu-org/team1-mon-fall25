@@ -1,6 +1,4 @@
 branch-defaults:
-  tp/task/add-cd-to-travis:
-    environment: simpletix-dev
   develop:
     environment: simpletix-dev
   main:

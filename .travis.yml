@@ -47,8 +47,6 @@ deploy:
       eb deploy simpletix-prod
     elif [ "$TRAVIS_BRANCH" = "develop" ]; then
       eb deploy simpletix-dev
-    elif [ "$TRAVIS_BRANCH" = "tp/task/add-cd-to-travis" ]; then
-      eb deploy simpletix-dev
     else
       echo "No deploy target for branch $TRAVIS_BRANCH"
     fi
