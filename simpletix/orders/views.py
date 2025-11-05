@@ -1,5 +1,6 @@
 import stripe
 import time
+import os
 from django.db import transaction
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
@@ -120,7 +121,10 @@ def process_payment(request, order_id):
             },
             # IMPORTANT: Pass the Order ID in metadata
             # This is how our webhook will find the order later
-            metadata={"order_id": order.id},
+            metadata={
+                "order_id": order.id,
+                "environment": os.getenv("ENVIRONMENT", "development"),
+            },
             expires_at=int(time.time()) + 1800,
             # Redirect URLs
             success_url=DOMAIN + reverse("orders:payment_success", args=[order.id]),
@@ -197,6 +201,17 @@ def stripe_webhook(request):
         return HttpResponse(status=400)
 
     print("event['type']:", event["type"])
+
+    # Get the environment this event was *created* in
+    session = event["data"]["object"]
+    event_env = session.get("metadata", {}).get("environment")
+
+    # Get the environment this *server* is in
+    server_env = os.getenv("ENVIRONMENT")
+
+    if event_env != server_env:
+        # This event is not for me. Ignore it.
+        return HttpResponse(status=200, content=f"OK (Ignored: event for {event_env})")
 
     def order_failed_handler(session):
         try:
