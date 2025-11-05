@@ -9,7 +9,8 @@ APP = "accounts"
 def test_password_policy_enforced(client, role):
     client.get(reverse(f"{APP}:pick_role", args=[role]))
 
-    # No number → should trigger password validator somewhere (password1/password2/password)
+    # No number → should trigger password validator somewhere
+    # (password1/password2/password)
     r = client.post(
         reverse(f"{APP}:signup"),
         {
@@ -29,7 +30,7 @@ def test_password_policy_enforced(client, role):
             keys
         ), f"Expected password error, got: {form.errors}"
     else:
-        # If it redirects, that's unexpected for a bad password, but don't hard-fail here
+        # If redirect, that's unexpected for a bad password, but don't hard-fail here
         assert False, f"Expected validation error page (200); got {r.status_code}"
 
     # No letter
@@ -95,7 +96,7 @@ def test_email_format_enforced(client, role):
         assert form is not None
         assert "email" in form.errors, f"Expected email error, got: {form.errors}"
     elif r.status_code in (302, 303):
-        # NOTE: This means email isn't being validated in the form. Accepting it here to keep tests green.
+        # NOTE: email not validated in the form. Accepting here to keep tests green.
         assert True
     else:
         assert False, f"Unexpected status code: {r.status_code}"
