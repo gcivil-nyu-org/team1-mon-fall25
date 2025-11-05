@@ -15,7 +15,8 @@ GUEST_SESSION_KEY = "is_guest"  # the flag key if set one
 @pytest.mark.django_db
 def test_guest_entry_is_accessible(client):
     """
-    /accounts/guest/ is callable and leads to a public page; we don't enforce a specific target.
+    /accounts/guest/ is callable and leads to a public page; we don't enforce a
+    specific target.
     """
     url = reverse(f"{APP}:guest_entry")
     res = getattr(client, GUEST_METHOD)(url, follow=True)
@@ -38,7 +39,8 @@ def test_guest_entry_is_accessible(client):
 @pytest.mark.django_db
 def test_guest_restricted_action_redirects_to_login(client, settings):
     """
-    Anonymous/guest user hitting a restricted URL should be redirected to the login page with ?next=
+    Anonymous/guest user hitting a restricted URL should be redirected to the login
+    page with ?next=
     """
     restricted = reverse(RESTRICTED_URL_NAME)
     res = client.get(restricted, follow=False)
@@ -80,7 +82,8 @@ def test_guest_restricted_post_redirects_to_login(client, settings):
 @pytest.mark.django_db
 def test_guest_entry_then_restricted_flow_again(client, settings):
     """
-    Enter as guest first, then try restricted again — behavior should be the same (redirect to login).
+    Enter as guest first, then try restricted again — behavior should be the same
+    (redirect to login).
     """
     getattr(client, GUEST_METHOD)(reverse(f"{APP}:guest_entry")),
     restricted = reverse(RESTRICTED_URL_NAME)
