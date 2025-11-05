@@ -41,9 +41,15 @@ after_success:
 
 deploy:
   provider: script
-  script: eb deploy
+  script: |
+    if [ "$TRAVIS_BRANCH" == "main" ]; then
+      eb deploy simpletix-prod
+    elif [ "$TRAVIS_BRANCH" == "develop" ]; then
+      eb deploy simpletix-dev
+    elif [ "$TRAVIS_BRANCH" == "tp/task/add-cd-to-travis" ]; then
+      eb deploy simpletix-dev
+    else
+      echo "No deploy target for branch $TRAVIS_BRANCH"
+    fi
   on:
-    branch:
-      - develop
-      - main
-      - tp/task/add-cd-to-travis
+    all_branches: true
