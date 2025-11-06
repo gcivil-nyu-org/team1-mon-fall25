@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from events.models import Event
-from accounts.models import OrganizerProfile  # make sure this is correct
+from accounts.models import OrganizerProfile
 
 
 class SimpleEventViewTests(TestCase):
@@ -23,6 +23,17 @@ class SimpleEventViewTests(TestCase):
             organizer=self.organizer,
         )
 
+        # Mark user session as organizer
+        session = self.client.session
+        session["desired_role"] = "organizer"
+        session.save()
+
+    def login(self):
+        self.client.login(username="testuser", password="pass123")
+        session = self.client.session
+        session["desired_role"] = "organizer"
+        session.save()
+
     def test_event_list_view(self):
         response = self.client.get(reverse("events:event_list"))
         self.assertEqual(response.status_code, 200)
@@ -32,16 +43,17 @@ class SimpleEventViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_event_create_view_get(self):
-        self.client.login(username="testuser", password="testpass")
+        self.login()
         url = reverse("events:create_event")
         response = self.client.get(url)
-        # If your view redirects even for logged in users, adjust expected code
         self.assertIn(response.status_code, [200, 302])
 
     def test_event_edit_view_get(self):
+        self.login()
         response = self.client.get(reverse("events:edit_event", args=[self.event.id]))
-        self.assertIn(response.status_code, [200, 302])  # allows redirect or success
+        self.assertIn(response.status_code, [200, 302])
 
     def test_event_delete_view_get(self):
+        self.login()
         response = self.client.get(reverse("events:delete_event", args=[self.event.id]))
         self.assertIn(response.status_code, [200, 302])

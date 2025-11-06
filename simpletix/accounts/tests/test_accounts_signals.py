@@ -8,7 +8,8 @@ def test_user_create_triggers_signals():
     u = User.objects.create_user(
         username="sig1", email="sig1@example.com", password="Passw0rd1!"
     )
-    # If signals create profiles, they should now exist; don’t assert strictly if project differs
+    # If signals create profiles, they should now exist
+    # don’t assert strictly if project differs
     if hasattr(u, "userprofile"):
         _ = u.userprofile  # access
     if hasattr(u, "organizerprofile"):

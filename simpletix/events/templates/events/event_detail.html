@@ -3,7 +3,7 @@
 {% block title %}{{ event.title }}{% endblock %}
 
 {% block content %}
-<div class="card shadow-lg">
+<div class="card shadow-lg mb-4">
     {% if event.banner %}
         <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}">
     {% endif %}
@@ -23,12 +23,33 @@
 
         <h4 class="mt-4">Tickets</h4>
         <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Availability</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
             <tbody>
                 {% for ticket in event.ticketInfo.all %}
                 <tr>
                     <td>{{ ticket.get_category_display }}</td>
-                    <td>{{ ticket.price }}</td>
-                    <td>{{ ticket.availability }}</td>
+                    <td>${{ ticket.price }}</td>
+                    <td>
+                        {% if ticket.availability > 0 %}
+                            {{ ticket.availability }} left
+                        {% else %}
+                            Sold out
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ticket.availability > 0 %}
+                            <a href="{% url 'tickets:order' event.id %}" class="btn btn-primary">Buy</a>
+                        {% else %}
+                            <button class="btn btn-secondary" disabled>Sold out</button>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -36,13 +57,12 @@
 
         <div class="mt-4 d-flex justify-content-between">
             <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Back to Events</a>
+            
             {% if request.session.desired_role == 'organizer' and event.organizer.user == user %}
             <div>
                 <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning me-2">Edit Event</a>
                 <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
             </div>
-            {% elif request.session.desired_role != 'organizer' %}
-                <a href="{% url 'tickets:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
             {% endif %}
         </div>
     </div>
