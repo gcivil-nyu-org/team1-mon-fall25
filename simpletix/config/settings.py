@@ -204,14 +204,7 @@ else:
 # --- GOOGLE MAPS SETTINGS ---
 
 if os.getenv("CI", "false").lower() == "true":
-    # ALGOLIA = {
-    #     "APPLICATION_ID": "",
-    #     "API_KEY": "",
-    #     "SEARCH_KEY": "",
-    #     "INDEX_PREFIX": "ci-skip",
-    # }
     GOOGLE_MAPS_API_KEY = ""
-    # ALGOLIA_ENABLED = False
 elif ENVIRONMENT in ["production", "development"]:
     google_secrets_name = os.getenv("GOOGLE_MAPS_SECRETS_NAME")
     google_secrets = get_secret(google_secrets_name)
