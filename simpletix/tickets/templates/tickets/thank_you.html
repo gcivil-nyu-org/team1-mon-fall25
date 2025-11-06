@@ -1,0 +1,133 @@
+{% extends "simpletix/nav.html" %}
+{% load static %}
+
+{% block title %}Order Confirmed · SimpleTix{% endblock %}
+
+{% block body %}
+
+<style>
+  @keyframes popIn {
+    0%   { transform: scale(0.6); opacity: 0; }
+    80%  { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+
+  .stx-toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1080;
+  }
+</style>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+      <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+          <!-- Top success icon + message -->
+          <div class="text-center mb-4">
+            <div
+              class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle"
+              style="width: 64px; height: 64px; animation: popIn 0.4s ease;"
+            >
+              <span class="fs-1 text-success">✓</span>
+            </div>
+            <h1 class="h3 mt-3 mb-1">You’re all set!</h1>
+            <p class="text-muted mb-0">
+              Order <strong>#{{ order_id }}</strong> is confirmed.
+            </p>
+            {% if primary_ticket.email %}
+              <p class="text-muted">
+                We’ve emailed your tickets to
+                <strong>{{ primary_ticket.email }}</strong>.
+              </p>
+            {% endif %}
+          </div>
+
+          {% if messages %}
+            <div class="stx-toast-container">
+              {% for message in messages %}
+                <div class="toast show align-items-center text-bg-success border-0 mb-2" role="alert">
+                  <div class="d-flex">
+                    <div class="toast-body">
+                      {{ message }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="row gy-4 align-items-center">
+            <!-- QR column -->
+            <div class="col-md-5 text-center">
+              <div class="border rounded-3 p-3 d-inline-block bg-light">
+                <img
+                  src="{{ qr_data_url }}"
+                  alt="Ticket QR code"
+                  class="img-fluid"
+                  style="max-width: 220px;"
+                />
+              </div>
+              <p class="small text-muted mt-2 mb-0">
+                Show this QR code at the entrance.<br>
+                You’ll also find it in your email.
+              </p>
+            </div>
+
+            <!-- Details + actions -->
+            <div class="col-md-7">
+              {% if event %}
+                <h2 class="h5 mb-2">{{ event.title }}</h2>
+                <ul class="list-unstyled small text-muted mb-3">
+                  {% if event.start_time %}
+                    <li>
+                      <strong>Date:</strong>
+                      {{ event.start_time|date:"M j, Y" }}
+                    </li>
+                    <li>
+                      <strong>Time:</strong>
+                      {{ event.start_time|time:"P" }}
+                    </li>
+                  {% endif %}
+                  {% if event.location %}
+                    <li><strong>Location:</strong> {{ event.location }}</li>
+                  {% endif %}
+                </ul>
+              {% endif %}
+
+              <p class="small mb-3">
+                <strong>Tickets:</strong>
+                {{ tickets|length }} × {{ primary_ticket.ticketInfo.category }}
+                {% if primary_ticket.full_name %}
+                  for {{ primary_ticket.full_name }}
+                {% endif %}
+              </p>
+
+              <form
+                method="post"
+                action="{% url 'tickets:ticket_resend' order_id=order_id %}"
+                class="mb-2"
+              >
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary w-100">
+                  Didn’t get the email? Re-send tickets
+                </button>
+              </form>
+
+              <a href="{% url 'tickets:ticket_list' %}" class="btn btn-link w-100">
+                View my tickets
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

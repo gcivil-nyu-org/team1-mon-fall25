@@ -11,6 +11,14 @@ from . import services
 from .models import TicketInfo
 from django.http import JsonResponse, HttpResponseNotAllowed
 
+import base64
+from io import BytesIO
+import qrcode
+from django.contrib import messages
+from django.http import Http404
+from django.views.decorators.http import require_POST
+from .services import build_tickets_pdf, send_ticket_email
+
 
 def index(request):
     return render(request, "tickets/index.html")
@@ -137,7 +145,91 @@ def payment_confirm(request):
         {
             "status": "ok",
             "ticket_id": ticket.id,
+            "order_id": ticket.order_id,
             "message": "Ticket issued and email sent.",
         },
         status=200,
     )
+
+def _qr_data_url_for_ticket(ticket):
+    """
+    Build a data: URL PNG for the ticket's QR code.
+    Safe to call multiple times; will generate qr_code if missing.
+    """
+    if not ticket.qr_code:
+        ticket.ensure_qr()
+        ticket.save(update_fields=["qr_code"])
+
+    qr = qrcode.QRCode(box_size=8, border=2)
+    qr.add_data(ticket.qr_code)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+def ticket_thank_you(request, order_id):
+    """
+    Show a modern confirmation page after payment:
+    - order number
+    - email we sent tickets to
+    - event info
+    - primary ticket QR code
+    - 'resend tickets' button
+    """
+    tickets = (
+        Ticket.objects
+        .filter(order_id=order_id)
+        .select_related("ticketInfo__event")
+        .order_by("id")
+    )
+
+    if not tickets:
+        raise Http404("No tickets found for this order.")
+
+    primary = tickets[0]
+    event = primary.ticketInfo.event if primary.ticketInfo else None
+
+    qr_data_url = _qr_data_url_for_ticket(primary)
+
+    context = {
+        "order_id": order_id,
+        "tickets": tickets,
+        "primary_ticket": primary,
+        "event": event,
+        "qr_data_url": qr_data_url,
+    }
+    return render(request, "tickets/thank_you.html", context)
+
+@require_POST
+def ticket_resend(request, order_id):
+    """
+    Re-send ticket email (with PDF) for this order.
+    Uses the same email + PDF logic as payment_confirm.
+    """
+    tickets = list(
+        Ticket.objects
+        .filter(order_id=order_id)
+        .select_related("ticketInfo__event")
+    )
+
+    if not tickets:
+        messages.error(request, "We couldn't find any tickets for that order.")
+        return redirect("tickets:ticket_thank_you", order_id=order_id)
+
+    email = tickets[0].email
+    if not email:
+        messages.error(
+            request,
+            "This order doesn't have an email address saved yet.",
+        )
+        return redirect("tickets:ticket_thank_you", order_id=order_id)
+
+    pdf_bytes = build_tickets_pdf(tickets)
+    send_ticket_email(email, tickets, pdf_bytes=pdf_bytes)
+
+    messages.success(request, "We just re-sent your tickets to your inbox.")
+    return redirect("tickets:ticket_thank_you", order_id=order_id)
+
