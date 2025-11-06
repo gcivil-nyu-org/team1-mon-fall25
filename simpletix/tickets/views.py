@@ -6,10 +6,10 @@ from events.models import Event
 from .forms import OrderForm
 from .models import Ticket
 import json
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from . import services
 from .models import TicketInfo
+from django.http import JsonResponse, HttpResponseNotAllowed
 
 
 def index(request):
@@ -78,29 +78,66 @@ def ticket_list(request):
         {"filtername": filtername, "tickets": tickets},
     )
 
+
 @csrf_exempt
 def payment_confirm(request):
     """
-    Temporary endpoint to be called by payment flow.
-    Expects: order_id, ticket_info_id, full_name, email, phone
-    Once orders app is merged, we will switch to FK.
+    Endpoint to be called AFTER payment is confirmed (e.g. by Stripe success handler).
+    Expected JSON body:
+    {
+        "order_id": "ch_123" or "sess_123" or your own id,
+        "ticket_info_id": 5,
+        "full_name": "John Doe",
+        "email": "john@example.com",
+        "phone": "1234567890"
+    }
+
+    This will:
+    - create a Ticket
+    - generate QR code
+    - generate PDF (if reportlab installed)
+    - send email with PDF attached
     """
-    data = json.loads(request.body)
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
     order_id = data.get("order_id")
     ticket_info_id = data.get("ticket_info_id")
+    full_name = data.get("full_name") or ""
+    email = data.get("email") or ""
+    phone = data.get("phone") or ""
 
-    if not order_id or not ticket_info_id:
-        return JsonResponse({"error": "order_id and ticket_info_id required"}, status=400)
+    if not order_id or not ticket_info_id or not email:
+        return JsonResponse(
+            {"error": "order_id, ticket_info_id, and email are required"},
+            status=400,
+        )
 
-    ti = TicketInfo.objects.get(id=ticket_info_id)
+    ticket_info = get_object_or_404(TicketInfo, id=ticket_info_id)
 
-    ticket = services.issue_ticket_for_order_id(
+    # attendee is optional here because Stripe/webhooks won't be authenticated
+    ticket = services.issue_ticket_for_order(
         order_id=order_id,
-        ticket_info=ti,
-        full_name=data.get("full_name", ""),
-        email=data.get("email", ""),
-        phone=data.get("phone", ""),
+        ticket_info=ticket_info,
+        full_name=full_name,
+        email=email,
+        phone=phone,
+        attendee=None,
     )
 
-    # TODO: later attach PDF + send email
-    return JsonResponse({"status": "ok", "ticket_id": ticket.id})
+    pdf_bytes = services.build_tickets_pdf([ticket])
+    services.send_ticket_email(email, [ticket], pdf_bytes)
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "ticket_id": ticket.id,
+            "message": "Ticket issued and email sent.",
+        },
+        status=200,
+    )
