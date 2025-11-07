@@ -4,45 +4,87 @@
 {% block body %}
 <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.as_p }}
-    {{ formset.management_form }}
-    <table class="table table-hover">
-      <thead class="thead-light">
-        <tr>
-          <th>Category</th>
-          <th>Price</th>
-          <th>Availability</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ticket_form in formset %}
-          <tr>
-            {{ ticket_form.category }}
-            <td class="align-middle">
-              <label for="{{ form.price.id_for_label }}">{{ ticket_form.initial.category }}</label>
-            </td>
-            <td>
-              {{ ticket_form.price }}
-              {% if ticket_form.price.errors %}<div class="text-danger small">{{ ticket_form.price.errors }}</div>{% endif %}
-            </td>
-            <td>
-              {{ ticket_form.availability }}
-              {% if ticket_form.availability.errors %}<div class="text-danger small">{{ ticket_form.availability.errors }}</div>{% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <br>
-    <button type="submit" class="btn btn-primary">Save Event</button>
-</form>
+    <div class="container mt-4">
+        <h3>Create Event</h3>
+        <hr>
 
-{% for message in messages %}
-<p>{{ message }}</p>
-{% endfor %}
+        <!-- Event basic details -->
+        {{ form.non_field_errors }}
+        <div class="form-group">
+            {{ form.title.label_tag }} {{ form.title }}
+        </div>
+        <div class="form-group">
+            {{ form.description.label_tag }} {{ form.description }}
+        </div>
+        <div class="form-row">
+            <div class="col">
+                {{ form.date.label_tag }} {{ form.date }}
+            </div>
+            <div class="col">
+                {{ form.time.label_tag }} {{ form.time }}
+            </div>
+        </div>
+        <div class="form-group mt-3">
+            {{ form.location.label_tag }} {{ form.location }}
+        </div>
+
+        <div class="form-row mt-3">
+            <div class="col">
+                {{ form.banner.label_tag }} {{ form.banner }}
+            </div>
+            <div class="col">
+                {{ form.video.label_tag }} {{ form.video }}
+            </div>
+        </div>
+
+        <!-- ✅ Add Waitlist Options -->
+        <div class="form-check mt-4">
+            {{ form.waitlist_enabled }}
+            <label for="id_waitlist_enabled" class="form-check-label">
+                Enable Waitlist for Sold Out Events
+            </label>
+        </div>
+
+        <div class="form-check mt-2">
+            {{ form.manual_approval }}
+            <label for="id_manual_approval" class="form-check-label">
+                Organizer Must Approve Waitlist Manually
+            </label>
+        </div>
+
+        <hr>
+
+        <!-- Ticket Formset -->
+        {{ formset.management_form }}
+        <table class="table table-hover mt-3">
+            <thead class="thead-light">
+                <tr>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Availability</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket_form in formset %}
+                <tr>
+                    <td class="align-middle">{{ ticket_form.category }}</td>
+                    <td>{{ ticket_form.price }}</td>
+                    <td>{{ ticket_form.availability }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <br>
+        <button type="submit" class="btn btn-primary">Save Event</button>
+
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+</form>
 
 <!-- Google Places Autocomplete -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
 <script src="{% static 'js/autocomplete.js' %}"></script>
-
 {% endblock %}
