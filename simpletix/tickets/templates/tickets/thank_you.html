@@ -1,7 +1,7 @@
 {% extends "simpletix/nav.html" %}
 {% load static %}
 
-{% block title %}Order Confirmed · SimpleTix{% endblock %}
+{% block title %}Tickets Confirmed · SimpleTix{% endblock %}
 
 {% block body %}
 
@@ -34,12 +34,18 @@
             >
               <span class="fs-1 text-success">✓</span>
             </div>
-            <h1 class="h3 mt-3 mb-1">You’re all set!</h1>
+            <h1 class="h3 mt-3 mb-1">
+              {% if event %}
+                Your tickets for {{ event.title }} are ready 🎟️
+              {% else %}
+                You’re all set!
+              {% endif %}
+            </h1>
             <p class="text-muted mb-0">
               Order <strong>#{{ order_id }}</strong> is confirmed.
             </p>
             {% if primary_ticket.email %}
-              <p class="text-muted">
+              <p class="text-muted mb-0">
                 We’ve emailed your tickets to
                 <strong>{{ primary_ticket.email }}</strong>.
               </p>
@@ -83,7 +89,15 @@
               {% if event %}
                 <h2 class="h5 mb-2">{{ event.title }}</h2>
                 <ul class="list-unstyled small text-muted mb-3">
-                  {% if event.start_time %}
+                  {# Support either date/time or start_time on the Event model #}
+                  {% if event.date or event.time %}
+                    {% if event.date %}
+                      <li><strong>Date:</strong> {{ event.date }}</li>
+                    {% endif %}
+                    {% if event.time %}
+                      <li><strong>Time:</strong> {{ event.time }}</li>
+                    {% endif %}
+                  {% elif event.start_time %}
                     <li>
                       <strong>Date:</strong>
                       {{ event.start_time|date:"M j, Y" }}
@@ -101,12 +115,13 @@
 
               <p class="small mb-3">
                 <strong>Tickets:</strong>
-                {{ tickets|length }} × {{ primary_ticket.ticketInfo.category }}
+                {{ tickets|length }} × {{ primary_ticket.ticketInfo.get_category_display }}
                 {% if primary_ticket.full_name %}
                   for {{ primary_ticket.full_name }}
                 {% endif %}
               </p>
 
+              <!-- Resend tickets button -->
               <form
                 method="post"
                 action="{% url 'tickets:ticket_resend' order_id=order_id %}"
@@ -118,8 +133,9 @@
                 </button>
               </form>
 
+              <!-- Go to ticket list -->
               <a href="{% url 'tickets:ticket_list' %}" class="btn btn-link w-100">
-                View my tickets
+                View all my tickets
               </a>
             </div>
           </div>

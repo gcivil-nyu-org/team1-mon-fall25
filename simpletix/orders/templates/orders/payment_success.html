@@ -47,13 +47,14 @@
             
                         <!-- 3. Immediate Next Steps -->
                         <div class="mt-5">
-                            <p class="text-secondary text-center">
+                            {% comment %} <p class="text-secondary text-center">
                                 A confirmation email and your ticket have been sent to
                                 <strong class="fw-medium text-dark">{{ order.email }}</strong>.
-                            </p>
+                            </p> {% endcomment %}
             
-                            <a href="{% url 'tickets:ticket_list' %}" class="btn btn-primary w-100 py-3 mt-4 fs-6 fw-semibold rounded-3">
-                                View My Tickets
+                            <a href="{% url 'tickets:ticket_thank_you' order.id %}"
+                                 class="btn btn-primary w-100 py-3 mt-4 fs-6 fw-semibold rounded-3">
+                               View My Tickets
                             </a>
                         </div>
             

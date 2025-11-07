@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 
 from accounts.models import UserProfile
 from events.models import Event
@@ -25,11 +25,20 @@ def index(request):
 def details(request, id):
     ticket = get_object_or_404(Ticket, id=id)
     event = get_object_or_404(Event, id=ticket.ticketInfo.event.id)
+
+    # Build a data: URL for the ticket's QR code
+    qr_data_url = _qr_data_url_for_ticket(ticket)
+
     return render(
         request,
         "tickets/ticket_details.html",
-        {"event": event, "ticket": ticket},
+        {
+            "event": event,
+            "ticket": ticket,
+            "qr_data_url": qr_data_url,
+        },
     )
+
 
 
 def ticket_list(request):

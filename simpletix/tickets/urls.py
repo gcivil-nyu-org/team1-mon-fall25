@@ -8,13 +8,10 @@ urlpatterns = [
     path("details/<int:id>", views.details, name="ticket_details"),
     path("list", views.ticket_list, name="ticket_list"),
     path("payment/confirm/", views.payment_confirm, name="payment_confirm"),
+   # New thank-you + resend endpoints
+    path("thank-you/<int:order_id>/", views.ticket_thank_you, name="ticket_thank_you"),
     path(
-        "thank-you/<str:order_id>/",
-        views.ticket_thank_you,
-        name="ticket_thank_you",
-    ),
-    path(
-        "resend/<str:order_id>/",
+        "resend/<int:order_id>/",
         views.ticket_resend,
         name="ticket_resend",
     ),
