@@ -1,3 +1,5 @@
+algoliasearch-django==4.0.0
+algoliasearch>=4.11.0,<5.0.0
 asgiref==3.10.0
 bcrypt==5.0.0
 blessed==1.22.0
@@ -13,6 +15,7 @@ decorator==5.2.1
 Deprecated==1.2.18
 Django==5.2.7
 django-ebhealthcheck==2.0.2
+django-storages==1.14.6
 fabric==3.2.2
 gunicorn==23.0.0
 idna==3.11

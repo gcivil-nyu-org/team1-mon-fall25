@@ -15,6 +15,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from config.secrets import get_secret
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,9 +24,45 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 
-# Load Env vars + get Database Secrets
-load_dotenv()
+# Load env var
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+
+if ENVIRONMENT == "local":
+    load_dotenv()
+
+# # --- Media files ---
+
+if ENVIRONMENT in ["production", "development"]:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "OPTIONS": {
+                "bucket_name": os.getenv("AWS_MEDIA_BUCKET_NAME"),
+                "querystring_auth": True,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f"https://{os.getenv('AWS_MEDIA_BUCKET_NAME')}.s3.amazonaws.com/"
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {"location": BASE_DIR / "media"},
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
 
 if ENVIRONMENT in ["production", "development"]:
     DJANGO_SECRET_KEY_NAME = os.getenv("DJANGO_SECRET_KEY_NAME")
@@ -43,10 +80,6 @@ else:
         "dbInstanceIdentifier": os.getenv("POSTGRES_DB", "simpletix-local-db"),
         "dbname": os.getenv("POSTGRES_DB_NAME", "simpletix"),
     }
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -57,7 +90,6 @@ DATABASES = {
         "PORT": secrets["port"],
     }
 }
-
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if ENVIRONMENT == "production":
@@ -75,6 +107,7 @@ ALLOWED_HOSTS = [
     "172.31.0.0/16",
 ]
 
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -86,10 +119,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "events",
     "simpletix",
-    "home",
     "ebhealthcheck.apps.EBHealthCheckConfig",
     "accounts.apps.AccountsConfig",
     "tickets",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -100,6 +133,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.middleware.multi_session_middleware.MultiSessionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -166,15 +200,17 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+
+# --- Login ---
 
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 # Where to send users if ?next isn't provided.
 LOGOUT_REDIRECT_URL = "/accounts/start/"
 
-# --- ALGOLIA SETTINGS ---
+
+# --- Algoila Settings ---
+
 if os.getenv("CI", "false").lower() == "true":
     # Disable Algolia entirely in CI builds
     ALGOLIA = {
@@ -185,7 +221,13 @@ if os.getenv("CI", "false").lower() == "true":
     }
     ALGOLIA_ENABLED = False
 elif ENVIRONMENT in ["production", "development"]:
-    ALGOLIA = get_secret(os.getenv("ALGOLIA_SECRETS_NAME"))
+    secrets = get_secret(os.getenv("ALGOLIA_SECRETS_NAME"))
+    ALGOLIA = {
+        "APPLICATION_ID": secrets.get("ALGOLIA_APP_ID", ""),
+        "API_KEY": secrets.get("ALGOLIA_API_KEY", ""),
+        "SEARCH_KEY": secrets.get("ALGOLIA_SEARCH_KEY", ""),
+        "INDEX_PREFIX": secrets.get("ALGOLIA_INDEX_PREFIX", "simpletix"),
+    }
 else:
     ALGOLIA = {
         "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
@@ -193,6 +235,17 @@ else:
         "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
+
+# --- GOOGLE MAPS SETTINGS ---
+
+if os.getenv("CI", "false").lower() == "true":
+    GOOGLE_MAPS_API_KEY = ""
+elif ENVIRONMENT in ["production", "development"]:
+    google_secrets_name = os.getenv("GOOGLE_MAPS_SECRETS_NAME")
+    google_secrets = get_secret(google_secrets_name)
+    GOOGLE_MAPS_API_KEY = google_secrets.get("GOOGLE_MAPS_API_KEY", "")
+else:
+    GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
 
 
 # --- EMAIL SETTINGS ---

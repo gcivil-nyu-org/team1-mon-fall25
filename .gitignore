@@ -1,10 +1,13 @@
 # Elastic Beanstalk Files
-.elasticbeanstalk/*
-!.elasticbeanstalk/*.cfg.yml
-!.elasticbeanstalk/*.global.yml
+simpletix/.elasticbeanstalk/*
+!simpletix/.elasticbeanstalk/config.yml
+!simpletix/.elasticbeanstalk/global.yml
 
 # Environment variables
 .env
+simpletix/.env
+simpletix/venv/
+simpletix/env/
 venv/
 env/
 
@@ -14,34 +17,37 @@ env/
 *.swp
 
 # Media files (locally uploaded images/videos)
-media/
+simpletix/media/
 
 # OS-generated files
-.DS_Store
+*.DS_Store
+
 Thumbs.db
 
 # Compiled or temporary files
+*.temp
 *.log
 *.pot
 *.pyc
 
 # Django static and collected files
-staticfiles/
-static_root/
+simpletix/staticfiles/
+simpletix/static_root/
 *.sqlite3
-
-# Elastic Beanstalk configuration
-.elasticbeanstalk/*
-!.elasticbeanstalk/*.cfg.yml
-!.elasticbeanstalk/*.global.yml
 
 # Migrations
 simpletix/simpletix/migrations/*
 
 # Coverage and test artifacts
-.coverage
-.coverage.*
+*.coverage
+*.coverage.*
 htmlcov/
 coverage.xml
 .tox/
 .pytest_cache/
+
+# Precommit
+.pre-commit-config.yaml
+
+# pycache
+simpletix/__pycache__/*

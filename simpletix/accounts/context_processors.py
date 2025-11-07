@@ -7,7 +7,9 @@ def session_flags(request):
     - is_guest: True if the user is browsing as a guest
     - desired_role: what role the user last picked (organizer/attendee)
     """
-    return {
-        "is_guest": bool(request.session.get("guest")),
-        "desired_role": request.session.get("desired_role"),
-    }
+    role = None
+    if request.user.is_authenticated:
+        role = getattr(getattr(request.user, "uprofile", None), "role", None)
+    else:
+        role = request.session.get("auth_role")
+    return {"auth_role": role}

@@ -1,5 +1,6 @@
-from django.apps import AppConfig
+# events/apps.py
 import os
+from django.apps import AppConfig
 
 
 class EventsConfig(AppConfig):

@@ -11,6 +11,11 @@ class Event(models.Model):
     date = models.DateField()
     time = models.TimeField()
     location = models.CharField(max_length=255)
+
+    formatted_address = models.CharField(max_length=255, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
     banner = models.ImageField(upload_to="banners/", blank=True, null=True)
     video = models.FileField(upload_to="event_videos/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
