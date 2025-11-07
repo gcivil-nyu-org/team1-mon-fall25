@@ -8,34 +8,55 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0002_event_formatted_address_event_latitude_and_more'),
+        ("events", "0002_event_formatted_address_event_latitude_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='event',
-            name='manual_approval',
+            model_name="event",
+            name="manual_approval",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='event',
-            name='ticket_limit',
+            model_name="event",
+            name="ticket_limit",
             field=models.PositiveIntegerField(default=100),
         ),
         migrations.AddField(
-            model_name='event',
-            name='waitlist_enabled',
+            model_name="event",
+            name="waitlist_enabled",
             field=models.BooleanField(default=False),
         ),
         migrations.CreateModel(
-            name='Waitlist',
+            name="Waitlist",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('is_approved', models.BooleanField(default=False)),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='waitlist_entries', to='events.event')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("is_approved", models.BooleanField(default=False)),
+                (
+                    "event",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="waitlist_entries",
+                        to="events.event",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

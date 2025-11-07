@@ -6,13 +6,13 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0003_event_manual_approval_event_ticket_limit_and_more'),
+        ("events", "0003_event_manual_approval_event_ticket_limit_and_more"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='waitlist',
-            old_name='created_at',
-            new_name='joined_at',
+            model_name="waitlist",
+            old_name="created_at",
+            new_name="joined_at",
         ),
     ]
