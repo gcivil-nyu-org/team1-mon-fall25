@@ -35,6 +35,7 @@ class Ticket(models.Model):
     attendee = models.ForeignKey(
         UserProfile, on_delete=models.CASCADE, related_name="holds", null=True
     )
+
     ticketInfo = models.ForeignKey(
         TicketInfo, on_delete=models.CASCADE, related_name="lists", null=True
     )

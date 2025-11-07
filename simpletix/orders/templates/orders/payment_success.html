@@ -1,0 +1,73 @@
+{% extends "simpletix/nav.html" %}
+
+{% block head %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% endblock %}
+
+{% block title %}Payment Successful · SimpleTix{% endblock %}
+
+{% block body %}
+<div class="bg-light">
+
+    <div class="min-vh-100 d-flex align-items-center justify-content-center p-4">
+        
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-7 col-lg-6 col-xl-5">
+                    <!-- Card -->
+                    <div class="bg-white p-5 rounded-4 shadow-lg w-100">
+                        
+                        <!-- 1. Clear Confirmation (Icon + Title) -->
+                        <div class="d-flex flex-column align-items-center">
+                            <!-- Green Checkmark Icon (from Bootstrap Icons set, using SVG) -->
+                            <svg class="text-success" xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                            </svg>
+                              
+                            <h1 class="h2 fw-bold text-dark mt-4 text-center">Payment Successful!</h1>
+                            <p class="text-secondary mt-2 text-center">Thanks for your order, {{ order.full_name }}!</p>
+                        </div>
+            
+                        <!-- 2. Order Summary -->
+                        <div class="mt-5 border-top border-bottom py-4">
+                            <h2 class="fs-5 fw-semibold text-dark">Order Summary</h2>
+                            <div class="d-flex justify-content-between align-items-center mt-4">
+                                <span class="text-secondary">{{ order.ticket_info.category }} Ticket for {{ order.ticket_info.event.title }}</span>
+                                <span class="fw-semibold text-dark">${{ order.price_at_purchase }}</span>
+                            </div>
+            
+                            <div class="border-top mt-4 pt-4">
+                                <div class="d-flex justify-content-between align-items-center fw-bold fs-5 mt-2">
+                                    <span>Total Paid</span>
+                                    <span>${{ order.price_at_purchase }}</span>
+                                </div>
+                            </div>
+                        </div>
+            
+                        <!-- 3. Immediate Next Steps -->
+                        <div class="mt-5">
+                            <p class="text-secondary text-center">
+                                A confirmation email and your ticket have been sent to
+                                <strong class="fw-medium text-dark">{{ order.email }}</strong>.
+                            </p>
+            
+                            <a href="{% url 'tickets:ticket_list' %}" class="btn btn-primary w-100 py-3 mt-4 fs-6 fw-semibold rounded-3">
+                                View My Tickets
+                            </a>
+                        </div>
+            
+                        <!-- 4. Support & Contact -->
+                        <div class="text-center small text-muted mt-5">
+                            Need help? 
+                            <a href="#" class="fw-medium text-primary text-decoration-underline-hover">Contact support</a>
+                        </div>
+            
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
