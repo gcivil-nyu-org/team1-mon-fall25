@@ -1,19 +1,22 @@
-import stripe
-import time
 import os
-from django.db import transaction
-from django.conf import settings
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib import messages
+import time
 
-from .models import Order, BillingInfo
-from .forms import OrderForm
-from tickets.models import Ticket, TicketInfo
+import stripe
+from django.conf import settings
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.db import transaction
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+
 from accounts.models import UserProfile
 from events.models import Event
+from tickets.models import Ticket, TicketInfo
+from .forms import OrderForm
+from .models import BillingInfo, Order
+
 
 # Create your views here.
 
@@ -42,7 +45,7 @@ def order(request, event_id):
                     ticket_info.availability -= 1
                     ticket_info.save()
 
-                    # Save the form to create the ticket instance
+                    # Save the form to create the order instance
                     order = form.save(commit=False)
                     if request.session.get("desired_role") == "attendee":
                         order.attendee = UserProfile.objects.get(user=request.user)
@@ -73,6 +76,39 @@ def order_failed(order):
         ticket_info.save()
 
 
+def send_order_confirmation_email(order):
+    """
+    Sends a simple confirmation email to the attendee
+    after the Stripe payment is confirmed in the webhook.
+    """
+    ticket_info = order.ticket_info
+    event = ticket_info.event
+
+    subject = f"Your ticket for {event.title} is confirmed 🎟️"
+    message = (
+        f"Hi {order.full_name or 'there'},\n\n"
+        f"Thank you for your order! Your payment was successful and your ticket "
+        f"for '{event.title}' is confirmed.\n\n"
+        f"Details:\n"
+        f"  • Event: {event.title}\n"
+        f"  • Ticket type: {ticket_info.get_category_display()}\n"
+        f"  • Price: ${order.price_at_purchase}\n"
+        f"  • Name on ticket: {order.full_name}\n"
+        f"  • Email: {order.email}\n\n"
+        "You can view your tickets anytime from your SimpleTix account.\n\n"
+        "Best,\n"
+        "SimpleTix Team"
+    )
+
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[order.email],
+        fail_silently=False,  # in dev it's fine to crash loudly so you notice issues
+    )
+
+
 # test card:
 # https://docs.stripe.com/testing
 # test link info:
@@ -80,14 +116,13 @@ def order_failed(order):
 def process_payment(request, order_id):
     """
     This view is called when the user clicks "Buy Ticket".
-    It creates a new 'pending' Order,
-    then redirects the user to Stripe to pay.
+    It redirects the user to Stripe to pay for an existing 'pending' Order.
     """
 
     order = get_object_or_404(Order, id=order_id)
 
     if order.status != "pending":
-        return redirect("payment_cancel", order_id=order_id)
+        return redirect("orders:payment_cancel", order_id=order_id)
 
     ticket_info = order.ticket_info
 
@@ -192,7 +227,9 @@ def stripe_webhook(request):
     endpoint_secret = settings.STRIPE.get("STRIPE_WEBHOOK_SECRET", "")
 
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
     except ValueError:
         # Invalid payload
         return HttpResponse(status=400)
@@ -213,11 +250,11 @@ def stripe_webhook(request):
         # This event is not for me. Ignore it.
         return HttpResponse(status=200, content=f"OK (Ignored: event for {event_env})")
 
-    def order_failed_handler(session):
+    def order_failed_handler(session_obj):
         try:
-            order_id = session.get("metadata", {}).get("order_id")
-            order = Order.objects.get(id=order_id)
-            order_failed(order)
+            order_id = session_obj.get("metadata", {}).get("order_id")
+            order_obj = Order.objects.get(id=order_id)
+            order_failed(order_obj)
         except Order.DoesNotExist:
             print(f"ERROR: Order {order_id} not found in webhook.")
         except Exception as e:
@@ -259,6 +296,9 @@ def stripe_webhook(request):
                         phone=order.phone,
                     )
 
+                    # 4. SEND CONFIRMATION EMAIL
+                    send_order_confirmation_email(order)
+
             except Order.DoesNotExist:
                 print(f"ERROR: Order {order_id} not found in webhook.")
             except Exception as e:
@@ -278,7 +318,7 @@ def stripe_webhook(request):
         if response is not None:
             return response
     else:
-        # Handle other event types (e.g., checkout.session.expired)
+        # Handle other event types
         print(f"Unhandled event type: {event['type']}")
 
     # Tell Stripe you received the event
