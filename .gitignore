@@ -39,7 +39,7 @@ simpletix/static_root/
 simpletix/simpletix/migrations/*
 
 # Coverage and test artifacts
-simpletix/*.coverage
+simpletix/.coverage
 simpletix/*.coverage.*
 htmlcov/
 coverage.xml
