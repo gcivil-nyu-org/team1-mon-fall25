@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from accounts.models import UserProfile
 from events.models import Event
-from tickets.models import Ticket, TicketInfo
+from tickets.models import TicketInfo
 from tickets import services as ticket_services
 from .forms import OrderForm
 from .models import BillingInfo, Order
@@ -198,9 +198,7 @@ def stripe_webhook(request):
     endpoint_secret = settings.STRIPE.get("STRIPE_WEBHOOK_SECRET", "")
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError:
         # Invalid payload
         return HttpResponse(status=400)

@@ -40,7 +40,6 @@ def details(request, id):
     )
 
 
-
 def ticket_list(request):
     if request.session.get("desired_role") == "attendee":
         attendee = UserProfile.objects.get(user=request.user)
@@ -121,6 +120,7 @@ def payment_confirm(request):
         status=200,
     )
 
+
 def _qr_data_url_for_ticket(ticket):
     """
     Build a data: URL PNG for the ticket's QR code.
@@ -140,6 +140,7 @@ def _qr_data_url_for_ticket(ticket):
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
     return f"data:image/png;base64,{encoded}"
 
+
 def ticket_thank_you(request, order_id):
     """
     Show a modern confirmation page after payment:
@@ -150,8 +151,7 @@ def ticket_thank_you(request, order_id):
     - 'resend tickets' button
     """
     tickets = (
-        Ticket.objects
-        .filter(order_id=order_id)
+        Ticket.objects.filter(order_id=order_id)
         .select_related("ticketInfo__event")
         .order_by("id")
     )
@@ -173,6 +173,7 @@ def ticket_thank_you(request, order_id):
     }
     return render(request, "tickets/thank_you.html", context)
 
+
 @require_POST
 def ticket_resend(request, order_id):
     """
@@ -180,9 +181,7 @@ def ticket_resend(request, order_id):
     Uses the same email + PDF logic as payment_confirm.
     """
     tickets = list(
-        Ticket.objects
-        .filter(order_id=order_id)
-        .select_related("ticketInfo__event")
+        Ticket.objects.filter(order_id=order_id).select_related("ticketInfo__event")
     )
 
     if not tickets:
@@ -202,4 +201,3 @@ def ticket_resend(request, order_id):
 
     messages.success(request, "We just re-sent your tickets to your inbox.")
     return redirect("tickets:ticket_thank_you", order_id=order_id)
-

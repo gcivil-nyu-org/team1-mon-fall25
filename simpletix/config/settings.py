@@ -260,8 +260,7 @@ if ENVIRONMENT in ["local", "development", "production"]:
     EMAIL_HOST_USER = os.getenv("SMTP_USER", "")
     EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASSWORD", "")
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@example.com"
-    
-    
+
 
 # STRIPE CONFIGURATION
 if ENVIRONMENT in ["production", "development"]:
