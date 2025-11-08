@@ -47,6 +47,19 @@
                                 <dt class="col-sm-5">Phone:</dt>
                                 <dd class="col-sm-7">{{ ticket.phone }}</dd>
                             </dl>
+
+                            {% if qr_data_url %}
+                            <div class="mt-4 text-center text-md-start">
+                                <h2 class="h6 mb-2 text-uppercase text-muted">Ticket QR Code</h2>
+                                <img src="{{ qr_data_url }}"
+                                     alt="Ticket QR Code"
+                                     class="img-fluid border rounded-3 p-2"
+                                     style="max-width: 220px;">
+                                <p class="small text-muted mt-2 mb-0">
+                                    Show this code at the entrance to be scanned.
+                                </p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -71,6 +84,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>

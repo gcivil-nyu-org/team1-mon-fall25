@@ -237,6 +237,31 @@ else:
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
 
+# --- GOOGLE MAPS SETTINGS ---
+
+if os.getenv("CI", "false").lower() == "true":
+    GOOGLE_MAPS_API_KEY = ""
+elif ENVIRONMENT in ["production", "development"]:
+    google_secrets_name = os.getenv("GOOGLE_MAPS_SECRETS_NAME")
+    google_secrets = get_secret(google_secrets_name)
+    GOOGLE_MAPS_API_KEY = google_secrets.get("GOOGLE_MAPS_API_KEY", "")
+else:
+    GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
+
+# --- Email / SMTP configuration ---
+
+if ENVIRONMENT in ["local", "development", "production"]:
+    # Use Gmail SMTP for all environments for now
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.gmail.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.getenv("SMTP_USER", "")
+    EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@example.com"
+
+
 # STRIPE CONFIGURATION
 if ENVIRONMENT in ["production", "development"]:
     secrets = get_secret(os.getenv("STRIPE_SECRETS_NAME"))

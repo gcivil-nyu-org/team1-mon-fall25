@@ -4,7 +4,6 @@ import time
 import stripe
 from django.conf import settings
 from django.contrib import messages
-from django.core.mail import send_mail
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,7 +12,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from accounts.models import UserProfile
 from events.models import Event
-from tickets.models import Ticket, TicketInfo
+from tickets.models import TicketInfo
+from tickets import services as ticket_services
 from .forms import OrderForm
 from .models import BillingInfo, Order
 
@@ -67,6 +67,10 @@ def order(request, event_id):
 
 
 def order_failed(order):
+    """
+    Mark an order as failed and restock the ticket inventory.
+    Safe to call multiple times; only affects 'pending' orders.
+    """
     if order.status == "pending":
         order.status = "failed"
         order.save()
@@ -74,39 +78,6 @@ def order_failed(order):
         ticket_info = order.ticket_info
         ticket_info.availability += 1
         ticket_info.save()
-
-
-def send_order_confirmation_email(order):
-    """
-    Sends a simple confirmation email to the attendee
-    after the Stripe payment is confirmed in the webhook.
-    """
-    ticket_info = order.ticket_info
-    event = ticket_info.event
-
-    subject = f"Your ticket for {event.title} is confirmed 🎟️"
-    message = (
-        f"Hi {order.full_name or 'there'},\n\n"
-        f"Thank you for your order! Your payment was successful and your ticket "
-        f"for '{event.title}' is confirmed.\n\n"
-        f"Details:\n"
-        f"  • Event: {event.title}\n"
-        f"  • Ticket type: {ticket_info.get_category_display()}\n"
-        f"  • Price: ${order.price_at_purchase}\n"
-        f"  • Name on ticket: {order.full_name}\n"
-        f"  • Email: {order.email}\n\n"
-        "You can view your tickets anytime from your SimpleTix account.\n\n"
-        "Best,\n"
-        "SimpleTix Team"
-    )
-
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[order.email],
-        fail_silently=False,  # in dev it's fine to crash loudly so you notice issues
-    )
 
 
 # test card:
@@ -285,17 +256,28 @@ def stripe_webhook(request):
                     order.billing_info = billing_info
                     order.save()
 
-                    # 3. FULFILL THE ORDER: CREATE THE TICKET!
-                    Ticket.objects.create(
-                        attendee=order.attendee,
-                        ticketInfo=order.ticket_info,
+                    # 3. FULFILL THE ORDER: CREATE THE TICKET VIA TICKET SERVICES
+                    #    This mirrors the tickets.payment_confirm endpoint.
+                    ticket = ticket_services.issue_ticket_for_order(
+                        order_id=str(order.id),
+                        ticket_info=order.ticket_info,
                         full_name=order.full_name,
                         email=order.email,
                         phone=order.phone,
+                        attendee=order.attendee,
                     )
 
-                    # 4. SEND CONFIRMATION EMAIL
-                    send_order_confirmation_email(order)
+                    # 4. BUILD PDF AND SEND TICKET EMAIL (WITH PDF + QR)
+                    try:
+                        pdf_bytes = ticket_services.build_tickets_pdf([ticket])
+                        ticket_services.send_ticket_email(
+                            order.email,
+                            [ticket],
+                            pdf_bytes=pdf_bytes,
+                        )
+                    except Exception as e:
+                        # Don't break the webhook if email sending fails
+                        print(f"Error sending ticket email for order {order.id}: {e}")
 
             except Order.DoesNotExist:
                 print(f"ERROR: Order {order_id} not found in webhook.")
