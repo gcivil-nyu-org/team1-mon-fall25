@@ -1,6 +1,5 @@
 import os
 import time
-
 import stripe
 from django.conf import settings
 from django.contrib import messages
@@ -37,12 +36,13 @@ def order(request, event_id):
                     ticket_info = TicketInfo.objects.select_for_update().get(
                         id=ticket_info.id
                     )
+                    quantity = form.cleaned_data["quantity"]
 
                     if ticket_info.availability < 1:
                         messages.error(request, "Sorry, this ticket is now sold out.")
                         return redirect("orders:order", event_id=event.id)
 
-                    ticket_info.availability -= 1
+                    ticket_info.availability -= quantity
                     ticket_info.save()
 
                     # Save the form to create the order instance
@@ -59,10 +59,16 @@ def order(request, event_id):
         # For a GET request, pass the event object to the form
         form = OrderForm(event=event)
 
+    available_tickets = TicketInfo.objects.filter(event=event, availability__gt=0)
+    ticket_availability_data = {str(t.id): t.availability for t in available_tickets}
     return render(
         request,
         "orders/order.html",
-        {"event": event, "form": form},
+        {
+            "event": event,
+            "form": form,
+            "ticket_availability_data": ticket_availability_data,
+        },
     )
 
 
@@ -76,7 +82,7 @@ def order_failed(order):
         order.save()
 
         ticket_info = order.ticket_info
-        ticket_info.availability += 1
+        ticket_info.availability += order.quantity
         ticket_info.save()
 
 
@@ -117,7 +123,7 @@ def process_payment(request, order_id):
                         # Price must be in cents
                         "unit_amount": int(ticket_info.price * 100),
                     },
-                    "quantity": 1,
+                    "quantity": order.quantity,
                 }
             ],
             mode="payment",
@@ -258,21 +264,24 @@ def stripe_webhook(request):
 
                     # 3. FULFILL THE ORDER: CREATE THE TICKET VIA TICKET SERVICES
                     #    This mirrors the tickets.payment_confirm endpoint.
-                    ticket = ticket_services.issue_ticket_for_order(
-                        order_id=str(order.id),
-                        ticket_info=order.ticket_info,
-                        full_name=order.full_name,
-                        email=order.email,
-                        phone=order.phone,
-                        attendee=order.attendee,
-                    )
+                    created_tickets = []
+                    for _ in range(order.quantity):
+                        ticket = ticket_services.issue_ticket_for_order(
+                            order_id=str(order.id),
+                            ticket_info=order.ticket_info,
+                            full_name=order.full_name,
+                            email=order.email,
+                            phone=order.phone,
+                            attendee=order.attendee,
+                        )
+                        created_tickets.append(ticket)
 
                     # 4. BUILD PDF AND SEND TICKET EMAIL (WITH PDF + QR)
                     try:
-                        pdf_bytes = ticket_services.build_tickets_pdf([ticket])
+                        pdf_bytes = ticket_services.build_tickets_pdf(created_tickets)
                         ticket_services.send_ticket_email(
                             order.email,
-                            [ticket],
+                            created_tickets,
                             pdf_bytes=pdf_bytes,
                         )
                     except Exception as e:
