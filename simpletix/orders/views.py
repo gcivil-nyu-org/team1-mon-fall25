@@ -227,9 +227,7 @@ def stripe_webhook(request):
     endpoint_secret = settings.STRIPE.get("STRIPE_WEBHOOK_SECRET", "")
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError:
         # Invalid payload
         return HttpResponse(status=400)
