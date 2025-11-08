@@ -41,8 +41,8 @@ simpletix/simpletix/migrations/*
 # Coverage and test artifacts
 simpletix/.coverage
 simpletix/*.coverage.*
-htmlcov/
-coverage.xml
+simpletix/htmlcov/
+simpletix/coverage.xml
 .tox/
 .pytest_cache/
 
