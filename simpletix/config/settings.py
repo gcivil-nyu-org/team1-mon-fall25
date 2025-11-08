@@ -251,3 +251,14 @@ else:
         "STRIPE_SECRET_KEY": os.getenv("STRIPE_SECRET_KEY", ""),
         "STRIPE_WEBHOOK_SECRET": os.getenv("STRIPE_WEBHOOK_SECRET", ""),
     }
+
+# --- GOOGLE MAPS SETTINGS ---
+
+if os.getenv("CI", "false").lower() == "true":
+    GOOGLE_MAPS_API_KEY = ""
+elif ENVIRONMENT in ["production", "development"]:
+    google_secrets_name = os.getenv("GOOGLE_MAPS_SECRETS_NAME")
+    google_secrets = get_secret(google_secrets_name)
+    GOOGLE_MAPS_API_KEY = google_secrets.get("GOOGLE_MAPS_API_KEY", "")
+else:
+    GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
