@@ -18,9 +18,6 @@ from .forms import OrderForm
 from .models import BillingInfo, Order
 
 
-# Create your views here.
-
-
 def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 

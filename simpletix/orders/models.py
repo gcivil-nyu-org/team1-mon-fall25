@@ -3,8 +3,6 @@ from django.db import models
 from accounts.models import UserProfile
 from tickets.models import TicketInfo
 
-# Create your models here.
-
 
 class BillingInfo(models.Model):
     # Store billing info (can be filled in by webhook or form)

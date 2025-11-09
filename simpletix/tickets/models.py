@@ -44,7 +44,6 @@ class Ticket(models.Model):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
 
-    # keep this because orders app is NOT on this branch yet
     order_id = models.CharField(
         max_length=64,
         blank=True,
