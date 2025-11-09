@@ -11,6 +11,12 @@ from .models import Event
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
 from accounts.models import OrganizerProfile
+from datetime import timedelta, date
+from django.db.models import Q
+from django.db import models
+from django.db.models.functions import Coalesce
+
+
 
 # Only import Algolia if not running in CI
 if not os.environ.get("CI"):
@@ -188,8 +194,88 @@ def delete_event(request, event_id):
 # Event List
 def event_list(request):
     events = Event.objects.all()
-    return render(request, "events/event_list.html", {"events": events})
 
+    # --- Distance (placeholder until geolocation logic added) ---
+    distance = request.GET.get("distance")
+
+    # --- Ticket Price Sorting (General Admission only) ---
+    price_sort = request.GET.get("price_sort")
+    if price_sort:
+        # Join TicketInfo to allow sorting by GA price, but don't exclude others
+        events = events.annotate(
+            general_price=Coalesce(
+                models.Subquery(
+                    TicketInfo.objects.filter(
+                        event=models.OuterRef("pk"),
+                        category="General Admission"
+                    ).values("price")[:1]
+                ),
+                999999,  # default price if no GA ticket
+                output_field=models.DecimalField(max_digits=8, decimal_places=2)
+            )
+        )
+
+
+        if price_sort == "asc":
+            events = events.order_by("general_price", "date")
+        elif price_sort == "desc":
+            events = events.order_by("-general_price", "date")
+
+
+
+    # --- State Filter ---
+    state = request.GET.get("state")
+    if state:
+        events = events.filter(
+            Q(formatted_address__icontains=state.split()[0]) | Q(location__icontains=state)
+        )
+
+    # --- Ticket Type Filter ---
+    selected_ticket_types = request.GET.getlist("ticket_type")
+    if selected_ticket_types:
+        q = Q()
+        if "general" in selected_ticket_types:
+            q |= Q(ticketInfo__category="General Admission")
+        if "earlybird" in selected_ticket_types:
+            q |= Q(ticketInfo__category="Early Bird")
+        if "vip" in selected_ticket_types:
+            q |= Q(ticketInfo__category="VIP")
+        events = events.filter(q).distinct()
+
+
+
+    # --- Date Filter ---
+    date_range = request.GET.get("date_range")
+    today = date.today()
+    if date_range == "today":
+        events = events.filter(date=today)
+    elif date_range == "weekend":
+        # Friday (4), Saturday (5), Sunday (6)
+        events = events.filter(date__week_day__in=[6, 7, 1])
+    elif date_range == "week":
+        events = events.filter(date__range=[today, today + timedelta(days=7)])
+    elif date_range == "month":
+        events = events.filter(date__range=[today, today + timedelta(days=30)])
+
+    # --- Available States (for dropdown) ---
+    all_states = []
+    for ev in Event.objects.exclude(formatted_address="").values_list("formatted_address", flat=True):
+        parts = ev.split(",")
+        if len(parts) >= 2:
+            state_part = parts[-2].strip()
+            # normalize: remove ZIP codes (e.g., "NY 10001" -> "NY")
+            state_part = state_part.split()[0]
+            all_states.append(state_part)
+
+    available_states = sorted(list(set(all_states)))
+
+    context = {
+        "events": events.distinct(),
+        "available_states": available_states,
+        "selected_ticket_types": selected_ticket_types,
+    } 
+
+    return render(request, "events/event_list.html", context)
 
 # Event Detail
 def event_detail(request, event_id):

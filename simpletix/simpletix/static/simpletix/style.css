@@ -165,4 +165,13 @@
   margin-bottom: 4px;
 }
 
-
+/* refined divider like Eventbrite */
+.search-wrapper .vr {
+  
+  height: 24px;
+  border-left: 0px solid rgba(0, 0, 0, 0.15); /* subtle gray line */
+  margin: 0 0px;
+  opacity: 1;
+  border-radius: 1px;
+  
+}

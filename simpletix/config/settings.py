@@ -150,6 +150,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.session_flags",
                 "config.context_processors.algolia_settings",
+                'config.context_processors.google_maps_key',
             ],
         },
     },
