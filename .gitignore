@@ -39,10 +39,10 @@ simpletix/static_root/
 simpletix/simpletix/migrations/*
 
 # Coverage and test artifacts
-*.coverage
-*.coverage.*
-htmlcov/
-coverage.xml
+simpletix/.coverage
+simpletix/*.coverage.*
+simpletix/htmlcov/
+simpletix/coverage.xml
 .tox/
 .pytest_cache/
 
