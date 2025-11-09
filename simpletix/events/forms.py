@@ -16,6 +16,8 @@ class EventForm(forms.ModelForm):
             "longitude",
             "banner",
             "video",
+            "waitlist_enabled",  # 👈 add this
+            "manual_approval",
         ]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),

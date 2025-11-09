@@ -7,10 +7,12 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from functools import wraps
 from urllib.parse import urlencode
 from .forms import EventForm
-from .models import Event
 from tickets.models import TicketInfo
 from tickets.forms import TicketFormSet
 from accounts.models import OrganizerProfile
+from django.contrib.auth.decorators import login_required
+from .models import Event, Waitlist
+
 
 # Only import Algolia if not running in CI
 if not os.environ.get("CI"):
@@ -191,7 +193,117 @@ def event_list(request):
     return render(request, "events/event_list.html", {"events": events})
 
 
-# Event Detail
+@login_required
 def event_detail(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    tickets_available = event.ticketInfo.filter(availability__gt=0).exists()
+
+    # Handle waitlist join form
+    if request.method == "POST":
+        if event.waitlist_enabled and not tickets_available:
+            existing_entry = Waitlist.objects.filter(
+                event=event, user=request.user
+            ).first()
+            if existing_entry:
+                messages.info(
+                    request, "You are already on the waitlist for this event."
+                )
+            else:
+                Waitlist.objects.create(event=event, user=request.user)
+                messages.success(request, "You've been added to the waitlist!")
+            return redirect("events:event_detail", event_id=event.id)
+        else:
+            messages.error(
+                request, "Waitlist is not available or tickets are still available."
+            )
+            return redirect("events:event_detail", event_id=event.id)
+
+    context = {
+        "event": event,
+        "tickets_available": tickets_available,
+    }
+    return render(request, "events/event_detail.html", context)
+
+
+@login_required
+def join_waitlist(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    return render(request, "events/event_detail.html", {"event": event})
+
+    if not event.waitlist_enabled:
+        messages.error(request, "Waitlist is not available for this event.")
+        return redirect("events:event_detail", event.id)
+
+    existing = Waitlist.objects.filter(event=event, user=request.user).first()
+    if existing:
+        messages.info(request, "You are already on the waitlist.")
+    else:
+        Waitlist.objects.create(event=event, user=request.user)
+        messages.success(request, "You’ve been added to the waitlist!")
+
+    return redirect("events:event_detail", event.id)
+
+
+@login_required
+def manage_waitlist(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+
+    # Organizer permission
+    if request.user != event.organizer.user:
+        messages.error(request, "You do not have permission to manage this waitlist.")
+        return redirect("events:event_detail", event.id)
+
+    if request.method == "POST":
+        entry_id = request.POST.get("entry_id")
+        action = request.POST.get("action")
+
+        try:
+            entry = Waitlist.objects.get(id=entry_id, event=event)
+            if action == "approve":
+                entry.is_approved = True
+                entry.save()
+                messages.success(
+                    request, f"{entry.user.username} approved from waitlist."
+                )
+            elif action == "reject":
+                entry.delete()
+                messages.info(request, f"{entry.user.username} removed from waitlist.")
+        except Waitlist.DoesNotExist:
+            messages.error(request, "Entry not found.")
+
+        return redirect("events:manage_waitlist", event.id)
+
+    waitlist_entries = Waitlist.objects.filter(event=event)
+    return render(
+        request,
+        "events/manage_waitlist.html",
+        {"event": event, "waitlist_entries": waitlist_entries},
+    )
+
+
+@login_required
+def approve_waitlist(request, entry_id):
+    entry = get_object_or_404(Waitlist, id=entry_id)
+    event = entry.event
+
+    # Only the event's organizer can approve
+    if request.user != event.organizer.user:
+        messages.error(
+            request, "You are not authorized to approve this waitlist entry."
+        )
+        return redirect("events:event_detail", event.id)
+
+    # Check if event still has tickets
+    tickets_available = event.ticketInfo.filter(availability__gt=0).exists()
+    if not tickets_available:
+        messages.warning(
+            request, "⚠️ Please increase ticket count before approving attendees."
+        )
+
+    # Approve anyway
+    entry.is_approved = True
+    entry.save()
+    messages.success(
+        request, f"{entry.user.username} has been approved from the waitlist!"
+    )
+
+    return redirect("events:manage_waitlist", event.id)

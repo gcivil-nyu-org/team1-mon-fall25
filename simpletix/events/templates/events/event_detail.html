@@ -7,6 +7,7 @@
     {% if event.banner %}
         <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}">
     {% endif %}
+
     <div class="card-body">
         <h2 class="card-title">{{ event.title }}</h2>
         <p class="text-muted">{{ event.date }} at {{ event.time }}</p>
@@ -33,6 +34,7 @@
             </thead>
             <tbody>
                 {% for ticket in event.ticketInfo.all %}
+                {% if ticket.price and ticket.price|floatformat != "0.00" or ticket.availability > 0 %}
                 <tr>
                     <td>{{ ticket.get_category_display }}</td>
                     <td>${{ ticket.price }}</td>
@@ -51,7 +53,21 @@
                         {% endif %}
                     </td>
                 </tr>
+                {% endif %}
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted">No tickets available.</td></tr>
                 {% endfor %}
+
+                {% if event.waitlist_enabled and not tickets_available %}
+                <tr>
+                    <td colspan="4" class="text-center">
+                        <form method="post">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-primary">Join Waitlist</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endif %}
             </tbody>
         </table>
 
@@ -62,9 +78,14 @@
             <div>
                 <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning me-2">Edit Event</a>
                 <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
+                <a href="{% url 'events:manage_waitlist' event.id %}" class="btn btn-info">Manage Waitlist</a>
             </div>
             {% endif %}
         </div>
+
+        {% for message in messages %}
+            <div class="alert alert-info mt-3">{{ message }}</div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

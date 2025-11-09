@@ -1,0 +1,74 @@
+{% extends 'events/base.html' %}
+
+{% block title %}Manage Waitlist for {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Waitlist for {{ event.title }}</h2>
+
+    <table class="table table-bordered mt-4">
+        <thead class="table-light">
+            <tr>
+                <th>User</th>
+                <th>Status</th>
+                <th>Joined At</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in waitlist_entries %}
+            <tr>
+                <td>{{ entry.user.username }}</td>
+                <td>
+                    {% if entry.is_approved %}
+                        <span class="badge bg-success">Approved</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% endif %}
+                </td>
+                <td>{{ entry.joined_at|date:"Y-m-d H:i" }}</td>
+                <td>
+                    {% if not entry.is_approved %}
+                        <!-- Approve button triggers modal -->
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#approveModal{{ entry.id }}">
+                            Approve
+                        </button>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="approveModal{{ entry.id }}" tabindex="-1" aria-labelledby="approveModalLabel{{ entry.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="approveModalLabel{{ entry.id }}">Approval Required</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        To approve this attendee, please ensure ticket availability is increased for <strong>{{ event.title }}</strong>.
+                                        <br><br>
+                                        Would you like to edit the event to add tickets now?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning">
+                                            Edit Event
+                                        </a>
+                                        <form method="post" action="{% url 'events:approve_waitlist' entry.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-success">Approve Anyway</button>
+                                        </form>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <button class="btn btn-sm btn-secondary" disabled>Approved</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted">No waitlist entries yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
