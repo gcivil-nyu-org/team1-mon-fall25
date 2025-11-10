@@ -5,25 +5,26 @@
 
 {% block content %}
 <h1 class="mb-4 text-center">Upcoming Events</h1>
-<!-- === Filter Bar === -->
-<form method="get" class="mb-4 p-4 border rounded bg-light shadow-sm" style="max-width: 900px; margin: 0 auto;">
-  <div class="d-flex flex-wrap justify-content-between gap-3">
+
+<!-- === Filter Bar (Refined Layout) === -->
+<form method="get" class="mb-4 p-3 rounded bg-white shadow-sm border">
+  <div class="row gy-3 gx-3 align-items-end">
 
     <!-- Sort by Price -->
-    <div class="flex-fill" style="min-width: 200px;">
-      <label class="form-label fw-bold small text-muted">Sort by Price</label>
-      <select class="form-select form-select-sm" name="price_sort">
-        <option value="">-- Select --</option>
+    <div class="col-md-2">
+      <label class="form-label fw-semibold">Sort by Price</label>
+      <select class="form-select" name="price_sort">
+        <option value="">Any</option>
         <option value="asc" {% if request.GET.price_sort == "asc" %}selected{% endif %}>Low → High</option>
         <option value="desc" {% if request.GET.price_sort == "desc" %}selected{% endif %}>High → Low</option>
       </select>
     </div>
 
     <!-- State Filter -->
-    <div class="flex-fill" style="min-width: 200px;">
-      <label class="form-label fw-bold small text-muted">State</label>
-      <select class="form-select form-select-sm" name="state">
-        <option value="">All Available</option>
+    <div class="col-md-3">
+      <label class="form-label fw-semibold">State</label>
+      <select class="form-select" name="state">
+        <option value="">All</option>
         {% for state in available_states %}
           <option value="{{ state }}" {% if request.GET.state == state %}selected{% endif %}>{{ state }}</option>
         {% endfor %}
@@ -31,45 +32,56 @@
     </div>
 
     <!-- Ticket Type -->
-    <div class="flex-fill" style="min-width: 220px;">
-      <label class="form-label fw-bold small text-muted d-block">Ticket Type</label>
-      <div class="d-flex gap-2 flex-wrap">
+    <div class="col-md-3">
+      <label class="form-label fw-semibold d-block">Ticket Type</label>
+      <div class="d-flex flex-wrap gap-2">
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="checkbox" name="ticket_type" value="general"
                  {% if "general" in selected_ticket_types %}checked{% endif %}>
-          <label class="form-check-label small">General</label>
+          <label class="form-check-label">General</label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="checkbox" name="ticket_type" value="earlybird"
                  {% if "earlybird" in selected_ticket_types %}checked{% endif %}>
-          <label class="form-check-label small">Early Bird</label>
+          <label class="form-check-label">Early Bird</label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="checkbox" name="ticket_type" value="vip"
                  {% if "vip" in selected_ticket_types %}checked{% endif %}>
-          <label class="form-check-label small">VIP</label>
+          <label class="form-check-label">VIP</label>
         </div>
       </div>
     </div>
 
     <!-- Date Filters -->
-    <div class="flex-fill" style="min-width: 180px;">
-      <label class="form-label fw-bold small text-muted">Start Date</label>
-      <input type="text" id="start_date" name="start_date" class="form-control form-control-sm"
-             value="{{ request.GET.start_date|default_if_none:'' }}">
+    <div class="col-md-2">
+      <label class="form-label fw-semibold">Start Date</label>
+      <input
+        type="date"
+        id="start_date"
+        name="start_date"
+        class="form-control"
+        value="{{ request.GET.start_date|default_if_none:'' }}"
+      >
     </div>
 
-    <div class="flex-fill" style="min-width: 180px;">
-      <label class="form-label fw-bold small text-muted">End Date</label>
-      <input type="text" id="end_date" name="end_date" class="form-control form-control-sm"
-             value="{{ request.GET.end_date|default_if_none:'' }}">
+    <div class="col-md-2">
+      <label class="form-label fw-semibold">End Date</label>
+      <input
+        type="date"
+        id="end_date"
+        name="end_date"
+        class="form-control"
+        value="{{ request.GET.end_date|default_if_none:'' }}"
+      >
     </div>
 
     <!-- Buttons -->
-    <div class="d-flex align-items-end gap-2 mt-2">
-      <button type="submit" class="btn btn-primary btn-sm">Apply</button>
-      <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    <div class="col-md-12 text-end mt-2">
+      <button type="submit" class="btn btn-primary px-4">Apply</button>
+      <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary px-4">Clear</a>
     </div>
+
   </div>
 </form>
 

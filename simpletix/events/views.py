@@ -192,16 +192,13 @@ def delete_event(request, event_id):
 
 
 # Event List
+# --- Event List (stable + slick-compatible version) ---
 def event_list(request):
-    events = Event.objects.all()
+    events = Event.objects.all().distinct()
 
-    # --- Distance (placeholder until geolocation logic added) ---
-    distance = request.GET.get("distance")
-
-    # --- Ticket Price Sorting (General Admission only) ---
+    # --- Ticket Price Sorting ---
     price_sort = request.GET.get("price_sort")
     if price_sort:
-        # Join TicketInfo to allow sorting by GA price, but don't exclude others
         events = events.annotate(
             general_price=Coalesce(
                 models.Subquery(
@@ -210,54 +207,40 @@ def event_list(request):
                         category="General Admission"
                     ).values("price")[:1]
                 ),
-                999999,  # default price if no GA ticket
+                999999,
                 output_field=models.DecimalField(max_digits=8, decimal_places=2)
             )
         )
-
-
         if price_sort == "asc":
             events = events.order_by("general_price", "date")
         elif price_sort == "desc":
             events = events.order_by("-general_price", "date")
 
-
-
     # --- State Filter ---
     state = request.GET.get("state")
     if state:
         events = events.filter(
-            Q(formatted_address__icontains=state.split()[0]) | Q(location__icontains=state)
+            Q(formatted_address__icontains=state) | Q(location__icontains=state)
         )
 
-
-    # --- Ticket Type Filter (must have all selected ticket types available) ---
+    # --- Ticket Type Filter (multi-select) ---
     selected_ticket_types = request.GET.getlist("ticket_type")
     if selected_ticket_types:
+        type_map = {
+            "general": "General Admission",
+            "earlybird": "Early Bird",
+            "vip": "VIP",
+        }
         for t_type in selected_ticket_types:
-            if t_type == "general":
-                events = events.filter(
-                    ticketInfo__category="General Admission",
-                    ticketInfo__availability__gt=0
-                )
-            elif t_type == "earlybird":
-                events = events.filter(
-                    ticketInfo__category="Early Bird",
-                    ticketInfo__availability__gt=0
-                )
-            elif t_type == "vip":
-                events = events.filter(
-                    ticketInfo__category="VIP",
-                    ticketInfo__availability__gt=0
-                )
-        events = events.distinct()
+            events = events.filter(
+                ticketInfo__category=type_map.get(t_type, t_type),
+                ticketInfo__availability__gt=0
+            )
 
 
-
-    # --- Date Range Filter (user-selected start/end) ---
+    # --- Date Range Filter ---
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
-
     if start_date and end_date:
         events = events.filter(date__range=[start_date, end_date])
     elif start_date:
@@ -265,26 +248,28 @@ def event_list(request):
     elif end_date:
         events = events.filter(date__lte=end_date)
 
-
-    # --- Available States (for dropdown) ---
+    # --- Available States for Dropdown ---
     all_states = []
-    for ev in Event.objects.exclude(formatted_address="").values_list("formatted_address", flat=True):
-        parts = ev.split(",")
+    for addr in Event.objects.exclude(formatted_address="").values_list("formatted_address", flat=True):
+        parts = addr.split(",")
         if len(parts) >= 2:
-            state_part = parts[-2].strip()
-            # normalize: remove ZIP codes (e.g., "NY 10001" -> "NY")
-            state_part = state_part.split()[0]
+            state_part = parts[-2].strip().split()[0]
             all_states.append(state_part)
+    available_states = sorted(set(all_states))
 
-    available_states = sorted(list(set(all_states)))
-
+    # --- Context ---
     context = {
         "events": events.distinct(),
         "available_states": available_states,
         "selected_ticket_types": selected_ticket_types,
-    } 
+        "selected_state": state,
+        "selected_price_sort": price_sort,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
 
     return render(request, "events/event_list.html", context)
+
 
 # Event Detail
 def event_detail(request, event_id):
