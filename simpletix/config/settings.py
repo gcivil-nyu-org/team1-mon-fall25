@@ -251,15 +251,21 @@ else:
 
 # --- Email / SMTP configuration ---
 
-if ENVIRONMENT in ["local", "development", "production"]:
-    # Use Gmail SMTP for all environments for now
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "smtp.gmail.com"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+if ENVIRONMENT in ["production", "development"]:
+    email_secrets = get_secret(os.getenv("EMAIL_SECRETS_NAME"))
+    EMAIL_HOST_USER = email_secrets.get("SMTP_USER", "")
+    EMAIL_HOST_PASSWORD = email_secrets.get("SMTP_PASSWORD", "")
+else:
+    # Local / CI: read from .env or shell env vars
     EMAIL_HOST_USER = os.getenv("SMTP_USER", "")
     EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@example.com"
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@example.com"
 
 
 # STRIPE CONFIGURATION

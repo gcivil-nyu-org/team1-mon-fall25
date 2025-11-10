@@ -152,7 +152,6 @@ def create_event(request):
             event.organizer = OrganizerProfile.objects.get(user=request.user)
             event.save()
 
-            # Sync with Algolia (no-op when ALGOLIA_ENABLED is False)
             algolia_save(event)
 
             formset.instance = event
@@ -188,8 +187,6 @@ def edit_event(request, event_id):
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
         if form.is_valid() and formset.is_valid():
             form.save()
-
-            # Sync with Algolia
             algolia_save(event)
 
             formset.save()
@@ -219,7 +216,6 @@ def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
     if request.method == "POST":
-        # Remove from Algolia
         algolia_delete(event)
 
         event.delete()
