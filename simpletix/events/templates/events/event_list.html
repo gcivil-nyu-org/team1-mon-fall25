@@ -6,13 +6,13 @@
 {% block content %}
 <h1 class="mb-4 text-center">Upcoming Events</h1>
 <!-- === Filter Bar === -->
-<form method="get" class="mb-4 p-3 border rounded bg-light">
-  <div class="row g-3 align-items-center">
+<form method="get" class="mb-4 p-4 border rounded bg-light shadow-sm" style="max-width: 900px; margin: 0 auto;">
+  <div class="d-flex flex-wrap justify-content-between gap-3">
 
-    <!-- Ticket Price Sorting -->
-    <div class="col-md-2">
-      <label class="form-label fw-bold">Sort by Price</label>
-      <select class="form-select" name="price_sort">
+    <!-- Sort by Price -->
+    <div class="flex-fill" style="min-width: 200px;">
+      <label class="form-label fw-bold small text-muted">Sort by Price</label>
+      <select class="form-select form-select-sm" name="price_sort">
         <option value="">-- Select --</option>
         <option value="asc" {% if request.GET.price_sort == "asc" %}selected{% endif %}>Low → High</option>
         <option value="desc" {% if request.GET.price_sort == "desc" %}selected{% endif %}>High → Low</option>
@@ -20,9 +20,9 @@
     </div>
 
     <!-- State Filter -->
-    <div class="col-md-3">
-      <label class="form-label fw-bold">State</label>
-      <select class="form-select" name="state">
+    <div class="flex-fill" style="min-width: 200px;">
+      <label class="form-label fw-bold small text-muted">State</label>
+      <select class="form-select form-select-sm" name="state">
         <option value="">All Available</option>
         {% for state in available_states %}
           <option value="{{ state }}" {% if request.GET.state == state %}selected{% endif %}>{{ state }}</option>
@@ -31,46 +31,48 @@
     </div>
 
     <!-- Ticket Type -->
-    <div class="col-md-3">
-      <label class="form-label fw-bold d-block">Ticket Type</label>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" name="ticket_type" value="general"
-               {% if "general" in selected_ticket_types %}checked{% endif %}>
-        <label class="form-check-label">General</label>
-      </div>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" name="ticket_type" value="earlybird"
-               {% if "earlybird" in selected_ticket_types %}checked{% endif %}>
-        <label class="form-check-label">Early Bird</label>
-      </div>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="checkbox" name="ticket_type" value="vip"
-               {% if "vip" in selected_ticket_types %}checked{% endif %}>
-        <label class="form-check-label">VIP</label>
+    <div class="flex-fill" style="min-width: 220px;">
+      <label class="form-label fw-bold small text-muted d-block">Ticket Type</label>
+      <div class="d-flex gap-2 flex-wrap">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="ticket_type" value="general"
+                 {% if "general" in selected_ticket_types %}checked{% endif %}>
+          <label class="form-check-label small">General</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="ticket_type" value="earlybird"
+                 {% if "earlybird" in selected_ticket_types %}checked{% endif %}>
+          <label class="form-check-label small">Early Bird</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="ticket_type" value="vip"
+                 {% if "vip" in selected_ticket_types %}checked{% endif %}>
+          <label class="form-check-label small">VIP</label>
+        </div>
       </div>
     </div>
 
-    <!-- Date Range -->
-    <div class="col-md-2">
-      <label class="form-label fw-bold">Date Range</label>
-      <select class="form-select" name="date_range">
-        <option value="">Any</option>
-        <option value="today" {% if request.GET.date_range == "today" %}selected{% endif %}>Today</option>
-        <option value="weekend" {% if request.GET.date_range == "weekend" %}selected{% endif %}>This Weekend</option>
-        <option value="week" {% if request.GET.date_range == "week" %}selected{% endif %}>Next 7 Days</option>
-        <option value="month" {% if request.GET.date_range == "month" %}selected{% endif %}>Next 30 Days</option>
-      </select>
+    <!-- Date Filters -->
+    <div class="flex-fill" style="min-width: 180px;">
+      <label class="form-label fw-bold small text-muted">Start Date</label>
+      <input type="text" id="start_date" name="start_date" class="form-control form-control-sm"
+             value="{{ request.GET.start_date|default_if_none:'' }}">
     </div>
 
-    <!-- Filter Buttons -->
-    <div class="col-md-2 d-flex align-items-end gap-2">
-        <button type="submit" class="btn btn-primary flex-fill">Apply</button>
-        <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary flex-fill">Clear</a>
+    <div class="flex-fill" style="min-width: 180px;">
+      <label class="form-label fw-bold small text-muted">End Date</label>
+      <input type="text" id="end_date" name="end_date" class="form-control form-control-sm"
+             value="{{ request.GET.end_date|default_if_none:'' }}">
     </div>
 
-
+    <!-- Buttons -->
+    <div class="d-flex align-items-end gap-2 mt-2">
+      <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+      <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
   </div>
 </form>
+
 
 <div class="row">
     {% for event in events %}
@@ -106,5 +108,28 @@
 </div>
 
 <script src="{% static 'js/location.js' %}"></script>
+
+<!-- Flatpickr calendar integration -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // helper to auto-submit when a date changes
+  function setupDatePicker(id) {
+    flatpickr(id, {
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "F j, Y",
+      onChange: function() {
+        document.querySelector("form").submit(); // auto-submit
+      }
+    });
+  }
+
+  setupDatePicker("#start_date");
+  setupDatePicker("#end_date");
+});
+</script>
 
 {% endblock %}

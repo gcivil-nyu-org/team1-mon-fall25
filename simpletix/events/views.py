@@ -230,32 +230,41 @@ def event_list(request):
             Q(formatted_address__icontains=state.split()[0]) | Q(location__icontains=state)
         )
 
-    # --- Ticket Type Filter ---
+
+    # --- Ticket Type Filter (must have all selected ticket types available) ---
     selected_ticket_types = request.GET.getlist("ticket_type")
     if selected_ticket_types:
-        q = Q()
-        if "general" in selected_ticket_types:
-            q |= Q(ticketInfo__category="General Admission")
-        if "earlybird" in selected_ticket_types:
-            q |= Q(ticketInfo__category="Early Bird")
-        if "vip" in selected_ticket_types:
-            q |= Q(ticketInfo__category="VIP")
-        events = events.filter(q).distinct()
+        for t_type in selected_ticket_types:
+            if t_type == "general":
+                events = events.filter(
+                    ticketInfo__category="General Admission",
+                    ticketInfo__availability__gt=0
+                )
+            elif t_type == "earlybird":
+                events = events.filter(
+                    ticketInfo__category="Early Bird",
+                    ticketInfo__availability__gt=0
+                )
+            elif t_type == "vip":
+                events = events.filter(
+                    ticketInfo__category="VIP",
+                    ticketInfo__availability__gt=0
+                )
+        events = events.distinct()
 
 
 
-    # --- Date Filter ---
-    date_range = request.GET.get("date_range")
-    today = date.today()
-    if date_range == "today":
-        events = events.filter(date=today)
-    elif date_range == "weekend":
-        # Friday (4), Saturday (5), Sunday (6)
-        events = events.filter(date__week_day__in=[6, 7, 1])
-    elif date_range == "week":
-        events = events.filter(date__range=[today, today + timedelta(days=7)])
-    elif date_range == "month":
-        events = events.filter(date__range=[today, today + timedelta(days=30)])
+    # --- Date Range Filter (user-selected start/end) ---
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if start_date and end_date:
+        events = events.filter(date__range=[start_date, end_date])
+    elif start_date:
+        events = events.filter(date__gte=start_date)
+    elif end_date:
+        events = events.filter(date__lte=end_date)
+
 
     # --- Available States (for dropdown) ---
     all_states = []
