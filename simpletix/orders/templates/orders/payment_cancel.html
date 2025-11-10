@@ -1,0 +1,63 @@
+{% extends "simpletix/nav.html" %}
+
+{% block head %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% endblock %}
+
+{% block title %}Payment Canceled · SimpleTix{% endblock %}
+
+{% block body %}
+<div class="bg-light">
+
+    <div class="min-vh-100 d-flex align-items-center justify-content-center p-4">
+        
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-7 col-lg-6 col-xl-5">
+                    <!-- Card -->
+                    <div class="bg-white p-5 rounded-4 shadow-lg w-100">
+                        
+                        <!-- 1. Clear Status (Icon + Title) -->
+                        <div class="d-flex flex-column align-items-center">
+                            <!-- Red "X" Icon (Bootstrap Icons) -->
+                            <svg class="text-danger" xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
+                            </svg>
+                              
+                            <h1 class="h2 fw-bold text-dark mt-4 text-center">Payment Canceled</h1>
+                        </div>
+            
+                        <!-- 2. Reassurance (No Charge) -->
+                        <div class="mt-4 text-center">
+                            <p class="fs-5 text-secondary">
+                                You have <strong>not</strong> been charged.
+                            </p>
+                        </div>
+            
+                        <!-- 3. Reason -->
+                        <div class="mt-4 text-center p-3 bg-light rounded-3">
+                            <p class="text-secondary mb-0">
+                                Your payment session was canceled or an error occurred.
+                            </p>
+                        </div>
+            
+                        <!-- 4. Clear Call to Action -->
+                        <div class="mt-5 d-grid gap-3">
+                            <a href="{% url 'orders:order' event.id %}" class="btn btn-primary w-100 py-3 fs-6 fw-semibold rounded-3">
+                                Try Again
+                            </a>
+                            
+                            <a href="/" class="btn btn-outline-secondary w-100 py-3 fs-6 fw-semibold rounded-3">
+                                Return to Homepage
+                            </a>
+                        </div>
+            
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,60 +1,42 @@
-from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render, redirect
 
 from accounts.models import UserProfile
 from events.models import Event
-from .forms import OrderForm
 from .models import Ticket
+import json
+from django.views.decorators.csrf import csrf_exempt
+from . import services
+from .models import TicketInfo
+from django.http import JsonResponse, HttpResponseNotAllowed
+
+import base64
+from io import BytesIO
+import qrcode
+from django.contrib import messages
+from django.http import Http404
+from django.views.decorators.http import require_POST
+from .services import build_tickets_pdf, send_ticket_email
 
 
 def index(request):
     return render(request, "tickets/index.html")
 
 
-def order(request, id):
-    event = get_object_or_404(Event, id=id)
-
-    if request.method == "POST":
-        # Pass the event object to the form constructor
-        form = OrderForm(request.POST, event=event)
-
-        if form.is_valid():
-            try:
-                # Use a database transaction to ensure data integrity
-                with transaction.atomic():
-                    # Save the form to create the ticket instance
-                    ticket = form.save(commit=False)
-                    if request.session.get("desired_role") == "attendee":
-                        ticket.attendee = UserProfile.objects.get(user=request.user)
-                    ticket.save()
-
-                    # Decrement the availability of the chosen TicketInfo
-                    ticket_info = form.cleaned_data["ticketInfo"]
-                    ticket_info.availability -= 1
-                    ticket_info.save()
-
-                return redirect("tickets:ticket_details", id=ticket.id)
-            except Exception as e:  # pragma: no cover (optional)
-                # You may want to log this instead of print in production
-                print(e)
-    else:
-        # For a GET request, pass the event object to the form
-        form = OrderForm(event=event)
-
-    return render(
-        request,
-        "tickets/order.html",
-        {"event": event, "form": form},
-    )
-
-
 def details(request, id):
     ticket = get_object_or_404(Ticket, id=id)
     event = get_object_or_404(Event, id=ticket.ticketInfo.event.id)
+
+    # Build a data: URL for the ticket's QR code
+    qr_data_url = _qr_data_url_for_ticket(ticket)
+
     return render(
         request,
         "tickets/ticket_details.html",
-        {"event": event, "ticket": ticket},
+        {
+            "event": event,
+            "ticket": ticket,
+            "qr_data_url": qr_data_url,
+        },
     )
 
 
@@ -72,3 +54,150 @@ def ticket_list(request):
         "tickets/ticket_list.html",
         {"filtername": filtername, "tickets": tickets},
     )
+
+
+@csrf_exempt
+def payment_confirm(request):
+    """
+    Endpoint to be called AFTER payment is confirmed (e.g. by Stripe success handler).
+    Expected JSON body:
+    {
+        "order_id": "ch_123" or "sess_123" or your own id,
+        "ticket_info_id": 5,
+        "full_name": "John Doe",
+        "email": "john@example.com",
+        "phone": "1234567890"
+    }
+
+    This will:
+    - create a Ticket
+    - generate QR code
+    - generate PDF (if reportlab installed)
+    - send email with PDF attached
+    """
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    order_id = data.get("order_id")
+    ticket_info_id = data.get("ticket_info_id")
+    full_name = data.get("full_name") or ""
+    email = data.get("email") or ""
+    phone = data.get("phone") or ""
+
+    if not order_id or not ticket_info_id or not email:
+        return JsonResponse(
+            {"error": "order_id, ticket_info_id, and email are required"},
+            status=400,
+        )
+
+    ticket_info = get_object_or_404(TicketInfo, id=ticket_info_id)
+
+    # attendee is optional here because Stripe/webhooks won't be authenticated
+    ticket = services.issue_ticket_for_order(
+        order_id=order_id,
+        ticket_info=ticket_info,
+        full_name=full_name,
+        email=email,
+        phone=phone,
+        attendee=None,
+    )
+
+    pdf_bytes = services.build_tickets_pdf([ticket])
+    services.send_ticket_email(email, [ticket], pdf_bytes)
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "ticket_id": ticket.id,
+            "order_id": ticket.order_id,
+            "message": "Ticket issued and email sent.",
+        },
+        status=200,
+    )
+
+
+def _qr_data_url_for_ticket(ticket):
+    """
+    Build a data: URL PNG for the ticket's QR code.
+    Safe to call multiple times; will generate qr_code if missing.
+    """
+    if not ticket.qr_code:
+        ticket.ensure_qr()
+        ticket.save(update_fields=["qr_code"])
+
+    qr = qrcode.QRCode(box_size=8, border=2)
+    qr.add_data(ticket.qr_code)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
+def ticket_thank_you(request, order_id):
+    """
+    Show a modern confirmation page after payment:
+    - order number
+    - email we sent tickets to
+    - event info
+    - primary ticket QR code
+    - 'resend tickets' button
+    """
+    tickets = (
+        Ticket.objects.filter(order_id=order_id)
+        .select_related("ticketInfo__event")
+        .order_by("id")
+    )
+
+    if not tickets:
+        raise Http404("No tickets found for this order.")
+
+    primary = tickets[0]
+    event = primary.ticketInfo.event if primary.ticketInfo else None
+
+    qr_data_url = _qr_data_url_for_ticket(primary)
+
+    context = {
+        "order_id": order_id,
+        "tickets": tickets,
+        "primary_ticket": primary,
+        "event": event,
+        "qr_data_url": qr_data_url,
+    }
+    return render(request, "tickets/thank_you.html", context)
+
+
+@require_POST
+def ticket_resend(request, order_id):
+    """
+    Re-send ticket email (with PDF) for this order.
+    Uses the same email + PDF logic as payment_confirm.
+    """
+    tickets = list(
+        Ticket.objects.filter(order_id=order_id).select_related("ticketInfo__event")
+    )
+
+    if not tickets:
+        messages.error(request, "We couldn't find any tickets for that order.")
+        return redirect("tickets:ticket_thank_you", order_id=order_id)
+
+    email = tickets[0].email
+    if not email:
+        messages.error(
+            request,
+            "This order doesn't have an email address saved yet.",
+        )
+        return redirect("tickets:ticket_thank_you", order_id=order_id)
+
+    pdf_bytes = build_tickets_pdf(tickets)
+    send_ticket_email(email, tickets, pdf_bytes=pdf_bytes)
+
+    messages.success(request, "We just re-sent your tickets to your inbox.")
+    return redirect("tickets:ticket_thank_you", order_id=order_id)

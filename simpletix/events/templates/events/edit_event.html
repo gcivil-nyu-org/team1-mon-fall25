@@ -1,5 +1,5 @@
 {% extends 'events/base.html' %}
-
+{% load static %} 
 {% block title %}
     {% if event %}Edit Event{% else %}Create Event{% endif %}
 {% endblock %}
@@ -71,4 +71,9 @@
         </div>
     </form>
 </div>
+
+<!-- Google Places Autocomplete -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
+<script src="{% static 'js/autocomplete.js' %}"></script>
+
 {% endblock %}

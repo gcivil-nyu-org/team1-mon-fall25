@@ -11,7 +11,7 @@ from tickets.models import TicketInfo, Ticket
 pytestmark = pytest.mark.django_db
 
 
-# --- View:order ---
+# --- Views:details ---
 
 
 @pytest.fixture
@@ -21,22 +21,9 @@ def organizer_user():
 
 
 @pytest.fixture
-def attendee_user():
-    """Fixture for the attendee user."""
-    return User.objects.create_user(username="att_viewer", password="Passw0rd1!")
-
-
-@pytest.fixture
 def organizer_profile(organizer_user):
     """Fixture for the organizer profile."""
     profile, _ = OrganizerProfile.objects.get_or_create(user=organizer_user)
-    return profile
-
-
-@pytest.fixture
-def attendee_profile(attendee_user):
-    """Fixture for the attendee profile."""
-    profile, _ = UserProfile.objects.get_or_create(user=attendee_user)
     return profile
 
 
@@ -52,33 +39,16 @@ def test_event(organizer_profile):
 
 
 @pytest.fixture
-def ticket_info_vip(test_event):
-    """Fixture for VIP TicketInfo."""
-    return TicketInfo.objects.create(
-        event=test_event, category="VIP", price=100, availability=1
-    )
+def attendee_user():
+    """Fixture for the attendee user."""
+    return User.objects.create_user(username="att_viewer", password="Passw0rd1!")
 
 
 @pytest.fixture
-def ticket_info_ga(test_event):
-    """Fixture for General Admission TicketInfo."""
-    return TicketInfo.objects.create(
-        event=test_event, category="General Admission", price=50, availability=5
-    )
-
-
-@pytest.fixture
-def ticket_info_soldout(test_event):
-    """Fixture for Sold Out TicketInfo."""
-    return TicketInfo.objects.create(
-        event=test_event, category="Early Bird", price=40, availability=0
-    )
-
-
-@pytest.fixture
-def order_url(test_event):
-    """Fixture for the order URL."""
-    return reverse("tickets:order", args=[test_event.id])
+def attendee_profile(attendee_user):
+    """Fixture for the attendee profile."""
+    profile, _ = UserProfile.objects.get_or_create(user=attendee_user)
+    return profile
 
 
 @pytest.fixture
@@ -98,153 +68,6 @@ def logged_in_attendee_client(client, login_url, attendee_user):
     # Verify session is set correctly after login
     assert client.session.get("desired_role") == "attendee"
     return client
-
-
-def test_order_view_get_request(
-    logged_in_attendee_client,
-    order_url,
-    ticket_info_vip,
-    ticket_info_ga,
-    ticket_info_soldout,
-):
-    """Test GET request to the order page."""
-    client = logged_in_attendee_client  # Use the logged-in client fixture
-    response = client.get(order_url)
-
-    assert response.status_code == 200
-    # Check template name used
-    assert len(response.templates) > 0
-    assert response.templates[0].name == "tickets/order.html"
-    assert "form" in response.context
-    assert "event" in response.context
-
-    # Check that the form's queryset is correctly filtered
-    form = response.context["form"]
-    assert isinstance(form.fields["ticketInfo"].queryset.first(), TicketInfo)
-    assert form.fields["ticketInfo"].queryset.count() == 2  # VIP and GA, not soldout
-    assert ticket_info_soldout not in form.fields["ticketInfo"].queryset
-
-
-def test_order_view_post_success_attendee(
-    logged_in_attendee_client, order_url, ticket_info_ga, attendee_profile
-):
-    """Test successful POST request as an attendee."""
-    client = logged_in_attendee_client
-    initial_availability = ticket_info_ga.availability
-    data = {
-        "ticketInfo": ticket_info_ga.pk,
-        "full_name": "Test Attendee Submit",
-        "email": "attendee@example.com",
-        "phone": "111-222-3333",
-    }
-    response = client.post(order_url, data)
-
-    # Check ticket creation
-    assert Ticket.objects.count() == 1
-    ticket = Ticket.objects.first()
-    assert ticket.ticketInfo == ticket_info_ga
-    assert ticket.full_name == "Test Attendee Submit"
-    assert ticket.attendee == attendee_profile  # Check attendee profile was linked
-
-    # Check availability decrement
-    ticket_info_ga.refresh_from_db()
-    assert ticket_info_ga.availability == initial_availability - 1
-
-    # Check redirect using pytest-django helper
-    expected_redirect_url = reverse("tickets:ticket_details", args=[ticket.id])
-    assert response.status_code == 302
-    assert response["location"] == expected_redirect_url  # Check redirect location
-
-
-def test_order_view_post_success_non_attendee(
-    logged_in_attendee_client, order_url, ticket_info_vip
-):
-    """Test successful POST request without attendee role hint during login."""
-    client = logged_in_attendee_client
-    client.logout()
-
-    initial_availability = ticket_info_vip.availability
-    initial_ticket_count = Ticket.objects.count()  # Get count before POST
-    data = {
-        "ticketInfo": ticket_info_vip.pk,
-        "full_name": "Guest User Submit",
-        "email": "guest@example.com",
-        "phone": "444-555-6666",
-    }
-    response = client.post(order_url, data)
-
-    assert (
-        Ticket.objects.count() == initial_ticket_count + 1
-    )  # Check one ticket was created
-    ticket = Ticket.objects.latest("id")  # Get the newly created ticket
-    assert ticket.ticketInfo == ticket_info_vip
-    assert ticket.full_name == "Guest User Submit"
-    assert ticket.attendee is None  # Check attendee was NOT linked based on view logic
-
-    ticket_info_vip.refresh_from_db()
-    assert ticket_info_vip.availability == initial_availability - 1
-
-    expected_redirect_url = reverse("tickets:ticket_details", args=[ticket.id])
-    assert response.status_code == 302
-    assert response["location"] == expected_redirect_url
-
-
-def test_order_view_post_invalid_data(
-    logged_in_attendee_client, order_url, ticket_info_ga
-):
-    """Test POST request with invalid form data."""
-    client = logged_in_attendee_client
-    initial_availability = ticket_info_ga.availability
-    initial_ticket_count = Ticket.objects.count()
-    data = {
-        # Missing ticketInfo
-        "full_name": "",  # Still valid due to blank=True
-        "email": "invalid-email-format",
-        "phone": "777-888-9999",
-    }
-    response = client.post(order_url, data)
-
-    # Check no ticket created and availability unchanged
-    assert Ticket.objects.count() == initial_ticket_count
-    ticket_info_ga.refresh_from_db()
-    assert ticket_info_ga.availability == initial_availability
-
-    # Check form re-rendered with errors
-    assert response.status_code == 200
-    assert len(response.templates) > 0
-    assert response.templates[0].name == "tickets/order.html"
-    assert "form" in response.context
-    form = response.context["form"]
-    assert form.errors  # Check that errors exist
-    assert "ticketInfo" in form.errors
-    assert "email" in form.errors
-
-
-def test_order_view_post_sold_out_ticket(
-    logged_in_attendee_client, order_url, ticket_info_soldout
-):
-    """Test POST request trying to buy a sold-out ticket."""
-    client = logged_in_attendee_client
-    initial_ticket_count = Ticket.objects.count()
-    data = {
-        "ticketInfo": ticket_info_soldout.pk,  # Try to select the sold-out ticket
-        "full_name": "Late Comer",
-        "email": "late@example.com",
-        "phone": "000-000-0000",
-    }
-    response = client.post(order_url, data)
-
-    assert Ticket.objects.count() == initial_ticket_count  # No ticket created
-    assert response.status_code == 200  # Re-renders form
-    assert "form" in response.context
-    form = response.context["form"]
-    assert form.errors
-    assert (
-        "ticketInfo" in form.errors
-    )  # Fails validation because choice isn't available
-
-
-# --- Views:details ---
 
 
 @pytest.fixture
