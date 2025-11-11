@@ -37,14 +37,19 @@ class EventsConfig(AppConfig):
         # 3) Env-based toggle (your original logic)
         disable = os.getenv("DJANGO_DISABLE_ALGOLIA")
         app_id = os.getenv("ALGOLIA_APP_ID")
+        print(f"DJANGO_DISABLE_ALGOLIA: {disable}")
 
         # In local dev, we often have no Algolia config → just skip.
-        if disable or not app_id:
-            return
+        # if disable or not app_id:
+        #     return
 
         # 4) Normal runtime: try to register Algolia index
+        print("ALGOLIA_APP_ID:", app_id)
         try:
             from . import algolia_index  # noqa: F401
-        except Exception:
+
+            print("Algolia index imported successfully")
+        except Exception as e:
             # Never block app startup because of Algolia issues
+            print("Failed to import Algolia index:", e)
             return
