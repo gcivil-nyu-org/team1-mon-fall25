@@ -229,6 +229,7 @@ elif ENVIRONMENT in ["production", "development"]:
         "SEARCH_KEY": secrets.get("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": secrets.get("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
+    ALGOLIA_ENABLED = True
 else:
     ALGOLIA = {
         "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
@@ -236,6 +237,8 @@ else:
         "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
+    ALGOLIA_ENABLED = os.getenv("ALGOLIA_ENABLED", True)
+
 
 # --- GOOGLE MAPS SETTINGS ---
 
