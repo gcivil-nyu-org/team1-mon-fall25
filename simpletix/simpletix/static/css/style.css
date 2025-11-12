@@ -1,0 +1,402 @@
+/* ================== HOMEPAGE LAYOUT ================== */
+
+.home-page {
+    min-height: 100vh;
+    padding: 1.5rem 1.5rem 4rem;
+    background:
+        radial-gradient(circle at top left, #fed7aa 0, #f9a8d4 20%, #e0f2fe 42%),
+        radial-gradient(circle at bottom, #0b1120 55%, #020617 100%);
+    color: #0f172a;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    overflow-x: hidden;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* --------------- HERO ---------------- */
+
+.home-hero {
+    max-width: 1180px;
+    margin: 0 auto 2.5rem;
+    position: relative;
+}
+
+.home-hero-bg {
+    position: absolute;
+    inset: -40px;
+    background: radial-gradient(circle at top left, rgba(251, 191, 36, 0.45), transparent 60%);
+    filter: blur(16px);
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+@keyframes heroRise {
+    0% { opacity: 0; transform: translateY(24px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.home-hero-inner {
+    position: relative;
+    background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(17,24,39,0.96));
+    border-radius: 1.7rem;
+    border: 1px solid rgba(148,163,184,0.5);
+    padding: 1.8rem 2rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr);
+    gap: 1.5rem;
+    box-shadow: 0 24px 60px rgba(15,23,42,0.9);
+    animation: heroRise 0.7s ease-out both;
+}
+
+/* Left side */
+
+.home-hero-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: #f9fafb;
+}
+
+.home-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: 0.75rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(248,250,252,0.3);
+    background: linear-gradient(120deg, rgba(15,23,42,0.85), rgba(59,130,246,0.85));
+    margin-bottom: 0.9rem;
+}
+
+.dot-live {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: #22c55e;
+    box-shadow: 0 0 9px rgba(34,197,94,0.9);
+}
+
+.home-hero-title {
+    font-size: 2.4rem;
+    line-height: 1.1;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.home-hero-title span {
+    background: linear-gradient(120deg, #f97316, #ec4899, #22c55e);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.home-hero-sub {
+    font-size: 0.96rem;
+    color: #cbd5f5;
+    max-width: 400px;
+}
+
+/* CTA buttons */
+
+.home-hero-cta {
+    margin-top: 1.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.home-hero-btn {
+    border-radius: 999px;
+    padding: 0.5rem 1.4rem;
+    font-size: 0.88rem;
+    border: none;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    color: #f9fafb;
+    box-shadow: 0 0 18px rgba(129,140,248,0.9);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.home-hero-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 26px rgba(129,140,248,1);
+    filter: brightness(1.05);
+    color: #f9fafb;
+}
+
+.home-hero-ghost-btn {
+    border-radius: 999px;
+    padding: 0.48rem 1.2rem;
+    font-size: 0.85rem;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: transparent;
+    color: #e5e7eb;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.home-hero-ghost-btn:hover {
+    background: rgba(15,23,42,0.8);
+    border-color: rgba(248,250,252,0.7);
+    transform: translateY(-1px);
+}
+
+/* Stats row */
+
+.home-hero-stats {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1.8rem;
+    flex-wrap: wrap;
+}
+
+.home-hero-stats div {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.home-hero-stats strong {
+    font-size: 1.1rem;
+    color: #f9fafb;
+}
+
+/* Right side image – now more generic city/event, not Halloween-y */
+
+.home-hero-card {
+    position: relative;
+    background: transparent;          
+    display: flex;
+    align-items: stretch;
+}
+
+.home-hero-image {
+    border-radius: 1.4rem;
+    overflow: hidden;
+    position: relative;
+    background: radial-gradient(circle at top, #0ea5e9, #1e293b);
+    width: 100%;
+    height: 100%;
+}
+
+/* let the image completely fill its frame */
+.home-hero-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: none;                 /* remove the cap that caused the gap */
+    object-fit: cover;                /* crop instead of leaving empty space */
+}
+
+@keyframes heroFloat {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+}
+
+.home-hero-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: 260px;
+    object-fit: cover;
+    transform: scale(1.03);
+    transition: transform 0.8s ease;
+    animation: heroFloat 14s ease-in-out infinite;
+}
+
+.home-hero-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(15,23,42,0.78), transparent 45%);
+}
+
+.home-hero-floating-label {
+    position: absolute;
+    left: 1.4rem;
+    bottom: 1.15rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 1rem;
+    background: rgba(15,23,42,0.9);
+    border: 1px solid rgba(248,250,252,0.25);
+    font-size: 0.78rem;
+    color: #e5e7eb;
+}
+
+.home-hero-floating-label span {
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.68rem;
+    color: #a5b4fc;
+}
+
+.home-hero-floating-label p {
+    margin: 0.1rem 0 0;
+}
+
+
+/* Popular near you – lighter navy than event list */
+
+.home-pop-card {
+    position: relative;
+    display: block;
+    border-radius: 1.3rem;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.7), rgba(236,72,153,0.6));
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-pop-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, #1d283a, #020617);
+    border-radius: inherit;
+}
+
+/* Highlight state used by "Surprise me" */
+.surprise-highlight {
+    box-shadow: 0 0 0 3px #f97316, 0 0 26px rgba(251, 191, 36, 0.9);
+    transform: translateY(-4px) scale(1.02);
+}
+
+/* --------------- CATEGORIES ---------------- */
+
+.home-categories {
+    max-width: 1180px;
+    margin: 0 auto 1.4rem;
+}
+
+.home-categories-inner {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 0.4rem 0.1rem 0.6rem;
+}
+
+.home-categories-inner::-webkit-scrollbar {
+    height: 4px;
+}
+.home-categories-inner::-webkit-scrollbar-thumb {
+    background: rgba(148,163,184,0.7);
+    border-radius: 999px;
+}
+
+.home-chip {
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid rgba(148,163,184,0.5);
+    background: rgba(15,23,42,0.9);
+    color: #e5e7eb;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background .18s ease, transform .18s ease,
+                box-shadow .18s ease, border-color .18s ease;
+}
+
+.home-chip span {
+    font-size: 0.8rem;
+}
+
+.home-chip.active,
+.home-chip:hover {
+    background: radial-gradient(circle at top left, #4f46e5, #ec4899);
+    border-color: transparent;
+    box-shadow: 0 0 16px rgba(129,140,248,0.85);
+    transform: translateY(-2px);
+}
+
+/* --------------- POPULAR NEAR YOU ---------------- */
+
+.home-section {
+    max-width: 1180px;
+    margin: 1.6rem auto 0;
+    color: #f9fafb;
+}
+
+.home-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.home-section-header h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.home-section-header a {
+    font-size: 0.85rem;
+    color: #a5b4fc;
+    text-decoration: none;
+}
+
+.home-section-header a:hover {
+    text-decoration: underline;
+}
+
+.home-pop-grid {
+    margin-top: 0.4rem;
+}
+
+.home-pop-inner {
+    position: relative;
+    padding: 0.9rem 1.1rem;
+    color: #e5e7eb;
+}
+
+.home-pop-eyebrow {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-bottom: 0.25rem;
+}
+
+.home-pop-inner h3 {
+    font-size: 0.95rem;
+    margin: 0 0 0.25rem;
+    color: #f9fafb;
+}
+
+.home-pop-location {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+/* Highlight state used by "Surprise me" */
+.surprise-highlight {
+    box-shadow: 0 0 0 3px #f97316, 0 0 26px rgba(251, 191, 36, 0.9);
+    transform: translateY(-4px) scale(1.02);
+}
+
+/* Responsive tweak so hero stacks nicely on mobile */
+@media (max-width: 991.98px) {
+    .home-hero-inner {
+        grid-template-columns: 1fr;
+    }
+    .home-hero-card {
+        order: -1;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .home-page {
+        padding-top: 5.3rem;
+        padding-inline: 1rem;
+    }
+    .home-hero-inner {
+        padding: 1.4rem 1.3rem;
+    }
+    .home-hero-title {
+        font-size: 2rem;
+    }
+}
+

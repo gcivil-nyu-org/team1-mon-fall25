@@ -4,79 +4,134 @@
 {% block title %}Homepage • SimpleTix{% endblock %}
 
 {% block body %}
-  <!-- HERO (static, CSS-only) -->
-  <section class="home-hero-card">
-    <div class="hero-media" style="--hero-url: url('{% static 'simpletix/images/hero2.jpg' %}');">
-      <div class="hero-overlay"></div>
-      <div class="hero-content container">
-        <h4 class="hero-title">
-          This season, make it a <span class="aria">moment</span>
-        </h4>
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+<div class="home-page">
+
+  <!-- HERO -->
+  <section class="home-hero">
+    <div class="home-hero-bg"></div>
+
+    <div class="home-hero-inner">
+      <!-- Left: copy + CTAs -->
+      <div class="home-hero-main">
+        <p class="home-hero-pill">
+          <span class="dot-live"></span>
+          Live this season
+        </p>
+
+        <h1 class="home-hero-title">
+          This season,<br>
+          <span>make it a moment.</span>
+        </h1>
+
+        <p class="home-hero-sub">
+          Discover hand-picked events around you – from rooftop nights to concerts,
+          festivals, and everything in between.
+        </p>
+
+        <div class="home-hero-cta">
+          <a href="{% url 'events:event_list' %}" class="btn home-hero-btn">
+            Explore events
+          </a>
+          <button type="button" class="home-hero-ghost-btn" id="surprise-me-btn">
+            Surprise me 🎲
+          </button>
+        </div>
+
+        <div class="home-hero-stats">
+          <div><strong>25+</strong><span>Events</span></div>
+          <div><strong>24/7</strong><span>Tickets</span></div>
+          <div><strong>∞</strong><span>Memories</span></div>
+        </div>
+      </div>
+
+      <!-- Right: big hero image -->
+      <div class="home-hero-card">
+        <div class="home-hero-image">
+          <!-- default image; JS will swap between a few NYC/event shots -->
+          <img id="hero-img"
+               src="{% static 'css/images/nyc_skyline.jpg' %}"
+               alt="New York events">
+          <div class="home-hero-image-overlay"></div>
+          <div class="home-hero-floating-label">
+            <span>Featured</span>
+            <p>New York • Tonight</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- CATEGORIES (simple links, ring style) -->
-  <section class="container py-4">
-    <div class="cat-grid">
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">🎃</span></span>
-        <span class="lbl">Halloween</span>
+  <!-- CATEGORIES -->
+  <section class="home-categories">
+    <div class="home-categories-inner">
+      <a href="{% url 'events:event_list' %}" class="home-chip active">
+        🎃 <span>Halloween</span>
       </a>
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">🎵</span></span>
-        <span class="lbl">Music</span>
+      <a href="{% url 'events:event_list' %}" class="home-chip">
+        🎵 <span>Music</span>
       </a>
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">🌙</span></span>
-        <span class="lbl">Nightlife</span>
+      <a href="{% url 'events:event_list' %}" class="home-chip">
+        🌙 <span>Nightlife</span>
       </a>
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">🎭</span></span>
-        <span class="lbl">Arts</span>
+      <a href="{% url 'events:event_list' %}" class="home-chip">
+        🎭 <span>Arts</span>
       </a>
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">💻</span></span>
-        <span class="lbl">Tech</span>
+      <a href="{% url 'events:event_list' %}" class="home-chip">
+        💻 <span>Tech</span>
       </a>
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">🎮</span></span>
-        <span class="lbl">Esports</span>
+      <a href="{% url 'events:event_list' %}" class="home-chip">
+        🎮 <span>Esports</span>
       </a>
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">🏃‍♀️</span></span>
-        <span class="lbl">Sports</span>
+      <a href="{% url 'events:event_list' %}" class="home-chip">
+        🏃‍♀️ <span>Sports</span>
       </a>
-      <a href="{% url 'events:event_list' %}" class="cat">
-        <span class="ring"><span class="ico">🍸</span></span>
-        <span class="lbl">Food & Drink</span>
+      <a href="{% url 'events:event_list' %}" class="home-chip">
+        🍸 <span>Food & Drink</span>
       </a>
     </div>
   </section>
 
-  <!-- POPULAR (kept as simple links, just prettier cards) -->
-  <section class="container py-5">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h2 class="h4 mb-0">Popular near you</h2>
-      <a href="{% url 'events:event_list' %}" class="link-primary">View all</a>
+  <!-- POPULAR NEAR YOU -->
+  <section class="home-section">
+    <div class="home-section-header">
+      <h2>Popular near you</h2>
+      <a href="{% url 'events:event_list' %}">View all</a>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-4 home-pop-grid">
       {% for i in "1234" %}
       <div class="col-12 col-sm-6 col-lg-3">
-        <a class="ev-card" href="{% url 'events:event_list' %}">
-          <div class="ev-thumb t{{ forloop.counter }}"></div>
-          <div class="ev-body">
-            <div class="ev-title">
+        <a class="home-pop-card" href="{% url 'events:event_list' %}">
+          <div class="home-pop-bg"></div>
+          <div class="home-pop-inner">
+            <p class="home-pop-eyebrow">
+              {% if forloop.counter == 1 %}Thu • Manhattan{% elif forloop.counter == 2 %}Fri • Midtown{% elif forloop.counter == 3 %}Sun • Central Park{% else %}Sat • Brooklyn{% endif %}
+            </p>
+            <h3>
               {% if forloop.counter == 1 %}TechFest NYC 2025{% elif forloop.counter == 2 %}Late Night Laughs{% elif forloop.counter == 3 %}City Marathon 10K{% else %}Indie Music Night{% endif %}
-            </div>
-            <div class="ev-meta">
-              {% if forloop.counter == 1 %}Thu • Javits Center{% elif forloop.counter == 2 %}Fri • Irving Plaza{% elif forloop.counter == 3 %}Sun • Central Park{% else %}Sat • Brooklyn Steel{% endif %}
-            </div>
+            </h3>
+            <p class="home-pop-location">
+              {% if forloop.counter == 1 %}Javits Center{% elif forloop.counter == 2 %}Irving Plaza{% elif forloop.counter == 3 %}Central Park Loop{% else %}Brooklyn Steel{% endif %}
+            </p>
           </div>
         </a>
       </div>
       {% endfor %}
     </div>
   </section>
+
+</div>
+
+{# JS: hero rotation + "Surprise me" behavior #}
+<script>
+  // List of hero images – swap these filenames for your real NYC / event photos
+  const HERO_IMAGES = [
+  "{% static 'css/images/nyc_skyline.jpg' %}",
+  "{% static 'css/images/nyc_concert.jpg' %}",
+  "{% static 'css/images/nyc_street_festival.jpg' %}"
+];
+</script>
+<script src="{% static 'js/home.js' %}"></script>
 {% endblock %}
