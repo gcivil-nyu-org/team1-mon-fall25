@@ -17,7 +17,6 @@ from tickets.forms import TicketFormSet
 from tickets.models import TicketInfo
 from .forms import EventForm
 from .models import Event
-from datetime import timedelta, date
 from django.db.models import Q
 from django.db import models
 from django.db.models.functions import Coalesce
@@ -233,8 +232,11 @@ def delete_event(request, event_id):
 def event_list(request):
     events = Event.objects.all().distinct()
 
-    # --- Ticket Price Sorting ---
+    # --- Sorting Inputs ---
     price_sort = request.GET.get("price_sort")
+    date_sort = request.GET.get("date_sort")
+
+    # Annotate price if price sorting is used
     if price_sort:
         events = events.annotate(
             general_price=Coalesce(
@@ -245,20 +247,45 @@ def event_list(request):
                     ).values("price")[:1]
                 ),
                 999999,
-                output_field=models.DecimalField(max_digits=8, decimal_places=2)
+                output_field=models.DecimalField(max_digits=8, decimal_places=2),
             )
         )
-        if price_sort == "asc":
-            events = events.order_by("general_price", "date")
-        elif price_sort == "desc":
-            events = events.order_by("-general_price", "date")
 
-    # --- State Filter ---
-    state = request.GET.get("state")
-    if state:
-        events = events.filter(
-            Q(formatted_address__icontains=state) | Q(location__icontains=state)
-        )
+    # Sorting priority rules:
+    # - If date_sort is chosen → date is primary
+    # - If price_sort is chosen → price is added after date (or first if no date)
+    # - If only price_sort chosen → only price is applied
+
+    # --- Hybrid Sorting ---
+    ordering = []
+
+    # 1. Date sorting (if selected)
+    if date_sort == "soon":
+        ordering += ["date", "time"]
+    elif date_sort == "late":
+        ordering += ["-date", "-time"]
+
+    # 2. Price sorting (if selected)
+    if price_sort == "asc":
+        ordering.append("general_price")
+    elif price_sort == "desc":
+        ordering.append("-general_price")
+
+    # Apply hybrid ordering
+    if ordering:
+        events = events.order_by(*ordering)
+
+
+    # --- Multi-State Filter ---
+    selected_states = request.GET.getlist("state")
+    if selected_states:
+        state_filter = Q()
+        for st in selected_states:
+            state_filter |= Q(formatted_address__icontains=st) | Q(location__icontains=st)
+        events = events.filter(state_filter)
+
+
+
 
     # --- Ticket Type Filter (multi-select) ---
     selected_ticket_types = request.GET.getlist("ticket_type")
@@ -271,9 +298,8 @@ def event_list(request):
         for t_type in selected_ticket_types:
             events = events.filter(
                 ticketInfo__category=type_map.get(t_type, t_type),
-                ticketInfo__availability__gt=0
+                ticketInfo__availability__gt=0,
             )
-
 
     # --- Date Range Filter ---
     start_date = request.GET.get("start_date")
@@ -287,7 +313,9 @@ def event_list(request):
 
     # --- Available States for Dropdown ---
     all_states = []
-    for addr in Event.objects.exclude(formatted_address="").values_list("formatted_address", flat=True):
+    for addr in Event.objects.exclude(formatted_address="").values_list(
+        "formatted_address", flat=True
+    ):
         parts = addr.split(",")
         if len(parts) >= 2:
             state_part = parts[-2].strip().split()[0]
@@ -299,8 +327,9 @@ def event_list(request):
         "events": events.distinct(),
         "available_states": available_states,
         "selected_ticket_types": selected_ticket_types,
-        "selected_state": state,
+        "selected_states": selected_states,
         "selected_price_sort": price_sort,
+        "selected_date_sort": date_sort,
         "start_date": start_date,
         "end_date": end_date,
     }

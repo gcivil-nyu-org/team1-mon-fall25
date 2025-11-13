@@ -8,7 +8,6 @@ def algolia_settings(request):
         "ALGOLIA_INDEX": f"{settings.ALGOLIA.get('INDEX_PREFIX', 'simpletix')}_events",
     }
 
+
 def google_maps_key(request):
-    return {
-        "GOOGLE_MAPS_API_KEY": getattr(settings, "GOOGLE_MAPS_API_KEY", "")
-    }
+    return {"GOOGLE_MAPS_API_KEY": getattr(settings, "GOOGLE_MAPS_API_KEY", "")}
