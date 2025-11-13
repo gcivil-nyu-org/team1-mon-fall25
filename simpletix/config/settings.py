@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "accounts.apps.AccountsConfig",
     "tickets",
     "storages",
+    "orders",
 ]
 
 MIDDLEWARE = [
@@ -229,6 +230,7 @@ elif ENVIRONMENT in ["production", "development"]:
         "SEARCH_KEY": secrets.get("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": secrets.get("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
+    ALGOLIA_ENABLED = True
 else:
     ALGOLIA = {
         "APPLICATION_ID": os.getenv("ALGOLIA_APP_ID", ""),
@@ -236,6 +238,8 @@ else:
         "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
+    ALGOLIA_ENABLED = os.getenv("ALGOLIA_ENABLED", True)
+
 
 # --- GOOGLE MAPS SETTINGS ---
 
@@ -247,3 +251,38 @@ elif ENVIRONMENT in ["production", "development"]:
     GOOGLE_MAPS_API_KEY = google_secrets.get("GOOGLE_MAPS_API_KEY", "")
 else:
     GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
+
+# --- Email / SMTP configuration ---
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+if ENVIRONMENT in ["production", "development"]:
+    email_secrets = get_secret(os.getenv("EMAIL_SECRETS_NAME"))
+    EMAIL_HOST_USER = email_secrets.get("SMTP_USER", "")
+    EMAIL_HOST_PASSWORD = email_secrets.get("SMTP_PASSWORD", "")
+else:
+    # Local / CI: read from .env or shell env vars
+    EMAIL_HOST_USER = os.getenv("SMTP_USER", "")
+    EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@example.com"
+
+
+# STRIPE CONFIGURATION
+if ENVIRONMENT in ["production", "development"]:
+    secrets = get_secret(os.getenv("STRIPE_SECRETS_NAME"))
+    STRIPE = {
+        "STRIPE_PUBLISHABLE_KEY": secrets.get("STRIPE_PUBLISHABLE_KEY", ""),
+        "STRIPE_SECRET_KEY": secrets.get("STRIPE_SECRET_KEY", ""),
+        "STRIPE_WEBHOOK_SECRET": secrets.get("STRIPE_WEBHOOK_SECRET", ""),
+    }
+else:
+    STRIPE = {
+        "STRIPE_PUBLISHABLE_KEY": os.getenv("STRIPE_PUBLISHABLE_KEY", ""),
+        "STRIPE_SECRET_KEY": os.getenv("STRIPE_SECRET_KEY", ""),
+        "STRIPE_WEBHOOK_SECRET": os.getenv("STRIPE_WEBHOOK_SECRET", ""),
+    }

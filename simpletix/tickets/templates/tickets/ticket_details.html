@@ -1,77 +1,129 @@
 {% extends "simpletix/nav.html" %}
+{% load static %}
 
 {% block title %}Ticket Info · SimpleTix{% endblock %}
 
 {% block body %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+<link rel="stylesheet" href="{% static 'tickets/ticket_details.css' %}">
 
-            <div class="card shadow-lg rounded-3">
-                <!-- Card Header for Event Title -->
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h1 class="h3 mb-0">{{ event.title }}</h1>
-                    <p class="mb-0 text-white-50">{{ event.date }} at {{ event.time }}</p>
-                    <p class="mb-0 text-white-50">Location: {{ event.location }}</p>
-                </div>
+<div class="ticket-details-page">
+    <div class="ticket-glow-orb"></div>
 
-                <div class="card-body p-4 p-md-5">
+    <div class="ticket-main-card-wrapper">
+        <p class="ticket-page-label text-center text-md-start mb-3">
+            Ticket Details · SimpleTix
+        </p>
 
-                    <!-- Ticket & Attendee Info Section -->
-                    <div class="row gy-4">
-                        <!-- Ticket Info Column -->
-                        <div class="col-md-6">
-                            <h2 class="h5 mb-3 border-bottom pb-2">Ticket Details</h2>
-                            <dl class="row">
-                                <dt class="col-sm-5">Ticket Number:</dt>
-                                <dd class="col-sm-7">{{ ticket.id }}</dd>
-
-                                <dt class="col-sm-5">Ticket Type:</dt>
-                                <dd class="col-sm-7">{{ ticket.ticketInfo.get_category_display }}</dd>
-
-                                <dt class="col-sm-5">Price:</dt>
-                                <dd class="col-sm-7">${{ ticket.ticketInfo.price }}</dd>
-                            </dl>
+        <div class="card ticket-main-card shadow-lg rounded-3 border-0">
+            <!-- Card Header for Event Title -->
+            <div class="card-header text-white text-center text-md-start">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div class="text-center text-md-start">
+                        <div class="ticket-pill mb-2">
+                            <span class="ticket-pill-dot"></span>
+                            <span>Confirmed Ticket</span>
                         </div>
-
-                        <!-- Attendee Info Column -->
-                        <div class="col-md-6">
-                            <h2 class="h5 mb-3 border-bottom pb-2">Attendee Information</h2>
-                            <dl class="row">
-                                <dt class="col-sm-5">Full Name:</dt>
-                                <dd class="col-sm-7">{{ ticket.full_name }}</dd>
-
-                                <dt class="col-sm-5">Email:</dt>
-                                <dd class="col-sm-7">{{ ticket.email }}</dd>
-
-                                <dt class="col-sm-5">Phone:</dt>
-                                <dd class="col-sm-7">{{ ticket.phone }}</dd>
-                            </dl>
-                        </div>
+                        <h1 class="h3 mb-1">{{ event.title }}</h1>
+                        <p class="ticket-sub-info mb-1">
+                            {{ event.date }} · {{ event.time }}
+                        </p>
+                        <p class="ticket-sub-info mb-0">
+                            Location: {{ event.location }}
+                        </p>
                     </div>
 
-                    <hr class="my-4">
-
-                    <!-- Event Info Section -->
-                    <div>
-                        <h2 class="h5 mb-3">Event Information</h2>
-                        <p class="lead">{{ event.description }}</p>
-                        <p><strong>Organizer:</strong> {{ event.organizer.user }}</p>
+                    <div class="text-center text-md-end">
+                        <p class="mb-1 small text-white-75">Ticket Number</p>
+                        <p class="h4 mb-0 fw-bold">#{{ ticket.id }}</p>
                     </div>
                 </div>
+            </div>
 
-                <!-- Card Footer for Action Buttons -->
-                <div class="card-footer bg-light p-3">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Event Details</a>
-                            <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Event List</a>
-                            <a href="{% url 'tickets:ticket_list' %}" class="btn btn-secondary">Ticket List</a>
+            <div class="card-body p-4 p-md-5 text-white">
+                <!-- Ticket Details Section (full width) -->
+                <div class="ticket-section mb-4">
+                    <div class="ticket-section-title">Ticket Details</div>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Ticket Number</dt>
+                        <dd class="col-sm-7">#{{ ticket.id }}</dd>
+
+                        <dt class="col-sm-5">Ticket Type</dt>
+                        <dd class="col-sm-7">{{ ticket.ticketInfo.get_category_display }}</dd>
+
+                        <dt class="col-sm-5">Price</dt>
+                        <dd class="col-sm-7">${{ ticket.ticketInfo.price }}</dd>
+                    </dl>
+                </div>
+
+                <!-- Attendee Info + QR Section -->
+                <div class="ticket-section ticket-meta-grid">
+                    <!-- Attendee Info (left) -->
+                    <div class="ticket-meta-col">
+                        <div class="ticket-section-title">Attendee Information</div>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Full Name</dt>
+                            <dd class="col-sm-7">{{ ticket.full_name }}</dd>
+
+                            <dt class="col-sm-5">Email</dt>
+                            <dd class="col-sm-7">{{ ticket.email }}</dd>
+
+                            <dt class="col-sm-5">Phone</dt>
+                            <dd class="col-sm-7">{{ ticket.phone }}</dd>
+                        </dl>
+                    </div>
+
+                    <!-- QR Code (right) -->
+                    {% if qr_data_url %}
+                    <div class="ticket-meta-col">
+                        <h2 class="h6 mb-2 text-uppercase text-muted">
+                            Ticket QR Code
+                        </h2>
+                        <div class="ticket-qr-wrapper text-center text-md-start">
+                            <div class="ticket-qr-image d-inline-block">
+                                <img src="{{ qr_data_url }}"
+                                     alt="Ticket QR Code"
+                                     class="img-fluid rounded-3"
+                                     style="max-width: 220px;">
+                            </div>
+                            <p class="small mt-2 mb-0">
+                                Show this code at the entrance to be scanned.
+                            </p>
                         </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <hr class="my-4 border-secondary">
+
+                <!-- Event Info Section -->
+                <div class="ticket-event-info mt-3">
+                    <div class="ticket-section-title mb-2">Event Information</div>
+                    <p class="lead mb-3">{{ event.description }}</p>
+                    <p class="mb-0">
+                        <strong>Organizer:</strong> {{ event.organizer.user }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card Footer for Action Buttons -->
+            <div class="card-footer ticket-footer p-3 px-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex ticket-footer-links">
+                        <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">
+                            Event Details
+                        </a>
+                        <a href="{% url 'events:event_list' %}" class="btn btn-secondary">
+                            Event List
+                        </a>
+                        <a href="{% url 'tickets:ticket_list' %}" class="btn btn-secondary">
+                            Ticket List
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+
 {% endblock %}

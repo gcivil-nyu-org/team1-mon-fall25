@@ -30,7 +30,7 @@ urlpatterns = [
     path("events/", include(("events.urls", "events"), namespace="events")),
     path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
     path("tickets/", include(("tickets.urls", "tickets"), namespace="tickets")),
-    # Removed: path("", include(("home.urls", "home"), namespace="home"))
+    path("orders/", include(("orders.urls", "orders"), namespace="orders")),
 ]
 
 handler403 = permission_denied_view

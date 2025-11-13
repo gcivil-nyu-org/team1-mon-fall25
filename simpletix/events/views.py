@@ -1,33 +1,63 @@
-from django.shortcuts import render, redirect, get_object_or_404, resolve_url
-import os
-from django.contrib import messages
-from django.core.exceptions import PermissionDenied
-from django.conf import settings
-from django.contrib.auth import REDIRECT_FIELD_NAME
 from functools import wraps
 from urllib.parse import urlencode
+
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+    render,
+    resolve_url,
+)
+
+from accounts.models import OrganizerProfile
+from tickets.forms import TicketFormSet
+from tickets.models import TicketInfo
 from .forms import EventForm
 from .models import Event
-from tickets.models import TicketInfo
-from tickets.forms import TicketFormSet
-from accounts.models import OrganizerProfile
 from datetime import timedelta, date
 from django.db.models import Q
 from django.db import models
 from django.db.models.functions import Coalesce
 
+# --- Algolia integration helpers -------------------------------------------
+
+try:
+    from algoliasearch_django import (
+        save_record as _save_record,
+        delete_record as _delete_record,
+    )
+except Exception:
+    # If Algolia isn't installed or is misconfigured, fail gracefully.
+    _save_record = None
+    _delete_record = None
 
 
-# Only import Algolia if not running in CI
-if not os.environ.get("CI"):
-    from algoliasearch_django import save_record, delete_record
-else:
-    # Define no-op versions for CI
-    def save_record(instance):
-        return None
+def algolia_save(instance):
+    """
+    Save an instance to Algolia if Algolia is enabled.
+    In dev/prod this will run normally.
+    In tests/CI you can disable it via settings.ALGOLIA_ENABLED = False.
+    """
+    if not getattr(settings, "ALGOLIA_ENABLED", True):
+        return
+    if _save_record is not None:
+        _save_record(instance)
 
-    def delete_record(instance):
-        return None
+
+def algolia_delete(instance):
+    """
+    Delete an instance from Algolia if Algolia is enabled.
+    """
+    if not getattr(settings, "ALGOLIA_ENABLED", True):
+        return
+    if _delete_record is not None:
+        _delete_record(instance)
+
+
+# --- Auth / role decorators -------------------------------------------------
 
 
 def custom_login_required(
@@ -111,6 +141,9 @@ def organizer_owns_event(view_func):
     return _wrapped_view
 
 
+# --- Views ------------------------------------------------------------------
+
+
 # Create Event
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_required
@@ -122,7 +155,9 @@ def create_event(request):
             event = form.save(commit=False)
             event.organizer = OrganizerProfile.objects.get(user=request.user)
             event.save()
-            save_record(event)  # Sync with Algolia
+
+            algolia_save(event)
+
             formset.instance = event
             formset.save()
             messages.success(request, "Event created successfully!")
@@ -156,7 +191,8 @@ def edit_event(request, event_id):
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
         if form.is_valid() and formset.is_valid():
             form.save()
-            save_record(event)  # Sync with Algolia
+            algolia_save(event)
+
             formset.save()
             messages.success(request, "Event updated successfully!")
             return redirect("events:event_detail", event_id=event.id)
@@ -184,7 +220,8 @@ def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
     if request.method == "POST":
-        delete_record(event)  # Remove from Algolia
+        algolia_delete(event)
+
         event.delete()
         messages.success(request, "Event deleted successfully!")
         return redirect("events:event_list")
