@@ -1,15 +1,94 @@
 {% extends "simpletix/nav.html" %}
+{% load static %}
 
-{% block title %}Ticket List · SimpleTix{% endblock %}
+{% block title %}My Tickets · SimpleTix{% endblock %}
 
 {% block body %}
-<br>
-<h2>Ticket List for {{ filtername }}</h2>
-{% for ticket in tickets %}
-    <div>
-        <a href="{% url 'tickets:ticket_details' ticket.id %}">ticket #{{ ticket.id }}</a>
-    </div>
-{% empty %}
-    <h2>No tickets available.</h2>
-{% endfor %}
+
+<link rel="stylesheet" href="{% static 'tickets/ticket_list.css' %}">
+
+<div class="stx-ticket-page">
+  <div class="stx-ticket-inner">
+    <header class="stx-ticket-hero">
+      <p class="stx-ticket-breadcrumb">My Tickets</p>
+      <p class="stx-ticket-hero-subtitle">
+        View and access your tickets in one place. Tap a card to see full details and your scannable QR code.
+      </p>
+    </header>
+
+    {% if tickets %}
+      <section class="stx-ticket-grid">
+        {% for ticket in tickets %}
+          {% with event=ticket.ticketInfo.event %}
+            <article class="stx-ticket-card">
+              <header class="stx-ticket-card-header">
+                <div class="stx-ticket-pill-row">
+                  <span class="stx-ticket-event-name">
+                    {% if event %}
+                      {{ event.title }}
+                    {% else %}
+                      Untitled Event
+                    {% endif %}
+                  </span>
+                  {% if ticket.ticketInfo.category %}
+                    <span class="stx-ticket-category">
+                      {{ ticket.ticketInfo.category }}
+                    </span>
+                  {% endif %}
+                </div>
+                <p class="stx-ticket-meta">
+                  Ticket #{{ ticket.id }}
+                  {% if ticket.status %}
+                    · {{ ticket.status|title }}
+                  {% endif %}
+                </p>
+              </header>
+
+              <div class="stx-ticket-card-body">
+                <dl class="stx-ticket-field-list">
+                  {% if event %}
+                    <div class="stx-ticket-field-row">
+                      <dt>Date</dt>
+                      <dd>{{ event.date|date:"M j, Y" }}</dd>
+                    </div>
+                    <div class="stx-ticket-field-row">
+                      <dt>Time</dt>
+                      <dd>{{ event.time|time:"P" }}</dd>
+                    </div>
+                    <div class="stx-ticket-field-row">
+                      <dt>Location</dt>
+                      <dd>{{ event.location }}</dd>
+                    </div>
+                  {% endif %}
+
+                  {% if ticket.full_name %}
+                    <div class="stx-ticket-field-row">
+                      <dt>Attendee</dt>
+                      <dd>{{ ticket.full_name }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              </div>
+
+              <footer class="stx-ticket-card-footer">
+                <a
+                  href="{% url 'tickets:ticket_details' ticket.id %}"
+                  class="stx-ticket-view-button"
+                >
+                  View ticket
+                  <span aria-hidden="true">↗</span>
+                </a>
+              </footer>
+            </article>
+          {% endwith %}
+        {% endfor %}
+      </section>
+    {% else %}
+      <p class="stx-ticket-empty-state">
+        You don’t have any tickets yet. Once you purchase a ticket, it’ll show up here.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
 {% endblock %}

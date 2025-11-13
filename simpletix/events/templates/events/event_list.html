@@ -4,37 +4,68 @@
 {% block title %}All Events{% endblock %}
 
 {% block content %}
-<h1 class="mb-4 text-center">Upcoming Events</h1>
-<div class="row">
-    {% for event in events %}
-    <div class="col-md-4 mb-4">
-        <div class="card event-card shadow-sm">
-            {% if event.banner %}
-                <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}">
-            {% else %}
-                <img src="{% static 'images/default.jpg' %}" class="card-img-top" alt="Default Image">
-            {% endif %}
-            <div class="card-body">
-                <h5 class="card-title">{{ event.title }}</h5>
-                <p class="card-text text-muted">{{ event.date }} at {{ event.time }}</p>
-                <p class="card-text">{{ event.location }}</p>
+<link rel="stylesheet" href="{% static 'events/event_lists.css' %}">
 
-                <div class="mb-2">
-                    {% for ticket in event.ticketInfo.all %}
-                        {% if ticket.availability > 0 %}
-                            <span class="badge bg-success">{{ ticket.get_category_display }}: {{ ticket.availability }} left</span>
-                        {% else %}
-                            <span class="badge bg-danger">{{ ticket.get_category_display }} Sold out</span>
-                        {% endif %}
-                    {% endfor %}
+<div class="events-page">
+    <!-- Gradient hero header -->
+    <section class="events-hero text-center">
+        <p class="events-hero-eyebrow">Event Portal</p>
+        <h1 class="events-hero-title">Upcoming Events</h1>
+        <p class="events-hero-subtitle">
+            Discover curated experiences, from festivals and parties to workshops and more.
+        </p>
+    </section>
+
+    {% if events %}
+    <div class="row g-4 events-grid">
+        {% for event in events %}
+        <div class="col-md-4">
+            <div class="card event-card futuristic-card">
+                <div class="event-card-media">
+                    {% if event.banner %}
+                        <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}">
+                    {% else %}
+                        <img src="{% static 'images/default.jpg' %}" class="card-img-top" alt="Default Image">
+                    {% endif %}
+                    <div class="event-card-gradient"></div>
+                    <div class="event-card-tag">
+                        <span class="event-chip">{{ event.date }} · {{ event.time }}</span>
+                    </div>
                 </div>
 
-                <a href="{% url 'events:event_detail' event.id %}" class="btn btn-primary">View Details</a>
+                <div class="card-body event-card-body">
+                    <h5 class="card-title mb-1">{{ event.title }}</h5>
+                    <p class="event-location mb-2">
+                        <i class="bi bi-geo-alt-fill"></i> {{ event.location }}
+                    </p>
+
+                    <div class="event-ticket-badges mb-3">
+                        {% for ticket in event.ticketInfo.all %}
+                            {% if ticket.availability > 0 %}
+                                <span class="badge ticket-badge-available">
+                                    {{ ticket.get_category_display }}: {{ ticket.availability }} left
+                                </span>
+                            {% else %}
+                                <span class="badge ticket-badge-soldout">
+                                    {{ ticket.get_category_display }} · Sold out
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'events:event_detail' event.id %}" class="btn event-btn-primary">
+                            View Details
+                        </a>
+                        <span class="event-card-pulse-dot"></span>
+                    </div>
+                </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <p class="text-center">No upcoming events found.</p>
-    {% endfor %}
+    {% else %}
+    <p class="text-center no-events-copy">No upcoming events found.</p>
+    {% endif %}
 </div>
 {% endblock %}
