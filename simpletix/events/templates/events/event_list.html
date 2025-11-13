@@ -40,18 +40,16 @@
                     </p>
 
                     <div class="event-ticket-badges mb-3">
-                        {% for ticket in event.ticketInfo.all %}
-                            {% if ticket.availability > 0 %}
-                                <span class="badge ticket-badge-available">
-                                    {{ ticket.get_category_display }}: {{ ticket.availability }} left
-                                </span>
-                            {% else %}
-                                <span class="badge ticket-badge-soldout">
-                                    {{ ticket.get_category_display }} · Sold out
-                                </span>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
+    {% for ticket in event.ticketInfo.all %}
+        {% if ticket.availability > 0 %}
+            <span class="badge ticket-badge-available">
+                {{ ticket.get_category_display }}: {{ ticket.availability }} left
+            </span>
+        {% endif %}
+        {# sold out tickets are not displayed at all #}
+    {% endfor %}
+</div>
+
 
                     <div class="d-flex justify-content-between align-items-center">
                         <a href="{% url 'events:event_detail' event.id %}" class="btn event-btn-primary">
