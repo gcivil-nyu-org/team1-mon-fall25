@@ -309,7 +309,7 @@ def event_list(request):
             events = events.filter(distance_km__lte=radius_km)
         except ValueError:
             pass
-        
+
     # --- Multi-State Filter ---
     selected_states = request.GET.getlist("state")
     if selected_states:
