@@ -138,30 +138,76 @@ def organizer_owns_event(view_func):
 
 # --- Views ------------------------------------------------------------------
 
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.conf import settings
+from .forms import EventForm
+from .models import Event, EventTimeSlot
+from accounts.models import OrganizerProfile
+from tickets.forms import TicketFormSet
+
+from functools import wraps
+from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.shortcuts import resolve_url
+from urllib.parse import urlencode
+from django.core.exceptions import PermissionDenied
+
+# ----------------------------
+# Decorators (simplified)
+# ----------------------------
+def custom_login_required(view_func=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url=None, extra_params=None):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if request.user.is_authenticated:
+                return view_func(request, *args, **kwargs)
+            path = request.build_absolute_uri()
+            resolved_login_url = resolve_url(login_url or settings.LOGIN_URL)
+            login_url_parts = {redirect_field_name: path}
+            if extra_params:
+                login_url_parts.update(extra_params)
+            final_login_url = f"{resolved_login_url}?{urlencode(login_url_parts)}"
+            return redirect(final_login_url)
+        return _wrapped_view
+    if view_func:
+        return decorator(view_func)
+    return decorator
+
+def organizer_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if request.session.get("desired_role") != "organizer":
+            raise PermissionDenied("You must be an organizer to perform this action.")
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+# ----------------------------
+# Create Event View
+# ----------------------------
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_required
 def create_event(request):
     if request.method == 'POST':
         form = EventForm(request.POST, request.FILES)
         formset = TicketFormSet(request.POST)
-        
+
         if form.is_valid() and formset.is_valid():
-            # Save the event
+            # Save event linked to organizer
             event = form.save(commit=False)
             event.organizer = OrganizerProfile.objects.get(user=request.user)
             event.save()
-            
-            # Save ticket categories
+
+            # Save tickets
             tickets = formset.save(commit=False)
             for ticket in tickets:
                 ticket.event = event
                 ticket.save()
-            
+
             # Save time slots
             slot_dates = request.POST.getlist('slot_date[]')
             slot_start_times = request.POST.getlist('slot_start_time[]')
             slot_end_times = request.POST.getlist('slot_end_time[]')
-            
+
             for date, start_time, end_time in zip(slot_dates, slot_start_times, slot_end_times):
                 EventTimeSlot.objects.create(
                     event=event,
@@ -169,20 +215,25 @@ def create_event(request):
                     start_time=start_time,
                     end_time=end_time
                 )
-            
-            algolia_save(event)
+
             messages.success(request, 'Event created successfully!')
             return redirect('events:event_list')
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
         form = EventForm()
-        formset = TicketFormSet()
-    
+        # Prepopulate ticket categories
+        initial_tickets = [
+            {'category': 'General Admission', 'price': 0, 'availability': 0},
+            {'category': 'VIP', 'price': 0, 'availability': 0},
+            {'category': 'Early Bird', 'price': 0, 'availability': 0},
+        ]
+        formset = TicketFormSet(initial=initial_tickets)
+
     context = {
         'form': form,
         'formset': formset,
-        'GOOGLE_MAPS_API_KEY': settings.GOOGLE_MAPS_API_KEY
+        'GOOGLE_MAPS_API_KEY': settings.GOOGLE_MAPS_API_KEY,
     }
     return render(request, 'events/create_event.html', context)
 
