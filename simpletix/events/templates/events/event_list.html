@@ -42,6 +42,33 @@
         </select>
         </div>
 
+        <!-- Sort by Distance -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Sort by Distance</label>
+            <select class="form-select" id="distance_sort" name="distance_sort">
+                <option value="">Any</option>
+                <option value="near" {% if request.GET.distance_sort == "near" %}selected{% endif %}>Nearest First</option>
+                <option value="far" {% if request.GET.distance_sort == "far" %}selected{% endif %}>Farthest First</option>
+            </select>
+
+            <!-- Hidden inputs for user coordinates -->
+            <input type="hidden" id="user_lat" name="user_lat" value="{{ request.GET.user_lat }}">
+            <input type="hidden" id="user_lng" name="user_lng" value="{{ request.GET.user_lng }}">
+        </div>
+
+        <!-- Radius Filter -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Within Miles</label>
+            <select class="form-select" id="radius" name="radius">
+                <option value="">Any</option>
+                <option value="5"  {% if request.GET.radius == "5"  %}selected{% endif %}>5 miles</option>
+                <option value="10" {% if request.GET.radius == "10" %}selected{% endif %}>10 miles</option>
+                <option value="25" {% if request.GET.radius == "25" %}selected{% endif %}>25 miles</option>
+                <option value="50" {% if request.GET.radius == "50" %}selected{% endif %}>50 miles</option>
+                <option value="100" {% if request.GET.radius == "100" %}selected{% endif %}>100 miles</option>
+            </select>
+        </div>
+
         <!-- State Filter (checkbox dropdown) -->
         <div class="col-md-3">
             <label class="form-label fw-semibold d-block">States</label>
@@ -207,17 +234,71 @@ document.addEventListener("DOMContentLoaded", function() {
 
 </script>
 
-        <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const selectAll = document.getElementById("state_all");
-            const boxes = document.querySelectorAll("input[name='state']");
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const selectAll = document.getElementById("state_all");
+    const boxes = document.querySelectorAll("input[name='state']");
 
-            if (selectAll) {
-                selectAll.addEventListener("change", () => {
-                    boxes.forEach(b => b.checked = selectAll.checked);
-                });
-            }
+    if (selectAll) {
+        selectAll.addEventListener("change", () => {
+            boxes.forEach(b => b.checked = selectAll.checked);
         });
-        </script>
+    }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const distanceSelect = document.getElementById("distance_sort");
+    const radiusSelect = document.getElementById("radius");
+
+    function ensureLocationThenSubmit(selectElement) {
+        const saved = localStorage.getItem("user_coords");
+
+        if (saved) {
+            const coords = JSON.parse(saved);
+            document.getElementById("user_lat").value = coords.lat;
+            document.getElementById("user_lng").value = coords.lng;
+            selectElement.form.submit();
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                document.getElementById("user_lat").value = pos.coords.latitude;
+                document.getElementById("user_lng").value = pos.coords.longitude;
+                localStorage.setItem("user_coords", JSON.stringify({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
+                }));
+                selectElement.form.submit();
+            },
+            () => {
+                alert("Location permission needed for distance-based features.");
+                selectElement.value = "";
+            }
+        );
+    }
+
+    // Distance sorting
+    distanceSelect.addEventListener("change", () => {
+        if (distanceSelect.value === "near" || distanceSelect.value === "far") {
+            ensureLocationThenSubmit(distanceSelect);
+        } else {
+            distanceSelect.form.submit();
+        }
+    });
+
+    // NEW: Radius filtering
+    radiusSelect.addEventListener("change", () => {
+        if (radiusSelect.value !== "") {
+            ensureLocationThenSubmit(radiusSelect);
+        } else {
+            radiusSelect.form.submit();
+        }
+    });
+});
+</script>
+
 
 {% endblock %}
