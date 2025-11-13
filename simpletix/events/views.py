@@ -13,7 +13,6 @@ from django.shortcuts import (
 
 from accounts.models import OrganizerProfile
 from tickets.forms import TicketFormSet
-from tickets.models import TicketInfo
 from .forms import EventForm
 from .models import Event, EventTimeSlot
 
@@ -138,56 +137,11 @@ def organizer_owns_event(view_func):
 
 # --- Views ------------------------------------------------------------------
 
-from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib import messages
-from django.conf import settings
-from .forms import EventForm
-from .models import Event, EventTimeSlot
-from accounts.models import OrganizerProfile
-from tickets.forms import TicketFormSet
 
-from functools import wraps
-from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.shortcuts import resolve_url
-from urllib.parse import urlencode
-from django.core.exceptions import PermissionDenied
-
-# ----------------------------
-# Decorators (simplified)
-# ----------------------------
-def custom_login_required(view_func=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url=None, extra_params=None):
-    def decorator(view_func):
-        @wraps(view_func)
-        def _wrapped_view(request, *args, **kwargs):
-            if request.user.is_authenticated:
-                return view_func(request, *args, **kwargs)
-            path = request.build_absolute_uri()
-            resolved_login_url = resolve_url(login_url or settings.LOGIN_URL)
-            login_url_parts = {redirect_field_name: path}
-            if extra_params:
-                login_url_parts.update(extra_params)
-            final_login_url = f"{resolved_login_url}?{urlencode(login_url_parts)}"
-            return redirect(final_login_url)
-        return _wrapped_view
-    if view_func:
-        return decorator(view_func)
-    return decorator
-
-def organizer_required(view_func):
-    @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
-        if request.session.get("desired_role") != "organizer":
-            raise PermissionDenied("You must be an organizer to perform this action.")
-        return view_func(request, *args, **kwargs)
-    return _wrapped_view
-
-# ----------------------------
-# Create Event View
-# ----------------------------
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_required
 def create_event(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EventForm(request.POST, request.FILES)
         formset = TicketFormSet(request.POST)
 
@@ -204,85 +158,87 @@ def create_event(request):
                 ticket.save()
 
             # Save time slots
-            slot_dates = request.POST.getlist('slot_date[]')
-            slot_start_times = request.POST.getlist('slot_start_time[]')
-            slot_end_times = request.POST.getlist('slot_end_time[]')
+            slot_dates = request.POST.getlist("slot_date[]")
+            slot_start_times = request.POST.getlist("slot_start_time[]")
+            slot_end_times = request.POST.getlist("slot_end_time[]")
 
-            for date, start_time, end_time in zip(slot_dates, slot_start_times, slot_end_times):
+            for date, start_time, end_time in zip(
+                slot_dates, slot_start_times, slot_end_times
+            ):
                 EventTimeSlot.objects.create(
-                    event=event,
-                    date=date,
-                    start_time=start_time,
-                    end_time=end_time
+                    event=event, date=date, start_time=start_time, end_time=end_time
                 )
 
-            messages.success(request, 'Event created successfully!')
-            return redirect('events:event_list')
+            messages.success(request, "Event created successfully!")
+            return redirect("events:event_list")
         else:
-            messages.error(request, 'Please correct the errors below.')
+            messages.error(request, "Please correct the errors below.")
     else:
         form = EventForm()
         # Prepopulate ticket categories
         initial_tickets = [
-            {'category': 'General Admission', 'price': 0, 'availability': 0},
-            {'category': 'VIP', 'price': 0, 'availability': 0},
-            {'category': 'Early Bird', 'price': 0, 'availability': 0},
+            {"category": "General Admission", "price": 0, "availability": 0},
+            {"category": "VIP", "price": 0, "availability": 0},
+            {"category": "Early Bird", "price": 0, "availability": 0},
         ]
         formset = TicketFormSet(initial=initial_tickets)
 
     context = {
-        'form': form,
-        'formset': formset,
-        'GOOGLE_MAPS_API_KEY': settings.GOOGLE_MAPS_API_KEY,
+        "form": form,
+        "formset": formset,
+        "GOOGLE_MAPS_API_KEY": settings.GOOGLE_MAPS_API_KEY,
     }
-    return render(request, 'events/create_event.html', context)
+    return render(request, "events/create_event.html", context)
 
 
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event
 def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    
-    if request.method == 'POST':
+
+    if request.method == "POST":
         form = EventForm(request.POST, request.FILES, instance=event)
         formset = TicketFormSet(request.POST, instance=event)
-        
+
         if form.is_valid() and formset.is_valid():
             event = form.save()
             formset.save()
-            
+
             # Delete existing time slots and recreate
             event.time_slots.all().delete()
-            
-            slot_dates = request.POST.getlist('slot_date[]')
-            slot_start_times = request.POST.getlist('slot_start_time[]')
-            slot_end_times = request.POST.getlist('slot_end_time[]')
-            
-            for date, start_time, end_time in zip(slot_dates, slot_start_times, slot_end_times):
+
+            slot_dates = request.POST.getlist("slot_date[]")
+            slot_start_times = request.POST.getlist("slot_start_time[]")
+            slot_end_times = request.POST.getlist("slot_end_time[]")
+
+            for date, start_time, end_time in zip(
+                slot_dates, slot_start_times, slot_end_times
+            ):
                 EventTimeSlot.objects.create(
-                    event=event,
-                    date=date,
-                    start_time=start_time,
-                    end_time=end_time
+                    event=event, date=date, start_time=start_time, end_time=end_time
                 )
-            
+
             algolia_save(event)
-            messages.success(request, 'Event updated successfully!')
-            return redirect('events:event_list')
+            messages.success(request, "Event updated successfully!")
+            return redirect("events:event_list")
         else:
-            messages.error(request, 'Please correct the errors.')
+            messages.error(request, "Please correct the errors.")
     else:
         form = EventForm(instance=event)
         formset = TicketFormSet(instance=event)
         existing_slots = event.time_slots.all()
-    
-    return render(request, 'events/edit_event.html', {
-        'form': form,
-        'formset': formset,
-        'event': event,
-        'existing_slots': existing_slots,
-        'GOOGLE_MAPS_API_KEY': settings.GOOGLE_MAPS_API_KEY
-    })
+
+    return render(
+        request,
+        "events/edit_event.html",
+        {
+            "form": form,
+            "formset": formset,
+            "event": event,
+            "existing_slots": existing_slots,
+            "GOOGLE_MAPS_API_KEY": settings.GOOGLE_MAPS_API_KEY,
+        },
+    )
 
 
 @custom_login_required(extra_params={"role": "organizer"})
@@ -295,15 +251,15 @@ def delete_event(request, event_id):
         event.delete()
         messages.success(request, "Event deleted successfully!")
         return redirect("events:event_list")
-    
+
     return render(request, "events/delete_event.html", {"event": event})
 
 
 def event_list(request):
-    events = Event.objects.all().prefetch_related('ticketInfo').order_by('-date')
-    return render(request, 'events/event_list.html', {'events': events})
+    events = Event.objects.all().prefetch_related("ticketInfo").order_by("-date")
+    return render(request, "events/event_list.html", {"events": events})
 
 
 def event_detail(request, event_id):
-    event = get_object_or_404(Event.objects.prefetch_related('time_slots'), id=event_id)
+    event = get_object_or_404(Event.objects.prefetch_related("time_slots"), id=event_id)
     return render(request, "events/event_detail.html", {"event": event})
