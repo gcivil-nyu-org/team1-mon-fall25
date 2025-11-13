@@ -8,8 +8,8 @@ class Event(models.Model):
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    date = models.DateField(null=True,blank=True)
-    time = models.TimeField(null=True,blank=True)
+    date = models.DateField(null=True, blank=True)
+    time = models.TimeField(null=True, blank=True)
     location = models.CharField(max_length=255)
 
     formatted_address = models.CharField(max_length=255, blank=True)
@@ -56,16 +56,19 @@ class Event(models.Model):
         # Fallback: already a string or something string-like
         return str(value)
 
+
 # NEW MODEL - Add this at the bottom
 class EventTimeSlot(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='time_slots')
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="time_slots"
+    )
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        ordering = ['date', 'start_time']
-    
+        ordering = ["date", "start_time"]
+
     def __str__(self):
         return f"{self.event.title} - {self.date} {self.start_time}-{self.end_time}"
