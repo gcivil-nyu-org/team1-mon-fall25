@@ -8,8 +8,8 @@ class Event(models.Model):
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    date = models.DateField()
-    time = models.TimeField()
+    date = models.DateField(null=True,blank=True)
+    time = models.TimeField(null=True,blank=True)
     location = models.CharField(max_length=255)
 
     formatted_address = models.CharField(max_length=255, blank=True)
