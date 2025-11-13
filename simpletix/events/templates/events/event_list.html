@@ -29,27 +29,45 @@
                     {% endif %}
                     <div class="event-card-gradient"></div>
                     <div class="event-card-tag">
-                        <span class="event-chip">{{ event.date }} · {{ event.time }}</span>
+                        {% if event.time_slots.exists %}
+                            {# Show time slots if they exist #}
+                            {% with first_slot=event.time_slots.first %}
+                                <span class="event-chip">
+                                    {{ first_slot.date|date:"M d, Y" }} · {{ first_slot.start_time|time:"g:i A" }}
+                                    {% if event.time_slots.count > 1 %}
+                                        <span class="ms-1">+{{ event.time_slots.count|add:"-1" }} more</span>
+                                    {% endif %}
+                                </span>
+                            {% endwith %}
+                        {% elif event.date or event.time %}
+                            {# Fallback to old date/time fields #}
+                            <span class="event-chip">
+                                {% if event.date %}{{ event.date|date:"M d, Y" }}{% endif %}
+                                {% if event.date and event.time %} · {% endif %}
+                                {% if event.time %}{{ event.time|time:"g:i A" }}{% endif %}
+                            </span>
+                        {% else %}
+                            <span class="event-chip">Date & Time TBA</span>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="card-body event-card-body">
                     <h5 class="card-title mb-1">{{ event.title }}</h5>
                     <p class="event-location mb-2">
-                        <i class="bi bi-geo-alt-fill"></i> {{ event.location }}
+                        <i class="bi bi-geo-alt-fill"></i> {{ event.location|default:"Location TBA" }}
                     </p>
 
                     <div class="event-ticket-badges mb-3">
-    {% for ticket in event.ticketInfo.all %}
-        {% if ticket.availability > 0 %}
-            <span class="badge ticket-badge-available">
-                {{ ticket.get_category_display }}: {{ ticket.availability }} left
-            </span>
-        {% endif %}
-        {# sold out tickets are not displayed at all #}
-    {% endfor %}
-</div>
-
+                        {% for ticket in event.ticketInfo.all %}
+                            {% if ticket.availability > 0 %}
+                                <span class="badge ticket-badge-available">
+                                    {{ ticket.get_category_display }}: {{ ticket.availability }} left
+                                </span>
+                            {% endif %}
+                            {# sold out tickets are not displayed at all #}
+                        {% endfor %}
+                    </div>
 
                     <div class="d-flex justify-content-between align-items-center">
                         <a href="{% url 'events:event_detail' event.id %}" class="btn event-btn-primary">

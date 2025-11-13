@@ -41,6 +41,8 @@
             </div>
             <div class="card-body">
                 {% for field in form %}
+                    {# Skip hidden fields - they'll be rendered at the end #}
+                    {% if field.name not in 'formatted_address,latitude,longitude' %}
                     <div class="form-group mb-3">
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field }}
@@ -55,7 +57,13 @@
                             </div>
                         {% endif %}
                     </div>
+                    {% endif %}
                 {% endfor %}
+                
+                {# Hidden fields for location data #}
+                {{ form.formatted_address }}
+                {{ form.latitude }}
+                {{ form.longitude }}
             </div>
         </div>
         

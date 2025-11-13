@@ -256,9 +256,8 @@ def delete_event(request, event_id):
 
 
 def event_list(request):
-    events = Event.objects.all().prefetch_related("ticketInfo").order_by("-date")
+    events = Event.objects.all().prefetch_related("ticketInfo", "time_slots").order_by("-id")
     return render(request, "events/event_list.html", {"events": events})
-
 
 def event_detail(request, event_id):
     event = get_object_or_404(Event.objects.prefetch_related("time_slots"), id=event_id)
