@@ -12,8 +12,24 @@
     <div class="card-body">
         {# Event info #}
         <h2 class="card-title">{{ event.title }}</h2>
-        <p class="text-muted">{{ event.date }} at {{ event.time }}</p>
-        <p><strong>Location:</strong> {{ event.location }}</p>
+        
+        {# Multiple Time Slots Display #}
+        <div class="mb-3">
+            <h5><i class="far fa-calendar-alt"></i> Event Schedule:</h5>
+            {% if event.time_slots.all %}
+                {% for slot in event.time_slots.all %}
+                <div class="alert alert-info mb-2">
+                    <strong><i class="far fa-calendar"></i> {{ slot.date|date:"l, F d, Y" }}</strong><br>
+                    <i class="far fa-clock"></i> {{ slot.start_time|time:"g:i A" }} - {{ slot.end_time|time:"g:i A" }}
+                </div>
+                {% endfor %}
+            {% else %}
+                {# Fallback to old date/time if no slots exist #}
+                <p class="text-muted">{{ event.date }} at {{ event.time }}</p>
+            {% endif %}
+        </div>
+
+        <p><strong><i class="fas fa-map-marker-alt"></i> Location:</strong> {{ event.location }}</p>
         <p class="mt-3">{{ event.description }}</p>
 
         {# Video #}
@@ -25,48 +41,74 @@
         </div>
         {% endif %}
 
-        {# Tickets #}
+        {# Tickets Section with Time Slot Selection #}
         <h4 class="mt-4">Tickets</h4>
+
+        {# Time Slot Selection Warning #}
+        {% if event.time_slots.count > 1 %}
+        <div class="alert alert-warning mb-3">
+            <strong><i class="fas fa-info-circle"></i> This event has multiple sessions.</strong><br>
+            Please select your preferred time slot before purchasing tickets.
+        </div>
+        {% endif %}
+
         {% if event.ticketInfo.exists %}
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Availability</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ticket in event.ticketInfo.all %}
-                    {# Skip tickets with 0 price AND 0 availability #}
-                    {% if ticket.price > 0 or ticket.availability > 0 %}
+        <form method="GET" action="{% url 'orders:order' event.id %}" id="ticketForm">
+            {# Time Slot Selector #}
+            {% if event.time_slots.all %}
+            <div class="form-group mb-3">
+                <label for="time_slot"><strong>Select Time Slot:</strong></label>
+                <select name="time_slot_id" id="time_slot" class="form-control" required>
+                    <option value="">-- Choose a time slot --</option>
+                    {% for slot in event.time_slots.all %}
+                    <option value="{{ slot.id }}">
+                        {{ slot.date|date:"l, F d, Y" }} - {{ slot.start_time|time:"g:i A" }} to {{ slot.end_time|time:"g:i A" }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <table class="table table-hover">
+                <thead>
                     <tr>
-                        <td>{{ ticket.get_category_display }}</td>
-                        <td>${{ ticket.price }}</td>
-                        <td>
-                            {% if ticket.availability > 0 %}
-                                {{ ticket.availability }} left
-                            {% else %}
-                                Sold out
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if ticket.availability > 0 %}
-                                <a href="{% url 'orders:order' event.id %}" class="btn btn-primary">Buy</a>
-                            {% else %}
-                                <span class="text-muted">Sold out</span>
-                            {% endif %}
-                        </td>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Availability</th>
+                        <th>Action</th>
                     </tr>
-                    {% endif %}
-                {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center">No tickets available</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for ticket in event.ticketInfo.all %}
+                        {# Skip tickets with 0 price AND 0 availability #}
+                        {% if ticket.price > 0 or ticket.availability > 0 %}
+                        <tr>
+                            <td>{{ ticket.get_category_display }}</td>
+                            <td>${{ ticket.price }}</td>
+                            <td>
+                                {% if ticket.availability > 0 %}
+                                    {{ ticket.availability }} left
+                                {% else %}
+                                    Sold out
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ticket.availability > 0 %}
+                                    <button type="submit" class="btn btn-primary">Buy</button>
+                                {% else %}
+                                    <span class="text-muted">Sold out</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No tickets available</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
         {% else %}
             <p class="text-muted">No tickets available for this event.</p>
         {% endif %}
@@ -81,9 +123,50 @@
                 <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
             </div>
             {% elif request.session.desired_role != 'organizer' %}
+                {# Single Buy Ticket Button (if time slot is not required or already selected) #}
+                {% if not event.time_slots.all %}
                 <a href="{% url 'orders:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
+                {% endif %}
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+// Validate time slot before form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('ticketForm');
+    const timeSlotElement = document.getElementById('time_slot');
+    
+    if (form && timeSlotElement) {
+        form.addEventListener('submit', function(e) {
+            const timeSlot = timeSlotElement.value;
+            if (!timeSlot) {
+                e.preventDefault();
+                alert('Please select a time slot before purchasing tickets.');
+                timeSlotElement.focus();
+                return false;
+            }
+        });
+    }
+});
+</script>
+
+<style>
+/* Optional: Style improvements */
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+#time_slot {
+    max-width: 600px;
+}
+</style>
+
 {% endblock %}

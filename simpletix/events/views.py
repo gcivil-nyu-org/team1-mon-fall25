@@ -1,6 +1,6 @@
 from functools import wraps
 from urllib.parse import urlencode
-
+from .models import Event, EventTimeSlot  # Add EventTimeSlot here
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -138,9 +138,7 @@ def organizer_owns_event(view_func):
 
 
 # --- Views ------------------------------------------------------------------
-
-
-# Create Event
+#create event
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_required
 def create_event(request):
@@ -150,12 +148,37 @@ def create_event(request):
         if form.is_valid() and formset.is_valid():
             event = form.save(commit=False)
             event.organizer = OrganizerProfile.objects.get(user=request.user)
+            
+            # Set default date/time from first slot (for backward compatibility)
+            slot_dates = request.POST.getlist('slot_date[]')
+            slot_start_times = request.POST.getlist('slot_start_time[]')
+            
+            if slot_dates and slot_start_times:
+                event.date = slot_dates[0]
+                event.time = slot_start_times[0]
+            
             event.save()
 
             algolia_save(event)
 
             formset.instance = event
             formset.save()
+            
+            # Handle multiple time slots
+            slot_dates = request.POST.getlist('slot_date[]')
+            slot_start_times = request.POST.getlist('slot_start_time[]')
+            slot_end_times = request.POST.getlist('slot_end_time[]')
+            
+            # Create time slots
+            for date, start_time, end_time in zip(slot_dates, slot_start_times, slot_end_times):
+                if date and start_time and end_time:
+                    EventTimeSlot.objects.create(
+                        event=event,
+                        date=date,
+                        start_time=start_time,
+                        end_time=end_time
+                    )
+            
             messages.success(request, "Event created successfully!")
             return redirect("events:event_detail", event_id=event.id)
         else:
@@ -186,10 +209,37 @@ def edit_event(request, event_id):
         form = EventForm(request.POST, request.FILES, instance=event)
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
         if form.is_valid() and formset.is_valid():
-            form.save()
+            # Set default date/time from first slot (for backward compatibility)
+            slot_dates = request.POST.getlist('slot_date[]')
+            slot_start_times = request.POST.getlist('slot_start_time[]')
+            
+            if slot_dates and slot_start_times:
+                event.date = slot_dates[0]
+                event.time = slot_start_times[0]
+            
+            event = form.save()
             algolia_save(event)
 
             formset.save()
+            
+            # Delete existing time slots and recreate them
+            event.time_slots.all().delete()
+            
+            # Handle multiple time slots
+            slot_dates = request.POST.getlist('slot_date[]')
+            slot_start_times = request.POST.getlist('slot_start_time[]')
+            slot_end_times = request.POST.getlist('slot_end_time[]')
+            
+            # Create time slots
+            for date, start_time, end_time in zip(slot_dates, slot_start_times, slot_end_times):
+                if date and start_time and end_time:
+                    EventTimeSlot.objects.create(
+                        event=event,
+                        date=date,
+                        start_time=start_time,
+                        end_time=end_time
+                    )
+            
             messages.success(request, "Event updated successfully!")
             return redirect("events:event_detail", event_id=event.id)
         else:
@@ -197,6 +247,10 @@ def edit_event(request, event_id):
     else:
         form = EventForm(instance=event)
         formset = TicketFormSet(instance=event)
+    
+    # Get existing time slots for editing
+    existing_slots = event.time_slots.all()
+    
     return render(
         request,
         "events/edit_event.html",
@@ -204,11 +258,10 @@ def edit_event(request, event_id):
             "form": form,
             "formset": formset,
             "event": event,
+            "existing_slots": existing_slots,
             "GOOGLE_MAPS_API_KEY": settings.GOOGLE_MAPS_API_KEY,
         },
     )
-
-
 # Delete Event
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event

@@ -1,73 +1,172 @@
-{% extends 'events/base.html' %}
-{% load static %} 
-{% block title %}
-    {% if event %}Edit Event{% else %}Create Event{% endif %}
-{% endblock %}
+{% extends "simpletix/nav.html" %}
+{% load static %}
 
-{% block content %}
-<div class="card shadow-lg p-4">
-    <h2 class="mb-4">
-        {% if event %}
-            Edit Event: <span class="text-primary">{{ event.title }}</span>
-        {% else %}
-            Create New Event
-        {% endif %}
-    </h2>
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
+{% block body %}
+<div class="container mt-4">
+    <h2>Edit Event</h2>
+    
+    {# Display Form Errors #}
+    {% if form.errors or formset.errors %}
+    <div class="alert alert-danger">
+        <strong>Please fix the following errors:</strong>
+        <ul>
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+            {% for form_errors in formset.errors %}
+                {% for field, errors in form_errors.items %}
+                    {% for error in errors %}
+                    <li>Ticket: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
     {% endif %}
-    <form method="post" enctype="multipart/form-data">
+
+    {# Display Messages #}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} mt-3">{{ message }}</div>
+    {% endfor %}
+    
+    <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
-        <div class="mb-4">
-            {{ form.as_p }}
+        
+        {# Event Basic Info #}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Event Information</h5>
+            </div>
+            <div class="card-body">
+                {% for field in form %}
+                    <div class="form-group mb-3">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="text-danger small">
+                                {% for error in field.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {# Time/Date Slots Section #}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Event Date & Time Slots</h5>
+                <button type="button" class="btn btn-success btn-sm" id="add-slot-btn">
+                    <i class="fas fa-plus"></i> Add Time Slot
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="slots-container">
+                    {% if existing_slots %}
+                        <!-- Load existing slots -->
+                        {% for slot in existing_slots %}
+                        <div class="slot-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>Date</label>
+                                    <input type="date" name="slot_date[]" class="form-control" value="{{ slot.date|date:'Y-m-d' }}" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>Start Time</label>
+                                    <input type="time" name="slot_start_time[]" class="form-control" value="{{ slot.start_time|time:'H:i' }}" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>End Time</label>
+                                    <input type="time" name="slot_end_time[]" class="form-control" value="{{ slot.end_time|time:'H:i' }}" required>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-danger btn-sm remove-slot-btn">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Initial empty slot if no existing slots -->
+                        <div class="slot-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>Date</label>
+                                    <input type="date" name="slot_date[]" class="form-control" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>Start Time</label>
+                                    <input type="time" name="slot_start_time[]" class="form-control" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>End Time</label>
+                                    <input type="time" name="slot_end_time[]" class="form-control" required>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-danger btn-sm remove-slot-btn" style="display: none;">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
-        <h4 class="mt-4 mb-3">Tickets</h4>
+        {# Ticket Categories Section #}
         {{ formset.management_form }}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Ticket Categories</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Availability</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket_form in formset %}
+                        <tr>
+                            {{ ticket_form.id }}
+                            {{ ticket_form.category }}
+                            <td class="align-middle">
+                                <label>{{ ticket_form.instance.get_category_display|default:ticket_form.initial.category }}</label>
+                            </td>
+                            <td>
+                                {{ ticket_form.price }}
+                                {% if ticket_form.price.errors %}
+                                    <div class="text-danger small">{{ ticket_form.price.errors }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ ticket_form.availability }}
+                                {% if ticket_form.availability.errors %}
+                                    <div class="text-danger small">{{ ticket_form.availability.errors }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        <table class="table table-hover">
-        <thead class="thead-light">
-            <tr>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Availability</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ticket_form in formset %}
-            <tr>
-                {{ ticket_form.id }}
-                {{ ticket_form.category }}
-                <td class="align-middle">
-                <label for="{{ form.price.id_for_label }}">{{ ticket_form.instance.category }}</label>
-                </td>
-                <td>
-                {{ ticket_form.price }}
-                {% if ticket_form.price.errors %}<div class="text-danger small">{{ ticket_form.price.errors }}</div>{% endif %}
-                </td>
-                <td>
-                {{ ticket_form.availability }}
-                {% if ticket_form.availability.errors %}<div class="text-danger small">{{ ticket_form.availability.errors }}</div>{% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        </table>
-        <!-- ✅ Aligned buttons -->
-        <div class="d-flex justify-content-between mt-4">
-            <button type="submit" class="btn btn-primary">
-                {% if event %}Save Changes{% else %}Create Event{% endif %}
-            </button>
-
-            {% if event %}
-                <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
-            {% else %}
-                <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
-            {% endif %}
+        <div class="mb-4">
+            <button type="submit" class="btn btn-primary btn-lg">Update Event</button>
+            <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary btn-lg">Cancel</a>
         </div>
     </form>
 </div>
@@ -75,5 +174,89 @@
 <!-- Google Places Autocomplete -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
 <script src="{% static 'js/autocomplete.js' %}"></script>
+
+<script>
+// Multiple Time Slots JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    const slotsContainer = document.getElementById('slots-container');
+    const addSlotBtn = document.getElementById('add-slot-btn');
+    
+    // Function to update remove button visibility
+    function updateRemoveButtons() {
+        const slots = slotsContainer.querySelectorAll('.slot-item');
+        const removeButtons = slotsContainer.querySelectorAll('.remove-slot-btn');
+        
+        removeButtons.forEach((btn, index) => {
+            btn.style.display = slots.length > 1 ? 'block' : 'none';
+        });
+    }
+    
+    // Add new slot
+    addSlotBtn.addEventListener('click', function() {
+        const newSlot = document.createElement('div');
+        newSlot.className = 'slot-item border rounded p-3 mb-3';
+        newSlot.innerHTML = `
+            <div class="row">
+                <div class="col-md-4">
+                    <label>Date</label>
+                    <input type="date" name="slot_date[]" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label>Start Time</label>
+                    <input type="time" name="slot_start_time[]" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label>End Time</label>
+                    <input type="time" name="slot_end_time[]" class="form-control" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger btn-sm remove-slot-btn">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        slotsContainer.appendChild(newSlot);
+        updateRemoveButtons();
+    });
+    
+    // Remove slot (using event delegation)
+    slotsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-slot-btn') || e.target.closest('.remove-slot-btn')) {
+            const slotItem = e.target.closest('.slot-item');
+            slotItem.remove();
+            updateRemoveButtons();
+        }
+    });
+    
+    // Initial update
+    updateRemoveButtons();
+});
+</script>
+
+<style>
+.slot-item {
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.slot-item:hover {
+    background-color: #e9ecef;
+}
+
+.card-header h5 {
+    color: #333;
+}
+
+.form-control {
+    border: 1px solid #ced4da;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+</style>
 
 {% endblock %}

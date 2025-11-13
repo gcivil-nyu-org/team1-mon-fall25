@@ -8,8 +8,6 @@ class EventForm(forms.ModelForm):
         fields = [
             "title",
             "description",
-            "date",
-            "time",
             "location",
             "formatted_address",
             "latitude",
@@ -18,8 +16,6 @@ class EventForm(forms.ModelForm):
             "video",
         ]
         widgets = {
-            "date": forms.DateInput(attrs={"type": "date"}),
-            "time": forms.TimeInput(attrs={"type": "time"}),
             "formatted_address": forms.HiddenInput(),
             "latitude": forms.HiddenInput(),
             "longitude": forms.HiddenInput(),
