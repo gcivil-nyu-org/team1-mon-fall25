@@ -33,15 +33,6 @@ def issue_ticket_for_order(
     ticket.ensure_qr()
     ticket.save()
 
-    # Decrement availability safely
-    if (
-        ticket_info
-        and ticket_info.availability is not None
-        and ticket_info.availability > 0
-    ):
-        ticket_info.availability -= 1
-        ticket_info.save()
-
     return ticket
 
 

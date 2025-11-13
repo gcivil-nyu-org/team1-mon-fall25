@@ -46,6 +46,7 @@ def test_order_view_get_request(
             # Case 1: User is logged in as "attendee"
             "logged_in_attendee_client",
             {
+                "quantity": "10",
                 "full_name": "Test Attendee Submit",
                 "email": "attendee@example.com",
                 "phone": "111-222-3333",
@@ -56,6 +57,7 @@ def test_order_view_get_request(
             # Case 2: User is a guest (not logged in or no role)
             "client",
             {
+                "quantity": "10",
                 "full_name": "Guest User Submit",
                 "email": "guest@example.com",
                 "phone": "444-555-6666",
@@ -91,8 +93,8 @@ def test_order_view_post_success(
     response = client.post(order_url, data)
 
     # Check order was created
-    assert Order.objects.count() == initial_order_count + 1
     order = Order.objects.latest("id")
+    assert Order.objects.count() == initial_order_count + 1
 
     # Check redirect to payment
     assert response.status_code == 302
@@ -110,7 +112,7 @@ def test_order_view_post_success(
 
     # Check availability decrement
     ticket_info_ga.refresh_from_db()
-    assert ticket_info_ga.availability == initial_availability - 1
+    assert ticket_info_ga.availability == initial_availability - order.quantity
 
 
 # --- View: process_payment ---
@@ -161,7 +163,7 @@ def test_process_payment_stripe_api_error(
     pending_order.refresh_from_db()
     assert pending_order.status == "failed"
     ticket_info.refresh_from_db()
-    assert ticket_info.availability == initial_availability + 1
+    assert ticket_info.availability == initial_availability + pending_order.quantity
 
 
 # --- View: payment_success ---
@@ -199,7 +201,7 @@ def test_payment_cancel_view(logged_in_attendee_client, pending_order):
     pending_order.refresh_from_db()
     assert pending_order.status == "failed"
     ticket_info.refresh_from_db()
-    assert ticket_info.availability == initial_availability + 1
+    assert ticket_info.availability == initial_availability + pending_order.quantity
 
 
 # --- View: stripe_webhook ---
@@ -249,7 +251,7 @@ def test_webhook_session_completed_paid(
     # Verify order fulfillment
     pending_order.refresh_from_db()
     assert pending_order.status == "completed"
-    assert Ticket.objects.count() == 1
+    assert Ticket.objects.count() == pending_order.quantity
     assert BillingInfo.objects.count() == 1
 
     # Verify Ticket and BillingInfo
@@ -292,7 +294,7 @@ def test_webhook_session_completed_not_paid(
     assert pending_order.status == "failed"
     assert Ticket.objects.count() == 0
     ticket_info.refresh_from_db()
-    assert ticket_info.availability == initial_availability + 1
+    assert ticket_info.availability == initial_availability + pending_order.quantity
 
 
 def test_webhook_session_expired(client, webhook_url, mock_stripe, pending_order):
@@ -321,7 +323,7 @@ def test_webhook_session_expired(client, webhook_url, mock_stripe, pending_order
     pending_order.refresh_from_db()
     assert pending_order.status == "failed"
     ticket_info.refresh_from_db()
-    assert ticket_info.availability == initial_availability + 1
+    assert ticket_info.availability == initial_availability + pending_order.quantity
 
 
 def test_webhook_unhandled_event(client, webhook_url, mock_stripe):

@@ -25,7 +25,8 @@ def test_order_creation_save_and_str(order, ticket_info_ga):
     assert order.price_at_purchase == Decimal("50.00")
 
     # Test 2: Check __str__ method
-    expected_str = f"Order {order.id} (pending) - General Admission for Test Order User"
+    t_info = f"{order.quantity} x General Admission for Test Order User"
+    expected_str = f"Order {order.id} (pending) - {t_info}"
     assert str(order) == expected_str
 
 
