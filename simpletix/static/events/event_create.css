@@ -1,0 +1,160 @@
+/* Background wrapper with soft pastel gradient just for this page */
+.event-create-bg {
+  min-height: calc(100vh - 72px);
+  padding: 40px 0 60px;
+  background: radial-gradient(circle at top left,
+    #fee2e2 0,
+    #fef3c7 25%,
+    #e0f2fe 55%,
+    #eef2ff 100%);
+}
+
+/* Layout */
+.event-create-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* Main card */
+.event-create-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 22px;
+  border: 1px solid rgba(129, 140, 248, 0.18);   /* pastel indigo */
+  padding: 28px 32px;
+  box-shadow:
+    0 20px 55px rgba(129, 140, 248, 0.25),
+    0 0 0 1px rgba(248, 250, 252, 0.9);
+}
+
+/* Header */
+.event-create-header h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.event-create-header p {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Form controls – scoped so we don’t break other pages */
+.event-create-card .form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #a1a1aa; /* soft gray */
+}
+
+.event-create-card input[type="text"],
+.event-create-card input[type="email"],
+.event-create-card input[type="date"],
+.event-create-card input[type="time"],
+.event-create-card input[type="number"],
+.event-create-card input[type="file"],
+.event-create-card textarea,
+.event-create-card select {
+  width: 100%;
+  border-radius: 999px; /* pill-style */
+  border: 1px solid #e5e7eb;
+  padding: 9px 14px;
+  font-size: 0.95rem;
+  background: #f9fafb;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.event-create-card textarea {
+  border-radius: 16px; /* keep textarea rectangular-ish */
+  min-height: 150px;
+  resize: vertical;
+}
+
+.event-create-card input:focus,
+.event-create-card textarea:focus,
+.event-create-card select:focus {
+  outline: none;
+  border-color: #f97316; /* orange accent */
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.25);
+  background: #ffffff;
+}
+
+/* Ticket section divider */
+.event-ticket-section {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Ticket table */
+.event-ticket-table {
+  border-radius: 16px;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.event-ticket-table thead {
+  background: linear-gradient(90deg, #eef2ff, #e0f2fe);
+}
+
+.event-ticket-table th {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.event-ticket-table td {
+  border-top: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.event-ticket-table tbody tr:hover td {
+  background: #f9fafb;
+}
+
+.ticket-category-label {
+  font-weight: 600;
+}
+
+/* Error + help text */
+.event-create-card .errorlist {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: #ef4444; /* red-500 */
+}
+
+.event-create-card .helptext {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Fun, colorful primary button */
+.event-create-card .btn-primary {
+  border-radius: 999px;
+  padding-inline: 28px;
+  background: linear-gradient(135deg, #ec4899, #6366f1);
+  border: none;
+  box-shadow: 0 12px 26px rgba(236, 72, 153, 0.4);
+  font-weight: 600;
+}
+
+.event-create-card .btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 16px 32px rgba(236, 72, 153, 0.5);
+}
+
+/* Mobile tweaks */
+@media (max-width: 768px) {
+  .event-create-card {
+    padding: 20px 18px;
+    border-radius: 18px;
+  }
+
+  .event-create-bg {
+    padding: 24px 0 40px;
+  }
+}
