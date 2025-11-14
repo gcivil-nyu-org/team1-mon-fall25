@@ -11,9 +11,24 @@ class OrderForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-select"}),
     )
 
+    quantity = forms.IntegerField(
+        label="Quantity",
+        initial=1,
+        min_value=1,
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "id": "id_quantity",  # For JavaScript
+                "min": "1",
+                # Set a default max. JS will update this.
+                "max": "1",  # A sensible default, will be overridden.
+            }
+        ),
+    )
+
     class Meta:
         model = Order
-        fields = ["ticket_info", "full_name", "email", "phone"]
+        fields = ["ticket_info", "quantity", "full_name", "email", "phone"]
         widgets = {
             "full_name": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Your Full Name"}
@@ -40,3 +55,30 @@ class OrderForm(forms.ModelForm):
                 f"{obj.get_category_display()} (${obj.price}) - "
                 f"{obj.availability} available"
             )
+
+            if available.exists():
+                # Get the availability of the first ticket in the list
+                first_ticket_max = available.first().availability
+                self.fields["quantity"].widget.attrs["max"] = first_ticket_max
+                self.fields["quantity"].max_value = first_ticket_max
+
+    def clean(self):
+        """
+        Custom validation to ensure quantity does not exceed availability
+        for the selected ticket_info.
+        """
+        cleaned_data = super().clean()
+        quantity = cleaned_data.get("quantity")
+        ticket_info = cleaned_data.get("ticket_info")
+
+        # Only run validation if both fields are present
+        if ticket_info and quantity:
+            if quantity > ticket_info.availability:
+                # This adds an error to the 'quantity' field specifically
+                t_a = ticket_info.availability
+                self.add_error(
+                    "quantity",
+                    f"There are only {t_a} tickets of this type available.",
+                )
+
+        return cleaned_data
