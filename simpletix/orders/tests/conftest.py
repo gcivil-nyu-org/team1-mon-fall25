@@ -56,7 +56,7 @@ def test_event(db, organizer_profile):
 def ticket_info_vip(db, test_event):
     """Fixture for VIP TicketInfo."""
     return TicketInfo.objects.create(
-        event=test_event, category="VIP", price=100, availability=1
+        event=test_event, category="VIP", price=100, availability=100
     )
 
 
@@ -64,7 +64,7 @@ def ticket_info_vip(db, test_event):
 def ticket_info_ga(db, test_event):
     """Fixture for General Admission TicketInfo."""
     return TicketInfo.objects.create(
-        event=test_event, category="General Admission", price=50, availability=5
+        event=test_event, category="General Admission", price=50, availability=500
     )
 
 
@@ -107,6 +107,7 @@ def pending_order(db, ticket_info_ga, attendee_profile):
     return Order.objects.create(
         attendee=attendee_profile,
         ticket_info=ticket_info_ga,
+        quantity=10,
         full_name="Test User",
         email="test@example.com",
         phone="1234567890",
@@ -154,6 +155,7 @@ def order(db, attendee_profile, ticket_info_ga, billing_info):
         attendee=attendee_profile,
         ticket_info=ticket_info_ga,
         billing_info=billing_info,
+        quantity=10,
         full_name="Test Order User",
         email="order@example.com",
     )

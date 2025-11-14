@@ -121,6 +121,7 @@ def test_order_form_valid_data(event_for_ordering, ticket_info_ga):
     """Test submitting valid order data."""
     data = {
         "ticket_info": ticket_info_ga.pk,  # Use the pk from the fixture
+        "quantity": 1,
         "full_name": "Test User",
         "email": "test@example.com",
         "phone": "555-1212-3333",
@@ -142,6 +143,7 @@ def test_order_form_invalid_data_missing_fields(event_for_ordering):
     data = {
         # Missing ticket_info
         # full_name is blank=True, so it's not required by the form
+        "quantity": 1,
         "email": "test@example.com",
         "phone": "555-1212-3333",
     }
@@ -158,6 +160,7 @@ def test_order_form_invalid_ticket_choice(
     """Test submitting with a ticket ID that shouldn't be available."""
     data = {
         "ticket_info": ticket_info_early_soldout.pk,  # Use sold-out ticket pk
+        "quantity": 1,
         "full_name": "Test User",
         "email": "test@example.com",
         "phone": "555-1212-3333",

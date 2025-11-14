@@ -3,6 +3,19 @@
 {% block title %}Order a Ticket · SimpleTix{% endblock %}
 
 {% block body %}
+<style>
+    #id_quantity {
+        text-align: center;
+        /* Hide default spinners in Firefox */
+        -moz-appearance: textfield;
+    }
+    /* Hide default spinners in Chrome, Safari, Edge, Opera */
+    #id_quantity::-webkit-outer-spin-button,
+    #id_quantity::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+</style>
 <div class="card shadow-sm">
     <div class="card-body">
         <h2 class="card-title">Order Tickets for: {{ event.title }}</h2>
@@ -17,8 +30,52 @@
         <form method="post" novalidate>
             {% csrf_token %}
 
-            <!-- Render the form fields as paragraphs -->
-            {{ form.as_p }}
+            <div class="mb-3">
+                <label for="{{ form.ticket_info.id_for_label }}" class="form-label">{{ form.ticket_info.label }}</label>
+                {{ form.ticket_info }} 
+                {% if form.ticket_info.errors %}
+                    <div class="text-danger small mt-1">{{ form.ticket_info.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.quantity.id_for_label }}" class="form-label">{{ form.quantity.label }}</label>
+                <div class="input-group">
+                    <button type="button" class="btn btn-outline-secondary" id="quantity-minus" aria-label="Decrease quantity">-</button>
+                    {{ form.quantity }} 
+                    <button type="button" class="btn btn-outline-secondary" id="quantity-plus" aria-label="Increase quantity">+</button>
+                </div>
+                {% if form.quantity.errors %}
+                    <div class="text-danger small mt-1">{{ form.quantity.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <hr>
+            <h4 class="mt-4">Your Information</h4>
+
+            <div class="mb-3">
+                <label for="{{ form.full_name.id_for_label }}" class="form-label">{{ form.full_name.label }}</label>
+                {{ form.full_name }} 
+                {% if form.full_name.errors %}
+                    <div class="text-danger small mt-1">{{ form.full_name.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                {{ form.email }} 
+                {% if form.email.errors %}
+                    <div class="text-danger small mt-1">{{ form.email.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.phone.id_for_label }}" class="form-label">{{ form.phone.label }}</label>
+                {{ form.phone }} 
+                {% if form.phone.errors %}
+                    <div class="text-danger small mt-1">{{ form.phone.errors.as_text }}</div>
+                {% endif %}
+            </div>
 
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary btn-lg mt-3">Buy Ticket</button>
@@ -33,4 +90,94 @@
         </div>
     </div>
 </div>
+
+{{ ticket_availability_data|json_script:"ticket-availability-data" }}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- 1. Get all the elements we need ---
+        const ticketSelect = document.getElementById('id_ticket_info');
+        const quantityInput = document.getElementById('id_quantity');
+        const minusBtn = document.getElementById('quantity-minus');
+        const plusBtn = document.getElementById('quantity-plus');
+
+        // --- 2. Get the data from the view ---
+        const ticketData = JSON.parse(document.getElementById('ticket-availability-data').textContent);
+        const maxPerOrder = 1;
+        
+        // --- 3. Function to update max quantity ---
+        function updateMaxQuantity() {
+            const selectedTicketId = ticketSelect.value;
+            if (!selectedTicketId || !ticketData[selectedTicketId]) {
+                // No ticket selected or data missing
+                quantityInput.max = maxPerOrder;
+                quantityInput.value = 1;
+                return;
+            }
+
+            // Get the stock for the selected ticket
+            const stock = parseInt(ticketData[selectedTicketId]);
+            // Set the max attribute on the input
+            quantityInput.max = stock;
+            
+            // Check: If current quantity is now too high, lower it
+            if (parseInt(quantityInput.value) > stock) {
+                quantityInput.value = stock;
+            }
+        }
+
+        // --- 4. Event Listeners for + and - buttons ---
+        plusBtn.addEventListener('click', function() {
+            // Use '|| 1' to handle empty/NaN values
+            let currentValue = parseInt(quantityInput.value) || 1;
+            let max = parseInt(quantityInput.max);
+            
+            if (currentValue < max) {
+                quantityInput.value = currentValue + 1;
+            }
+        });
+
+        minusBtn.addEventListener('click', function() {
+            let currentValue = parseInt(quantityInput.value) || 1;
+            let min = parseInt(quantityInput.min) || 1;
+
+            if (currentValue > min) {
+                quantityInput.value = currentValue - 1;
+            }
+        });
+
+        // This instantly caps the value at the max.
+        quantityInput.addEventListener('input', function() {
+            let currentValue = parseInt(quantityInput.value);
+            let max = parseInt(quantityInput.max);
+            let min = parseInt(quantityInput.min) || 1;
+
+            if (!isNaN(currentValue) && !isNaN(max) && currentValue < min) {
+                quantityInput.value = min;
+            }
+            if (!isNaN(currentValue) && !isNaN(max) && currentValue > max) {
+                quantityInput.value = max;
+            }
+        });
+
+        // This cleans up empty/invalid values and resets them to the minimum.
+        quantityInput.addEventListener('change', function() {
+            let currentValue = parseInt(quantityInput.value);
+            let min = parseInt(quantityInput.min) || 1;
+
+            if (isNaN(currentValue) || currentValue < min) {
+                // If the value is empty, not a number, or less than min,
+                // reset it to the minimum value.
+                quantityInput.value = min;
+            }
+        });
+
+        // --- 5. Event Listener for the ticket type dropdown ---
+        ticketSelect.addEventListener('change', updateMaxQuantity);
+
+        // --- 6. Run on page load ---
+        // Set the initial max value when the page first loads
+        updateMaxQuantity();
+    });
+</script>
 {% endblock %}
