@@ -237,7 +237,7 @@ else:
         "SEARCH_KEY": os.getenv("ALGOLIA_SEARCH_KEY", ""),
         "INDEX_PREFIX": os.getenv("ALGOLIA_INDEX_PREFIX", "simpletix"),
     }
-    ALGOLIA_ENABLED = os.getenv("ALGOLIA_ENABLED", True)
+    ALGOLIA_ENABLED = os.getenv("ALGOLIA_ENABLED", "True").strip().lower() == "true"
 
 
 # --- GOOGLE MAPS SETTINGS ---
