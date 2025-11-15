@@ -17,6 +17,11 @@ from tickets.forms import TicketFormSet
 from tickets.models import TicketInfo
 from .forms import EventForm
 from .models import Event
+from django.db.models import Q
+from django.db import models
+from django.db.models.functions import Coalesce
+from django.db.models import F
+from django.db.models.functions import ACos, Cos, Sin, Radians
 
 # --- Algolia integration helpers -------------------------------------------
 
@@ -225,9 +230,144 @@ def delete_event(request, event_id):
 
 
 # Event List
+# --- Event List (stable + slick-compatible version) ---
 def event_list(request):
-    events = Event.objects.all()
-    return render(request, "events/event_list.html", {"events": events})
+    events = Event.objects.all().distinct()
+
+    # --- Sorting Inputs ---
+    price_sort = request.GET.get("price_sort")
+    date_sort = request.GET.get("date_sort")
+    distance_sort = request.GET.get("distance_sort")
+
+    user_lat = request.GET.get("user_lat")
+    user_lng = request.GET.get("user_lng")
+
+    # Annotate price if used in sorting
+    if price_sort:
+        events = events.annotate(
+            general_price=Coalesce(
+                models.Subquery(
+                    TicketInfo.objects.filter(
+                        event=models.OuterRef("pk"), category="General Admission"
+                    ).values("price")[:1]
+                ),
+                999999,
+                output_field=models.DecimalField(max_digits=8, decimal_places=2),
+            )
+        )
+
+    # Annotate distance only if near/far + coords present
+    if distance_sort in ["near", "far"] or request.GET.get("radius"):
+        try:
+            user_lat = float(user_lat)
+            user_lng = float(user_lng)
+        except (TypeError, ValueError):
+            user_lat = user_lng = None
+
+        if user_lat and user_lng:
+            events = events.annotate(
+                distance_km=6371
+                * ACos(
+                    Cos(Radians(user_lat))
+                    * Cos(Radians(F("latitude")))
+                    * Cos(Radians(F("longitude")) - Radians(user_lng))
+                    + Sin(Radians(user_lat)) * Sin(Radians(F("latitude")))
+                )
+            )
+
+    # --- Hybrid Sorting Logic ---
+    ordering = []
+
+    # 1. Date sorting (highest priority when chosen)
+    if date_sort == "soon":
+        ordering += ["date", "time"]
+    elif date_sort == "late":
+        ordering += ["-date", "-time"]
+
+    # 2. Price sorting
+    if price_sort == "asc":
+        ordering.append("general_price")
+    elif price_sort == "desc":
+        ordering.append("-general_price")
+
+    # 3. Distance sorting (lowest priority)
+    if distance_sort == "near":
+        ordering.append("distance_km")
+    elif distance_sort == "far":
+        ordering.append("-distance_km")
+
+    # Apply ordering
+    if ordering:
+        events = events.order_by(*ordering)
+
+    # --- Radius Filter ---
+    radius = request.GET.get("radius")
+    if radius and user_lat and user_lng:
+        try:
+            radius_miles = float(radius)
+            radius_km = radius_miles * 1.60934  # convert to km
+            events = events.filter(distance_km__lte=radius_km)
+        except ValueError:
+            pass
+
+    # --- Multi-State Filter ---
+    selected_states = request.GET.getlist("state")
+    if selected_states:
+        state_filter = Q()
+        for st in selected_states:
+            state_filter |= Q(formatted_address__icontains=st) | Q(
+                location__icontains=st
+            )
+        events = events.filter(state_filter)
+
+    # --- Ticket Type Filter (multi-select) ---
+    selected_ticket_types = request.GET.getlist("ticket_type")
+    if selected_ticket_types:
+        type_map = {
+            "general": "General Admission",
+            "earlybird": "Early Bird",
+            "vip": "VIP",
+        }
+        for t_type in selected_ticket_types:
+            events = events.filter(
+                ticketInfo__category=type_map.get(t_type, t_type),
+                ticketInfo__availability__gt=0,
+            )
+
+    # --- Date Range Filter ---
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    if start_date and end_date:
+        events = events.filter(date__range=[start_date, end_date])
+    elif start_date:
+        events = events.filter(date__gte=start_date)
+    elif end_date:
+        events = events.filter(date__lte=end_date)
+
+    # --- Available States for Dropdown ---
+    all_states = []
+    for addr in Event.objects.exclude(formatted_address="").values_list(
+        "formatted_address", flat=True
+    ):
+        parts = addr.split(",")
+        if len(parts) >= 2:
+            state_part = parts[-2].strip().split()[0]
+            all_states.append(state_part)
+    available_states = sorted(set(all_states))
+
+    # --- Context ---
+    context = {
+        "events": events.distinct(),
+        "available_states": available_states,
+        "selected_ticket_types": selected_ticket_types,
+        "selected_states": selected_states,
+        "selected_price_sort": price_sort,
+        "selected_date_sort": date_sort,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+    return render(request, "events/event_list.html", context)
 
 
 # Event Detail

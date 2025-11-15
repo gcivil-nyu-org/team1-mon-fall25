@@ -7,6 +7,7 @@
     <title>{% block title %}SimpleTix{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'simpletix/style.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -24,14 +25,14 @@
         </button>
 
         <!-- Collapsible content -->
+
         <div class="collapse navbar-collapse" id="navbarNav">
           
-          <!-- 🔍 Search bar with dropdown -->
+          <!-- Search bar with dropdown -->
           <div class="search-wrapper position-relative ms-3" style="max-width:340px;">
             <input id="search-input" class="form-control" type="search" placeholder="Search events..." aria-label="Search">
-            <div id="search-results" class="search-dropdown"></div>
+            <div id="search-results" class="search-dropdown" style="display: none;"></div>
           </div>
-
 
           <ul class="navbar-nav">
             <li class="nav-item dropdown">
@@ -39,60 +40,37 @@
                 Events
               </a>
               <ul class="dropdown-menu" background-color="#0d6efd">
-                <li><a class="dropdown-item" href="{% url 'simpletix:webpage' 'Find Event Page' %}">Find Event</a></li>
-                <li><a class="dropdown-item" href="{% url 'events:event_list' %}">Event List</a></li>
-                {% if request.session.desired_role == 'organizer' %}
-                <li><a class="dropdown-item" href="{% url 'events:create_event' %}">Create Event</a></li>
-                {% endif %}
+                <li><a class="dropdown-item" href="/webpage/Find%20Event%20Page">Find Event</a></li>
+                <li><a class="dropdown-item" href="/events/">Event List</a></li>
+                
+                <li><a class="dropdown-item" href="/events/create/">Create Event</a></li>
+                
               </ul>
             </li>
             <li class="nav-item">
-              <a class="nav-link text-white" href="{% url 'tickets:ticket_list' %}" role="button" aria-expanded="false">My Tickets</a>
+              <a class="nav-link text-white" href="/tickets/list" role="button" aria-expanded="false">My Tickets</a>
             </li>
           </ul>
 
           <!-- RIGHT: auth / Get Started -->
           <ul class="navbar-nav ms-auto">
-          {# 🔹 Guest badge (shows when browsing as guest) #}
-            {% if is_guest %}
-              <li class="nav-item me-2 d-flex align-items-center">
-                <span class="badge rounded-pill text-bg-secondary">Guest mode</span>
-              </li>
-            {% endif %}
-            {% if user.is_authenticated %}
-              {% get_profile as prof %}
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userMenu"
-                   role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
 
-                  {% if prof and prof.profile_photo %}
-                    <img src="{{ prof.profile_photo.url }}"
-                         alt="Profile"
-                         class="rounded-circle"
-                         style="width:28px;height:28px;object-fit:cover;">
-                  {% else %}
-                    <span class="rounded-circle bg-secondary text-white d-inline-flex justify-content-center align-items-center"
-                          style="width:28px;height:28px;font-size:0.8rem;">
-                      {{ user.username|first|upper }}
-                    </span>
-                  {% endif %}
-                  <span class="ms-2">{{ user.username }}</span>
+                  
+                    <img src="https://simpletix-dev-media.s3.amazonaws.com/profile_photos/post-the-best-cat-memes-you-got-in-the-comments-please-v0-kg82lbnu0ste1.png.jpg?AWSAccessKeyId=ASIASAZS2CFM7PNSPBBW&amp;Signature=8E%2F2nXcL%2BcqBmdghk6fLFMdoNGw%3D&amp;x-amz-security-token=IQoJb3JpZ2luX2VjELL%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJHMEUCIEbFRjtmYP0AmIUjNDbrDhVpjqvKV%2BhoLvfFT%2Bd3yZ%2BDAiEAskVB8t9E4ZwVL21pbTOO1GI%2B8yBtC5O1NVVeGycdkNMquwUIehAAGgwxMzkxNTYxMzIxODUiDDrCQp%2B%2FhQjurlxksiqYBZoSgfNG1dlUo89QMHedTR1LRjSrP3eZyvhE4hdvUf7vp%2BDm2jXKLd5GJha0glzWzR9BwbnyrnVezXtictvQ%2Bwclh1bLQRWDU3Udi24jOZtHQIJWSlxTS%2BvagcZk26YjWHiz3zM2n6IHXE1y63g6XWMyC2ifWqB%2FJCACSyqY5eUr8Ug0PS96azfiqmpAYeeDS%2FkSj%2Firh%2B2nblxL4dhhG2jKVLJ%2FtTm7Odn%2BssaBB9qpV34Bz%2F6xS0IxuXhzwq%2FeFFdBgEymIyl6XnxCRWYJQo28NN%2BsaKydwHduvk5i0cNfYHaamTnZTNChWukf8ObPjF2iVWv%2FFojsCDYomuR3w%2FKIomUhwtspGG9RwmXDtdtWoQ2kvRLsMd8cZAygdjJa7QfexibH7TgIxZyb1IpTQLRpnmTWNpfY17GatlAY9Mllvd4W67VXrbLS1xHFiP46uXZY7a1F0WhEZaEe3MNUOWCOClaTDY6lRHjqF9z8Sqkw3EsZSZvhBEfYGXgzhWJrxQTGV1Zb8svTUwP%2BHHyQEWrI7gUyi0qI0IUVZWrH9Yt1ARX3IUAwM4vm%2F%2FsYKxNHmFAYvrBHKeqgX3LSlIgxZUmIFrEfEghYYaE3Q24%2BnJYeRS40R6uCC2gEsq0%2FDeFitWKXUUkGV9LHZOYCsccohM5RDxTZmAF3pb0Eum4mZWnEtIoaXC7GZ36qOYIFirBSjQ%2FLzNf3geSMGrF1unqOVWGMhFruQNtSYN80Ypl6t2btFRJXaw8XEQekTjE9WmgpxXwkfq1bqTuIaGAxwJzbLfX%2B1iAGQNQaEQi%2B%2FZHMNbs9Vr7hExgGR8WpW99F6ld3L9JxhvYHhiM8XhBiRkosG9xs1LpcusrWJoir74Kd9b3V%2Bxwuzbj2EtQwyoXhyAY6sQHrPPPMCF91ROiBNh0vsU6uc9DQ6rKbIw8uyA1LGNCNP5BqoHL051KxxpLcfEtHkTUr9LyLEfpaIzk7DEBUq%2FxYkvaRJhdHuRqVkFxDoD5WaHo9nx7cPSBwXDdgcxZ4AvTA5toHHSUIyFWnvfc7%2BAm8nxsGbWyVRdEZDSePPuVRi0XrBzDkAbFqQXcBNq0d%2F6DSfK1TiznokCdJhL1t055O38ppeMiQi12gWTsRsE9iy3I%3D&amp;Expires=1763204162" alt="Profile" class="rounded-circle" style="width:28px;height:28px;object-fit:cover;">
+                  
+                  <span class="ms-2">cesarsa7932</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                  <li><a class="dropdown-item" href="{% url 'accounts:profile_edit' %}?next=/">Edit Profile</a></li>
+                  <li><a class="dropdown-item" href="/accounts/profile/edit/?next=/">Edit Profile</a></li>
                   <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">Logout</a></li>
+                  <li><a class="dropdown-item" href="/accounts/logout/">Logout</a></li>
                 </ul>
               </li>
-            {% else %}
-              <li>
-              <a href="{% url 'accounts:start' %}" class="btn btn-primary">
-               Get Started
-              </a>
-              </li>
-            {% endif %}
           </ul>
         </div>
+        
       </div>
     </nav>
 

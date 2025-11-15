@@ -4,9 +4,11 @@
 {% block title %}All Events{% endblock %}
 
 {% block content %}
+
 <link rel="stylesheet" href="{% static 'events/event_lists.css' %}">
 
 <div class="events-page">
+
     <!-- Gradient hero header -->
     <section class="events-hero text-center">
         <p class="events-hero-eyebrow">Event Portal</p>
@@ -15,6 +17,145 @@
             Discover curated experiences, from festivals and parties to workshops and more.
         </p>
     </section>
+
+    <!-- === Filter Bar (Refined Layout) === -->
+    <form method="get" class="filter-bar">
+    <div class="row gy-3 gx-3 align-items-end">
+
+        <!-- Sort by Price -->
+        <div class="col-md-2">
+        <label class="form-label fw-semibold">Sort by Price</label>
+        <select class="form-select" name="price_sort">
+            <option value="">Any</option>
+            <option value="asc" {% if request.GET.price_sort == "asc" %}selected{% endif %}>Low → High</option>
+            <option value="desc" {% if request.GET.price_sort == "desc" %}selected{% endif %}>High → Low</option>
+        </select>
+        </div>
+
+        <!-- Sort by Date -->
+        <div class="col-md-2">
+        <label class="form-label fw-semibold">Sort by Date</label>
+        <select class="form-select" name="date_sort">
+            <option value="">Any</option>
+            <option value="soon" {% if request.GET.date_sort == "soon" %}selected{% endif %}>Soonest → Latest</option>
+            <option value="late" {% if request.GET.date_sort == "late" %}selected{% endif %}>Latest → Soonest</option>
+        </select>
+        </div>
+
+        <!-- Sort by Distance -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Sort by Distance</label>
+            <select class="form-select" id="distance_sort" name="distance_sort">
+                <option value="">Any</option>
+                <option value="near" {% if request.GET.distance_sort == "near" %}selected{% endif %}>Nearest First</option>
+                <option value="far" {% if request.GET.distance_sort == "far" %}selected{% endif %}>Farthest First</option>
+            </select>
+
+            <!-- Hidden inputs for user coordinates -->
+            <input type="hidden" id="user_lat" name="user_lat" value="{{ request.GET.user_lat }}">
+            <input type="hidden" id="user_lng" name="user_lng" value="{{ request.GET.user_lng }}">
+        </div>
+
+        <!-- Radius Filter -->
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Within Miles</label>
+            <select class="form-select" id="radius" name="radius">
+                <option value="">Any</option>
+                <option value="5"  {% if request.GET.radius == "5"  %}selected{% endif %}>5 miles</option>
+                <option value="10" {% if request.GET.radius == "10" %}selected{% endif %}>10 miles</option>
+                <option value="25" {% if request.GET.radius == "25" %}selected{% endif %}>25 miles</option>
+                <option value="50" {% if request.GET.radius == "50" %}selected{% endif %}>50 miles</option>
+                <option value="100" {% if request.GET.radius == "100" %}selected{% endif %}>100 miles</option>
+            </select>
+        </div>
+
+
+        <!-- State Filter (checkbox dropdown) -->
+        <!-- Keep for later if we want to add state-based filtering -->
+        <!--
+        <div class="col-md-3">
+            <label class="form-label fw-semibold d-block">States</label>
+
+            <div class="dropdown w-100">
+                <button class="btn btn-light border w-100 d-flex justify-content-between align-items-center"
+                        type="button"
+                        data-bs-toggle="dropdown">
+                    Select States
+                    <span class="bi bi-chevron-down"></span>
+                </button>
+
+                <div class="dropdown-menu p-2 w-100" style="max-height: 250px; overflow-y: auto;">
+                    
+                    <div class="form-check">
+                        <input class="form-check-input"
+                            type="checkbox"
+                            id="state_all"
+                            {% if selected_states|length == available_states|length %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="state_all">Select All</label>
+                    </div>
+
+                    <hr class="my-2">
+
+                    {% for state in available_states %}
+                    <div class="form-check">
+                        <input class="form-check-input"
+                            type="checkbox"
+                            name="state"
+                            value="{{ state }}"
+                            id="state_{{ forloop.counter }}"
+                            {% if state in selected_states %}checked{% endif %}>
+                        <label class="form-check-label" for="state_{{ forloop.counter }}">
+                            {{ state }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        -->
+
+        <!-- Ticket Type -->
+        <div class="col-md-3">
+        <label class="form-label fw-semibold d-block">Ticket Type</label>
+        <div class="d-flex flex-wrap gap-2">
+            <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="ticket_type" value="general"
+                    {% if "general" in selected_ticket_types %}checked{% endif %}>
+            <label class="form-check-label">General</label>
+            </div>
+            <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="ticket_type" value="earlybird"
+                    {% if "earlybird" in selected_ticket_types %}checked{% endif %}>
+            <label class="form-check-label">Early Bird</label>
+            </div>
+            <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="ticket_type" value="vip"
+                    {% if "vip" in selected_ticket_types %}checked{% endif %}>
+            <label class="form-check-label">VIP</label>
+            </div>
+        </div>
+        </div>
+
+        <!-- Date Filters -->
+        <div class="col-md-2">
+        <label class="form-label fw-semibold">Start Date</label>
+        <input type="date" id="start_date" name="start_date" class="form-control"
+                value="{{ request.GET.start_date|default_if_none:'' }}">
+        </div>
+
+        <div class="col-md-2">
+        <label class="form-label fw-semibold">End Date</label>
+        <input type="date" id="end_date" name="end_date" class="form-control"
+                value="{{ request.GET.end_date|default_if_none:'' }}">
+        </div>
+
+        <div class="col-md-12 text-end mt-2">
+        <button type="submit" class="btn btn-primary px-4">Apply</button>
+        <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary px-4">Clear</a>
+        </div>
+
+    </div>
+    </form>
 
     {% if events %}
     <div class="row g-4 events-grid">
@@ -68,4 +209,111 @@
     <p class="text-center no-events-copy">No upcoming events found.</p>
     {% endif %}
 </div>
+
+<!-- Flatpickr calendar integration -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // helper to auto-submit when a date changes
+  function setupDatePicker(id) {
+    flatpickr(id, {
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "F j, Y",
+      onChange: function() {
+        document.querySelector("form").submit(); // auto-submit
+      }
+    });
+  }
+
+  setupDatePicker("#start_date");
+  setupDatePicker("#end_date");
+});
+
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const selectAll = document.getElementById("state_all");
+    const boxes = document.querySelectorAll("input[name='state']");
+
+    if (selectAll) {
+        selectAll.addEventListener("change", () => {
+            boxes.forEach(b => b.checked = selectAll.checked);
+        });
+    }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const distanceSelect = document.getElementById("distance_sort");
+    const radiusSelect = document.getElementById("radius");
+
+    function ensureLocationThenSubmit(selectElement) {
+        const saved = localStorage.getItem("user_coords");
+
+        if (saved) {
+            const coords = JSON.parse(saved);
+            document.getElementById("user_lat").value = coords.lat;
+            document.getElementById("user_lng").value = coords.lng;
+            selectElement.form.submit();
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                document.getElementById("user_lat").value = pos.coords.latitude;
+                document.getElementById("user_lng").value = pos.coords.longitude;
+                localStorage.setItem("user_coords", JSON.stringify({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
+                }));
+                selectElement.form.submit();
+            },
+            () => {
+                alert("Location permission needed for distance-based features.");
+                selectElement.value = "";
+            }
+        );
+    }
+
+    // Distance sorting
+    distanceSelect.addEventListener("change", () => {
+        if (distanceSelect.value === "near" || distanceSelect.value === "far") {
+            ensureLocationThenSubmit(distanceSelect);
+        } else {
+            distanceSelect.form.submit();
+        }
+    });
+
+    // NEW: Radius filtering
+    radiusSelect.addEventListener("change", () => {
+        if (radiusSelect.value !== "") {
+            ensureLocationThenSubmit(radiusSelect);
+        } else {
+            radiusSelect.form.submit();
+        }
+    });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("user_coords");
+    if (!saved) return;
+
+    const coords = JSON.parse(saved);
+    const hiddenLat = document.getElementById("user_lat");
+    const hiddenLng = document.getElementById("user_lng");
+
+    if (hiddenLat) hiddenLat.value = coords.lat;
+    if (hiddenLng) hiddenLng.value = coords.lng;
+
+    console.log("Loaded coords into event_list hidden fields:", coords);
+});
+</script>
+
 {% endblock %}
