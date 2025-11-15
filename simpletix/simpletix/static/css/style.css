@@ -31,6 +31,17 @@
     pointer-events: none;
 }
 
+/* Nav bar background – match dev env */
+.bg-custom-purple {
+  background-color: #6A00AD;
+}
+/* Keep navbar height under control */
+.navbar-brand img {
+  height: 40px;   /* tweak to 36–48 until it matches dev */
+  width: auto;
+}
+
+
 @keyframes heroRise {
     0% { opacity: 0; transform: translateY(24px) scale(0.98); }
     100% { opacity: 1; transform: translateY(0) scale(1); }

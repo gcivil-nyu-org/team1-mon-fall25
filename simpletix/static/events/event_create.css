@@ -24,12 +24,15 @@
   box-shadow:
     0 20px 55px rgba(129, 140, 248, 0.25),
     0 0 0 1px rgba(248, 250, 252, 0.9);
+  /* 🔹 Make all text inside the card dark by default */
+  color: #111827;
 }
 
 /* Header */
 .event-create-header h1 {
   font-size: 1.4rem;
   font-weight: 600;
+  color: #111827; /* ensure visible title */
 }
 
 .event-create-header p {
@@ -43,7 +46,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: #a1a1aa; /* soft gray */
+  color: #4b5563; /* darker gray so it's readable */
 }
 
 .event-create-card input[type="text"],
@@ -60,6 +63,7 @@
   padding: 9px 14px;
   font-size: 0.95rem;
   background: #f9fafb;
+  color: #111827; /* input text visible */
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
@@ -67,6 +71,11 @@
   border-radius: 16px; /* keep textarea rectangular-ish */
   min-height: 150px;
   resize: vertical;
+}
+
+/* Placeholder color */
+.event-create-card ::placeholder {
+  color: #9ca3af;
 }
 
 .event-create-card input:focus,
@@ -157,4 +166,37 @@
   .event-create-bg {
     padding: 24px 0 40px;
   }
+}
+
+/* Force readable text inside the create-event card */
+.event-create-card,
+.event-create-card h1,
+.event-create-card h2,
+.event-create-card h3,
+.event-create-card p,
+.event-create-card label,
+.event-create-card .form-label {
+  color: #111827 !important;   /* dark slate */
+}
+
+/* Slightly softer gray for subtitles / muted text */
+.event-create-card .text-muted,
+.event-create-card .helptext {
+  color: #6b7280 !important;
+}
+
+/* Inputs & placeholders */
+.event-create-card input,
+.event-create-card textarea,
+.event-create-card select {
+  color: #111827 !important;
+}
+
+.event-create-card ::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Keep primary button text white on the gradient */
+.event-create-card .btn-primary {
+  color: #ffffff !important;
 }
