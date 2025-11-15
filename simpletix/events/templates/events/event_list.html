@@ -210,8 +210,6 @@
     {% endif %}
 </div>
 
-<script src="{% static 'js/location.js' %}"></script>
-
 <!-- Flatpickr calendar integration -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -302,5 +300,20 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("user_coords");
+    if (!saved) return;
+
+    const coords = JSON.parse(saved);
+    const hiddenLat = document.getElementById("user_lat");
+    const hiddenLng = document.getElementById("user_lng");
+
+    if (hiddenLat) hiddenLat.value = coords.lat;
+    if (hiddenLng) hiddenLng.value = coords.lng;
+
+    console.log("Loaded coords into event_list hidden fields:", coords);
+});
+</script>
 
 {% endblock %}

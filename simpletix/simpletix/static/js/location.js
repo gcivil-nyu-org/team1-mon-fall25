@@ -56,4 +56,55 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     });
   }
+
+  // --- Keep hidden fields in sync for event_list filtering ---
+  const hiddenLat = document.getElementById("user_lat");
+  const hiddenLng = document.getElementById("user_lng");
+
+  // 1. Load saved coords into hidden fields on page load
+  const savedCoords = localStorage.getItem("user_coords");
+  if (savedCoords && hiddenLat && hiddenLng) {
+    const parsed = JSON.parse(savedCoords);
+    hiddenLat.value = parsed.lat;
+    hiddenLng.value = parsed.lng;
+  }
+
+  // 2. Manual input should overwrite auto-detect
+  input.addEventListener("change", function () {
+    const text = input.value.trim();
+    if (!text) return;
+
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: text }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        const loc = results[0].geometry.location;
+        const lat = loc.lat();
+        const lng = loc.lng();
+
+        // Save & overwrite auto coords
+        localStorage.setItem("user_coords", JSON.stringify({ lat, lng }));
+        localStorage.setItem("user_location", results[0].formatted_address);
+
+        // Sync hidden fields
+        if (hiddenLat && hiddenLng) {
+          hiddenLat.value = lat;
+          hiddenLng.value = lng;
+        }
+      }
+    });
+  });
+
+  // 3. When auto-detect is used, it overwrites manual coords
+  function updateHidden(lat, lng) {
+    if (hiddenLat) hiddenLat.value = lat;
+    if (hiddenLng) hiddenLng.value = lng;
+  }
+
+  // Patch reverseGeocode so it also updates hidden fields
+  const originalReverse = reverseGeocode;
+  reverseGeocode = function(lat, lng) {
+    updateHidden(lat, lng);
+    originalReverse(lat, lng);
+  };
+
 });
