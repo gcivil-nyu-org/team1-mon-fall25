@@ -273,6 +273,9 @@ def event_list(request):
                     + Sin(Radians(user_lat)) * Sin(Radians(F("latitude")))
                 )
             )
+    else:
+        # No valid coordinates → disable distance-based ordering/filtering
+        distance_sort = None
 
     # --- Hybrid Sorting Logic ---
     ordering = []
@@ -294,6 +297,12 @@ def event_list(request):
         ordering.append("distance_km")
     elif distance_sort == "far":
         ordering.append("-distance_km")
+
+    # Remove distance ordering if no distance_km annotation exists
+    if ("distance_km" in ordering or "-distance_km" in ordering) and (
+        "distance_km" not in events.query.annotations
+    ):
+        ordering = [o for o in ordering if o not in ("distance_km", "-distance_km")]
 
     # Apply ordering
     if ordering:
