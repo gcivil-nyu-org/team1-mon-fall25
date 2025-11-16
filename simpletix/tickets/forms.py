@@ -8,6 +8,26 @@ from .models import TicketInfo
 class TicketInfoForm(forms.ModelForm):
     """A custom form for the formset to control the name widget."""
 
+    price = forms.DecimalField(
+        min_value=0.5,  # <-- Server-side validation
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "min": "0.5",  # <-- Client-side (browser) validation
+            }
+        ),
+    )
+
+    availability = forms.IntegerField(
+        min_value=0,  # <-- Server-side validation
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "min": "0",  # <-- Client-side (browser) validation
+            }
+        ),
+    )
+
     class Meta:
         model = TicketInfo
         fields = ["category", "price", "availability"]

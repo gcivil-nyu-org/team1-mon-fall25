@@ -144,6 +144,9 @@ def organizer_owns_event(view_func):
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_required
 def create_event(request):
+    initial_ticket_data = [
+        {"category": category} for category, _ in TicketInfo.CATEGORY_CHOICES
+    ]
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES)
         formset = TicketFormSet(request.POST)
@@ -160,11 +163,11 @@ def create_event(request):
             return redirect("events:event_detail", event_id=event.id)
         else:
             messages.error(request, "Please fix the errors below.")
+            for i, ticket_form in enumerate(formset.forms):
+                if i < len(initial_ticket_data):
+                    ticket_form.initial.update(initial_ticket_data[i])
     else:
         form = EventForm()
-        initial_ticket_data = [
-            {"category": category} for category, _ in TicketInfo.CATEGORY_CHOICES
-        ]
         formset = TicketFormSet(initial=initial_ticket_data)
     return render(
         request,
