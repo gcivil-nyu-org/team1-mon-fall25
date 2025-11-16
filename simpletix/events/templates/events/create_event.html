@@ -103,24 +103,29 @@
           </div>
 
           {{ formset.management_form }}
-
           <div class="event-ticket-table-container">
             <table class="table table-hover table-sm mb-0 event-ticket-table">
               <thead>
                 <tr>
-                  <th scope="col">Category</th>
+                  <th scope="col" class="ps-5">Category</th>
                   <th scope="col">Price</th>
                   <th scope="col">Availability</th>
                 </tr>
               </thead>
               <tbody>
                 {% for ticket_form in formset %}
-                  <tr>
+                  <tr class="ticket-formset-row">
                     <td class="align-middle">
-                      {{ ticket_form.category }}
-                      <span class="ticket-category-label">
-                        {{ ticket_form.initial.category }}
-                      </span>
+                      <div class="form-check form-switch"> 
+                          {{ ticket_form.is_active }}
+                          {{ ticket_form.category }}
+                          <label for="{{ ticket_form.is_active.id_for_label }}" class="fw-bold ps-2"> 
+                              {{ ticket_form.initial.category }}
+                          </label>
+                      </div>
+                      {% if ticket_form.is_active.errors %}
+                        <div class="text-danger small">{{ ticket_form.is_active.errors }}</div>
+                      {% endif %}
                     </td>
                     <td>
                       {{ ticket_form.price }}
@@ -138,6 +143,11 @@
                 {% endfor %}
               </tbody>
             </table>
+            {% if formset.non_form_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ formset.non_form_errors }}
+                </div>
+            {% endif %}
           </div>
         </div>
 
@@ -155,4 +165,5 @@
 <!-- Google Places Autocomplete -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
 <script src="{% static 'js/autocomplete.js' %}"></script>
+<script src="{% static 'events/js/toggler.js' %}"></script>
 {% endblock %}
