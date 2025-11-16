@@ -1,6 +1,5 @@
 from functools import wraps
 from urllib.parse import urlencode
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -17,7 +16,7 @@ from tickets.forms import TicketFormSet
 from tickets.models import TicketInfo
 from .forms import EventForm
 from .models import Event
-from django.db.models import Q
+
 from django.db import models
 from django.db.models.functions import Coalesce
 from django.db.models import F
@@ -310,6 +309,7 @@ def event_list(request):
         except ValueError:
             pass
 
+    """
     # --- Multi-State Filter ---
     selected_states = request.GET.getlist("state")
     if selected_states:
@@ -319,6 +319,7 @@ def event_list(request):
                 location__icontains=st
             )
         events = events.filter(state_filter)
+    """
 
     # --- Ticket Type Filter (multi-select) ---
     selected_ticket_types = request.GET.getlist("ticket_type")
@@ -344,6 +345,7 @@ def event_list(request):
     elif end_date:
         events = events.filter(date__lte=end_date)
 
+    """
     # --- Available States for Dropdown ---
     all_states = []
     for addr in Event.objects.exclude(formatted_address="").values_list(
@@ -354,13 +356,14 @@ def event_list(request):
             state_part = parts[-2].strip().split()[0]
             all_states.append(state_part)
     available_states = sorted(set(all_states))
+    """
 
     # --- Context ---
     context = {
         "events": events.distinct(),
-        "available_states": available_states,
+        # "available_states": available_states,
         "selected_ticket_types": selected_ticket_types,
-        "selected_states": selected_states,
+        # "selected_states": selected_states,
         "selected_price_sort": price_sort,
         "selected_date_sort": date_sort,
         "start_date": start_date,
