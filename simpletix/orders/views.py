@@ -56,7 +56,9 @@ def order(request, event_id):
         # For a GET request, pass the event object to the form
         form = OrderForm(event=event)
 
-    available_tickets = TicketInfo.objects.filter(event=event, availability__gt=0)
+    available_tickets = TicketInfo.objects.filter(
+        event=event, availability__gt=0, is_active=True
+    )
     ticket_availability_data = {str(t.id): t.availability for t in available_tickets}
     return render(
         request,

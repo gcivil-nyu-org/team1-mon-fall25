@@ -84,7 +84,7 @@
   outline: none;
   border-color: #f97316; /* orange accent */
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.25);
-  background: #ffffff;
+  /* background: #ffffff; */
 }
 
 /* Ticket section divider */

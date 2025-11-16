@@ -25,18 +25,26 @@
         <table class="table table-hover">
         <thead class="thead-light">
             <tr>
-            <th>Category</th>
+            <th class="ps-5">Category</th>
             <th>Price</th>
             <th>Availability</th>
             </tr>
         </thead>
         <tbody>
             {% for ticket_form in formset %}
-            <tr>
+            <tr class="ticket-formset-row">
                 {{ ticket_form.id }}
-                {{ ticket_form.category }}
                 <td class="align-middle">
-                <label for="{{ form.price.id_for_label }}">{{ ticket_form.instance.category }}</label>
+                    <div class="form-check form-switch"> 
+                        {{ ticket_form.is_active }}
+                        {{ ticket_form.category }}
+                        <label for="{{ ticket_form.is_active.id_for_label }}" class="fw-bold ps-2"> 
+                            {{ ticket_form.initial.category }}
+                        </label>
+                    </div>
+                    {% if ticket_form.is_active.errors %}
+                    <div class="text-danger small">{{ ticket_form.is_active.errors }}</div>
+                    {% endif %}
                 </td>
                 <td>
                 {{ ticket_form.price }}
@@ -50,6 +58,11 @@
             {% endfor %}
         </tbody>
         </table>
+        {% if formset.non_form_errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ formset.non_form_errors }}
+            </div>
+        {% endif %}
         <!-- ✅ Aligned buttons -->
         <div class="d-flex justify-content-between mt-4">
             <button type="submit" class="btn btn-primary">
@@ -68,5 +81,5 @@
 <!-- Google Places Autocomplete -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
 <script src="{% static 'js/autocomplete.js' %}"></script>
-
+<script src="{% static 'events/js/toggler.js' %}"></script>
 {% endblock %}
