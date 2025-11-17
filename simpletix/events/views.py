@@ -14,6 +14,7 @@ from django.shortcuts import (
 from accounts.models import OrganizerProfile
 from tickets.forms import TicketFormSet
 from tickets.models import TicketInfo
+from orders.models import Order
 from .forms import EventForm
 from .models import Event
 
@@ -189,9 +190,17 @@ def create_event(request):
 @organizer_owns_event
 def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES, instance=event)
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
+
+        # Category is fixed per ticket on the edit page; don't require it
+        for f in formset.forms:
+            field = f.fields.get("category")
+            if field is not None:
+                field.required = False
+
         if form.is_valid() and formset.is_valid():
             form.save()
             algolia_save(event)
@@ -199,11 +208,17 @@ def edit_event(request, event_id):
             formset.save()
             messages.success(request, "Event updated successfully!")
             return redirect("events:event_detail", event_id=event.id)
-        else:
-            messages.error(request, "Please fix the errors below.")
+        # No explicit messages.error here — we show inline errors in the template
     else:
         form = EventForm(instance=event)
         formset = TicketFormSet(instance=event)
+
+        # Relax category requirement on initial render too
+        for f in formset.forms:
+            field = f.fields.get("category")
+            if field is not None:
+                field.required = False
+
     return render(
         request,
         "events/edit_event.html",
@@ -223,6 +238,15 @@ def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
     if request.method == "POST":
+        has_orders = Order.objects.filter(ticket_info__event=event).exists()
+        if has_orders:
+            # If orders exist, stop and send a friendly error
+            messages.error(
+                request, "This event cannot be deleted because it has existing orders."
+            )
+            # Redirect back to the event detail page (or wherever is appropriate)
+            return redirect("events:event_detail", event_id=event.id)
+
         algolia_delete(event)
 
         event.delete()
