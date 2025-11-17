@@ -2,7 +2,6 @@
 
 {% block title %}{{ event.title }}{% endblock %}
 
-{# Page-specific styling – scoped to event detail only #}
 {% block head %}
   {{ block.super }}
   <style>
@@ -131,7 +130,7 @@
     {% endif %}
 
     <div class="event-detail-body">
-      <h2 class="mb-1">{{ event.title }}</h2>
+      <h2 class="mb-1 text-dark fw-semibold">{{ event.title }}</h2>
       <p class="event-meta-line mb-1">
         {{ event.date }} at {{ event.time }}
       </p>
