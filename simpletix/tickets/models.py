@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 import uuid
 
 from events.models import Event
@@ -21,8 +22,14 @@ class TicketInfo(models.Model):
         Event, related_name="ticketInfo", on_delete=models.CASCADE
     )
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
-    price = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    availability = models.IntegerField(default=0)
+    price = models.DecimalField(
+        max_digits=8, decimal_places=2, default=0, validators=[MinValueValidator(0)]
+    )
+    availability = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Uncheck this to hide this ticket type from the order form.",
+    )
 
     class Meta:
         unique_together = ("event", "category")

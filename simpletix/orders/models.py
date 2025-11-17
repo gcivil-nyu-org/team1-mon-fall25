@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 
 from accounts.models import UserProfile
 from tickets.models import TicketInfo
@@ -52,13 +53,23 @@ class Order(models.Model):
     # Store the price at the time of purchase
     price_at_purchase = models.DecimalField(max_digits=8, decimal_places=2)
 
+    # Store the quantity of tickets
+    quantity = models.IntegerField(default=1, validators=[MinValueValidator(1)])
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Store the Stripe ID for reconciliation
     stripe_session_id = models.CharField(max_length=255, blank=True)
 
+    @property
+    def total_price(self):
+        """Calculates the total price for this order."""
+        return self.price_at_purchase * self.quantity
+
     def __str__(self):
-        order_info = f"{self.id} ({self.status}) - {self.ticket_info.category}"
+        order_info = (
+            f"{self.id} ({self.status}) - {self.quantity} x {self.ticket_info.category}"
+        )
         return f"Order {order_info} for {self.full_name}"
 
     def save(self, *args, **kwargs):
