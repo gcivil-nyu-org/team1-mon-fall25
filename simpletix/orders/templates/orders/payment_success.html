@@ -34,13 +34,13 @@
                             <h2 class="fs-5 fw-semibold text-dark">Order Summary</h2>
                             <div class="d-flex justify-content-between align-items-center mt-4">
                                 <span class="text-secondary">{{ order.ticket_info.category }} Ticket for {{ order.ticket_info.event.title }}</span>
-                                <span class="fw-semibold text-dark">${{ order.price_at_purchase }}</span>
+                                <span class="fw-semibold text-dark text-nowrap">${{ order.price_at_purchase }} × {{ order.quantity }}</span>
                             </div>
             
                             <div class="border-top mt-4 pt-4">
                                 <div class="d-flex justify-content-between align-items-center fw-bold fs-5 mt-2">
                                     <span>Total Paid</span>
-                                    <span>${{ order.price_at_purchase }}</span>
+                                    <span>${{ order.total_price }}</span>
                                 </div>
                             </div>
                         </div>

@@ -1,79 +1,170 @@
 {% extends 'events/base.html' %}
-{% load static %} 
+{% load static %}
+
 {% block title %}
     {% if event %}Edit Event{% else %}Create Event{% endif %}
 {% endblock %}
 
+{# pull in the same CSS used by the create-event page #}
+{% block head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'events/event_create.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="card shadow-lg p-4">
-    <h2 class="mb-4">
-        {% if event %}
-            Edit Event: <span class="text-primary">{{ event.title }}</span>
-        {% else %}
-            Create New Event
-        {% endif %}
-    </h2>
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+
+{# Top-level error summary – fires if ANYTHING is invalid #}
+{% if form.errors or form.non_field_errors or formset.errors or formset.non_form_errors %}
+  <div class="alert alert-danger mb-3">
+    <strong>We couldn’t save your changes.</strong>
+    <ul class="mb-0">
+      {# Field-specific errors on the main form #}
+      {% for field, field_errors in form.errors.items %}
+        {% for error in field_errors %}
+          <li>{{ field|capfirst }}: {{ error }}</li>
         {% endfor %}
-    </ul>
-    {% endif %}
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="mb-4">
-            {{ form.as_p }}
-        </div>
+      {% endfor %}
 
-        <h4 class="mt-4 mb-3">Tickets</h4>
-        {{ formset.management_form }}
+      {# Non-field errors on the main form #}
+      {% for error in form.non_field_errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
 
-        <table class="table table-hover">
-        <thead class="thead-light">
-            <tr>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Availability</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ticket_form in formset %}
-            <tr>
-                {{ ticket_form.id }}
-                {{ ticket_form.category }}
-                <td class="align-middle">
-                <label for="{{ form.price.id_for_label }}">{{ ticket_form.instance.category }}</label>
-                </td>
-                <td>
-                {{ ticket_form.price }}
-                {% if ticket_form.price.errors %}<div class="text-danger small">{{ ticket_form.price.errors }}</div>{% endif %}
-                </td>
-                <td>
-                {{ ticket_form.availability }}
-                {% if ticket_form.availability.errors %}<div class="text-danger small">{{ ticket_form.availability.errors }}</div>{% endif %}
-                </td>
-            </tr>
+      {# Formset-wide errors (e.g., custom validation) #}
+      {% for error in formset.non_form_errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
+
+      {# Per-ticket field errors (price, availability, etc.) #}
+      {% for t_form in formset.forms %}
+        {% with forloop.counter as ticket_index %}
+          {% for field, field_errors in t_form.errors.items %}
+            {% for error in field_errors %}
+              <li>Ticket {{ ticket_index }} – {{ field|capfirst }}: {{ error }}</li>
             {% endfor %}
-        </tbody>
-        </table>
-        <!-- ✅ Aligned buttons -->
-        <div class="d-flex justify-content-between mt-4">
-            <button type="submit" class="btn btn-primary">
-                {% if event %}Save Changes{% else %}Create Event{% endif %}
-            </button>
+          {% endfor %}
+        {% endwith %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
 
+<div class="event-create-bg">
+  <div class="event-create-page">
+    <div class="event-create-card">
+      <!-- Header -->
+      <div class="event-create-header d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h1 class="h4 mb-1">
             {% if event %}
-                <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
+              Edit event
             {% else %}
-                <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
+              Create a new event
             {% endif %}
+          </h1>
+          <p class="text-muted mb-0">
+            Add or update your event details, upload media, and configure ticket types.
+          </p>
         </div>
-    </form>
+        {% if event %}
+          <div class="text-end small">
+            <span class="text-muted d-block">Editing:</span>
+            <span class="fw-semibold">{{ event.title }}</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Main event form -->
+        <div class="mb-4">
+          {{ form.non_field_errors }}
+          {{ form.as_p }}
+        </div>
+
+        <!-- Ticket section -->
+        <div class="event-ticket-section">
+          <h2 class="h6 mb-3">Ticket types</h2>
+
+          {{ formset.management_form }}
+
+          <div class="event-ticket-table table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th class="ps-5">Category</th>
+                  <th>Price</th>
+                  <th>Availability</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ticket_form in formset %}
+                  <tr class="ticket-formset-row">
+                    {{ ticket_form.id }}
+
+                    <td class="align-middle">
+                      <div class="form-check form-switch">
+                        {{ ticket_form.is_active }}
+
+                        {# ✅ submit the category value as a hidden field #}
+                        {{ ticket_form.category.as_hidden }}
+
+                        <label for="{{ ticket_form.is_active.id_for_label }}" class="fw-bold ps-2">
+                          {{ ticket_form.initial.category|default:ticket_form.instance.category }}
+                        </label>
+                      </div>
+
+                      {% if ticket_form.is_active.errors %}
+                        <div class="text-danger small">{{ ticket_form.is_active.errors }}</div>
+                      {% endif %}
+                    </td>
+
+                    <td>
+                      {{ ticket_form.price }}
+                      {% if ticket_form.price.errors %}
+                        <div class="text-danger small">{{ ticket_form.price.errors }}</div>
+                      {% endif %}
+                    </td>
+
+                    <td>
+                      {{ ticket_form.availability }}
+                      {% if ticket_form.availability.errors %}
+                        <div class="text-danger small">{{ ticket_form.availability.errors }}</div>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if formset.non_form_errors %}
+            <div class="alert alert-danger mt-3" role="alert">
+              {{ formset.non_form_errors }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-between mt-4">
+          <button type="submit" class="btn btn-primary">
+            {% if event %}Save Changes{% else %}Create Event{% endif %}
+          </button>
+
+          {% if event %}
+            <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
+          {% else %}
+            <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <!-- Google Places Autocomplete -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
 <script src="{% static 'js/autocomplete.js' %}"></script>
-
+<script src="{% static 'events/js/toggler.js' %}"></script>
 {% endblock %}

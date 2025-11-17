@@ -73,12 +73,15 @@ def test_formset_valid_data(test_event_for_formset, formset_prefix):
         f"{formset_prefix}-INITIAL_FORMS": "0",
         f"{formset_prefix}-MIN_NUM_FORMS": "3",
         f"{formset_prefix}-MAX_NUM_FORMS": "3",
+        f"{formset_prefix}-0-is_active": "False",
         f"{formset_prefix}-0-category": "General Admission",
         f"{formset_prefix}-0-price": "20.00",
         f"{formset_prefix}-0-availability": "100",
+        f"{formset_prefix}-1-is_active": "True",
         f"{formset_prefix}-1-category": "VIP",
         f"{formset_prefix}-1-price": "50.00",
         f"{formset_prefix}-1-availability": "20",
+        f"{formset_prefix}-2-is_active": "True",
         f"{formset_prefix}-2-category": "Early Bird",
         f"{formset_prefix}-2-price": "15.00",
         f"{formset_prefix}-2-availability": "50",
@@ -105,12 +108,15 @@ def test_formset_invalid_data_missing_field(test_event_for_formset, formset_pref
         f"{formset_prefix}-MIN_NUM_FORMS": "3",
         f"{formset_prefix}-MAX_NUM_FORMS": "3",
         # --- Form Data ---
+        f"{formset_prefix}-0-is_active": "True",
         f"{formset_prefix}-0-category": "General Admission",
         f"{formset_prefix}-0-price": "20.00",
         f"{formset_prefix}-0-availability": "100",
+        f"{formset_prefix}-1-is_active": "True",
         f"{formset_prefix}-1-category": "VIP",
         # Missing price for VIP (formset index 1)
         f"{formset_prefix}-1-availability": "20",
+        f"{formset_prefix}-2-is_active": "True",
         f"{formset_prefix}-2-category": "Early Bird",
         f"{formset_prefix}-2-price": "15.00",
         f"{formset_prefix}-2-availability": "50",
@@ -121,4 +127,4 @@ def test_formset_invalid_data_missing_field(test_event_for_formset, formset_pref
     assert formset.is_valid() is False  # Check it's invalid
     assert len(formset.errors) == 3  # Expect errors for 3 forms
     assert "price" in formset.errors[1]  # Check specific error in 2nd form
-    assert "This field is required." in formset.errors[1]["price"]
+    assert "Price is required for active tickets." in formset.errors[1]["price"]
