@@ -411,3 +411,63 @@
     }
 }
 
+/* Search container behavior inside navbar */
+.nav-search-container {
+  position: relative;      /* allows absolute positioning */
+  flex: 0 0 auto;          /* prevents stretching */
+}
+
+/* Wrapper controls input width */
+.search-wrapper {
+  width: 280px;
+  position: relative;
+}
+
+/* Input style */
+#search-input {
+  border-radius: 20px;
+  padding: 0.45rem 0.9rem;
+}
+
+/* Floating dropdown — FIXES NAVBAR OVERFLOW */
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);   /* sits under input */
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 0.4rem 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.16);
+  max-height: 320px;
+  overflow-y: auto;
+  display: none;           /* JS toggles this */
+  z-index: 9999;
+}
+
+/* Hover styles */
+.search-dropdown .result-item {
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+
+.search-dropdown .result-item:hover {
+  background: #f1f5f9;
+}
+
+/* Make all search dropdown text dark and readable */
+.search-dropdown {
+    color: #111827;              /* dark gray / almost black */
+    font-size: 0.9rem;
+}
+
+/* If Algolia wraps hits in links, keep them dark too */
+.search-dropdown a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.search-dropdown a:hover {
+    color: inherit;
+}
