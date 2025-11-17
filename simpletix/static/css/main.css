@@ -137,4 +137,5 @@ body .on-dark #role-desc {
 
 /* Put decorative background behind all page content */
 .ui-bg { z-index: -1 !important; }   /* was 0 */
-.on-dark { position: relative; z-index: 1; }
+
+
