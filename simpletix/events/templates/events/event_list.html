@@ -209,30 +209,6 @@
     {% endif %}
 </div>
 
-<!-- Flatpickr calendar integration -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  // helper to auto-submit when a date changes
-  function setupDatePicker(id) {
-    flatpickr(id, {
-      dateFormat: "Y-m-d",
-      altInput: true,
-      altFormat: "F j, Y",
-      onChange: function() {
-        document.querySelector("form").submit(); // auto-submit
-      }
-    });
-  }
-
-  setupDatePicker("#start_date");
-  setupDatePicker("#end_date");
-});
-
-</script>
-
 <!-- State filter JS (disabled with state filter UI)
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -252,6 +228,8 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("DOMContentLoaded", () => {
     const distanceSelect = document.getElementById("distance_sort");
     const radiusSelect = document.getElementById("radius");
+    const dateSort = document.querySelector("select[name='date_sort']");
+    const priceSort = document.querySelector("select[name='price_sort']");
 
     function ensureLocationThenSubmit(selectElement) {
         const saved = localStorage.getItem("user_coords");
@@ -298,6 +276,15 @@ document.addEventListener("DOMContentLoaded", () => {
             radiusSelect.form.submit();
         }
     });
+
+    dateSort.addEventListener("change", () => {
+        dateSort.form.submit();
+    });
+
+    priceSort.addEventListener("change", () => {
+        priceSort.form.submit();
+    });
+
 });
 </script>
 

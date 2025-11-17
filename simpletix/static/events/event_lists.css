@@ -298,6 +298,12 @@
     max-width: 1200px;
 }
 
+/* Darker text for Ticket Type labels */
+.filter-bar .form-check-inline .form-check-label {
+    color: #1f2937 !important; /* darker gray (Tailwind gray-800) */
+    font-weight: 500;
+}
+
 .filter-bar .form-label {
     font-size: 0.82rem;
     color: #4b5563;
@@ -337,3 +343,4 @@
         border-radius: 12px;
     }
 }
+
