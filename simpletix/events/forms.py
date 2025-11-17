@@ -1,5 +1,7 @@
 from django import forms
 from .models import Event
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 
 class EventForm(forms.ModelForm):
@@ -24,3 +26,12 @@ class EventForm(forms.ModelForm):
             "latitude": forms.HiddenInput(),
             "longitude": forms.HiddenInput(),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        date = cleaned_data.get("date")
+
+        if date and date < timezone.localdate():
+            self.add_error("date", "Event date cannot be in the past.")
+
+        return cleaned_data
