@@ -99,6 +99,9 @@ TITLE_BANNER_MAP = {
     "Startups & Pizza": "startups.png",
     "Comedy Open Mic": "openmic.png",
     "Jazz in the Park": "jazz.png",
+    "Film Society Showcase": "filmsociety.png",
+    "Night Market": "nightmarket.png",
+    "Street Food Carnival": "foodcarnival.png"
 }
 
 
