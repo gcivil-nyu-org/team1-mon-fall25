@@ -101,7 +101,7 @@ TITLE_BANNER_MAP = {
     "Jazz in the Park": "jazz.png",
     "Film Society Showcase": "filmsociety.png",
     "Night Market": "nightmarket.png",
-    "Street Food Carnival": "foodcarnival.png"
+    "Street Food Carnival": "foodcarnival.png",
 }
 
 
