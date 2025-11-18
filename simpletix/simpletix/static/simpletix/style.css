@@ -1,0 +1,23 @@
+
+.dropdown-item {
+    color: white;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: #5a0c9a;
+    color: white; 
+}
+
+.bg-custom-purple {
+    background-color: #6A0DAD;
+}
+
+.dropdown-menu {
+    background-color: #6A0DAD; 
+    border: none;
+}
+
+.navbar-brand img {
+    max-height: 56px;
+    width: auto;
+}
