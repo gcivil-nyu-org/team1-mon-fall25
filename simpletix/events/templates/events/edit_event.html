@@ -148,15 +148,15 @@
 
         <!-- Actions -->
         <div class="d-flex justify-content-between mt-4">
-          <button type="submit" class="btn btn-primary">
-            {% if event %}Save Changes{% else %}Create Event{% endif %}
-          </button>
-
           {% if event %}
             <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Cancel</a>
           {% else %}
             <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Cancel</a>
           {% endif %}
+
+          <button type="submit" class="btn btn-primary">
+            {% if event %}Save Changes{% else %}Create Event{% endif %}
+          </button>
         </div>
       </form>
     </div>
