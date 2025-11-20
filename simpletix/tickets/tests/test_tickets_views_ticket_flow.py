@@ -5,6 +5,9 @@ import pytest
 from django.urls import reverse
 from django.contrib.messages import get_messages
 
+from django.contrib.auth.models import User
+from accounts.models import UserProfile
+
 from events.models import Event
 from tickets.models import Ticket, TicketInfo
 
@@ -285,3 +288,136 @@ def test_ticket_resend_missing_email_sets_error_message(client):
 
     msgs = list(get_messages(response.wsgi_request))
     assert any("doesn't have an email address saved" in str(m) for m in msgs)
+
+
+@pytest.mark.django_db
+def test_index_view_renders(client):
+    """
+    Very basic sanity check that the tickets index route is wired
+    and returns HTTP 200.
+    """
+    url = reverse("tickets:index")
+    response = client.get(url)
+    assert response.status_code == 200
+    # Optional: you can assert on template name if you want:
+    # assert "tickets/index.html" in [t.name for t in response.templates]
+
+
+@pytest.mark.django_db
+def test_details_view_renders_ticket_and_qr(client):
+    """
+    Covers:
+    - the details view
+    - _qr_data_url_for_ticket via the template context
+    - that qr_code is generated and persisted if missing
+    """
+    event = _make_event()
+    ticket_info = _make_ticket_info(event)
+
+    ticket = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        order_id="detail-123",
+        full_name="Detail User",
+        email="detail@example.com",
+        phone="1112223333",
+    )
+    # ensure ticket starts without qr_code
+    ticket.qr_code = None
+    ticket.save(update_fields=["qr_code"])
+
+    url = reverse("tickets:ticket_details", kwargs={"id": ticket.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    ctx = response.context
+    assert ctx["ticket"] == ticket
+    assert ctx["event"] == event
+    assert isinstance(ctx["qr_data_url"], str)
+    assert ctx["qr_data_url"].startswith("data:image/png;base64,")
+
+    # Ticket in DB should now have a qr_code saved
+    ticket.refresh_from_db()
+    assert ticket.qr_code is not None
+    assert ticket.qr_code != ""
+
+
+@pytest.mark.django_db
+def test_details_view_nonexistent_ticket_404(client):
+    url = reverse("tickets:ticket_details", kwargs={"id": 999999})
+    response = client.get(url)
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_ticket_list_for_attendee_shows_only_their_tickets(client):
+    event = _make_event()
+    ticket_info = _make_ticket_info(event)
+
+    # two different users + profiles
+    user1 = User.objects.create_user(username="u1", password="pw1")
+    user2 = User.objects.create_user(username="u2", password="pw2")
+
+    profile1, _ = UserProfile.objects.get_or_create(user=user1)
+    profile2, _ = UserProfile.objects.get_or_create(user=user2)
+
+    t1 = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        attendee=profile1,
+        full_name="User One",
+        email="u1@example.com",
+        phone="111",
+    )
+    Ticket.objects.create(
+        ticketInfo=ticket_info,
+        attendee=profile2,
+        full_name="User Two",
+        email="u2@example.com",
+        phone="222",
+    )
+
+    client.force_login(user1)
+    session = client.session
+    session["desired_role"] = "attendee"
+    session.save()
+
+    url = reverse("tickets:ticket_list")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    ctx = response.context
+    assert ctx["filtername"] == str(user1)
+    tickets_in_ctx = list(ctx["tickets"])
+    assert tickets_in_ctx == [t1]
+
+
+@pytest.mark.django_db
+def test_ticket_list_without_attendee_role_shows_all_tickets(client):
+    """
+    When desired_role is not 'attendee', we default to showing all tickets.
+    """
+    event = _make_event()
+    ticket_info = _make_ticket_info(event)
+
+    t1 = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        full_name="User A",
+        email="a@example.com",
+        phone="111",
+    )
+    t2 = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        full_name="User B",
+        email="b@example.com",
+        phone="222",
+    )
+
+    url = reverse("tickets:ticket_list")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    ctx = response.context
+    assert ctx["filtername"] == "all"
+    tickets_in_ctx = list(ctx["tickets"])
+    assert len(tickets_in_ctx) == 2
+    # order by default pk, so this assertion is safe:
+    assert {t.id for t in tickets_in_ctx} == {t1.id, t2.id}
