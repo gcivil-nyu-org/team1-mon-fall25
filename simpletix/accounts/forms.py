@@ -57,18 +57,21 @@ class OrganizerProfileForm(forms.ModelForm):
             "profile_photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
+
     def clean_full_name(self):
         """
-        Enforce a human-looking full name:
+        Enforce a human-looking full name when provided:
 
-        - required (non-empty after trimming)
-        - must contain at least one alphabetic character
-        - only allow letters, spaces, hyphens, apostrophes and periods
+        - If left blank, keep existing behavior (optional field).
+        - If provided, must contain at least one alphabetic character.
+        - Only allow letters, spaces, hyphens, apostrophes and periods.
         """
         full_name = (self.cleaned_data.get("full_name") or "").strip()
 
+        # Preserve previous behavior: full_name is optional.
+        # We only validate when the user actually enters something.
         if not full_name:
-            raise ValidationError("Please enter your full name.")
+            return full_name
 
         # Require at least one alphabetic character
         if not re.search(r"[A-Za-z]", full_name):
@@ -85,7 +88,6 @@ class OrganizerProfileForm(forms.ModelForm):
             )
 
         return full_name
-
 
     def clean_profile_photo(self):
         """
