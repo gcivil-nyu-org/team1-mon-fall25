@@ -52,7 +52,8 @@ def ticket_list(request):
         filtername = str(attendee.user)
         tickets = Ticket.objects.filter(attendee=attendee)
     else:
-        filtername = str(request.user)
+        # non-attendee (organizer/other) – no tickets, but label "all"
+        filtername = "all"
         tickets = Ticket.objects.none()
 
     return render(
@@ -60,6 +61,7 @@ def ticket_list(request):
         "tickets/ticket_list.html",
         {"filtername": filtername, "tickets": tickets},
     )
+
 
 
 @csrf_exempt
