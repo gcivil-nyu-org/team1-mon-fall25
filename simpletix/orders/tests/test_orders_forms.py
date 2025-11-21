@@ -172,3 +172,39 @@ def test_order_form_invalid_ticket_choice(
     assert (
         "ticket_info" in form.errors
     )  # Fails validation against the filtered queryset
+
+
+def test_order_form_preselect_valid_ticket(event_for_ordering, ticket_info_vip):
+    """Test that a valid preselected ticket is set as initial value."""
+    form = OrderForm(
+        event=event_for_ordering, preselect_ticket_category_id=ticket_info_vip.id
+    )
+    assert form.initial["ticket_info"] == ticket_info_vip.id
+    assert form.fields["quantity"].widget.attrs["max"] == ticket_info_vip.availability
+    assert form.fields["quantity"].max_value == ticket_info_vip.availability
+
+
+def test_order_form_preselect_invalid_ticket(event_for_ordering, ticket_info_vip):
+    """Test an invalid preselected ticket falls back to the first available ticket."""
+    invalid_id = 9999
+    form = OrderForm(event=event_for_ordering, preselect_ticket_category_id=invalid_id)
+
+    assert form.initial.get("ticket_info") is None
+    first_ticket = form.fields["ticket_info"].queryset.first()
+
+    assert form.fields["quantity"].widget.attrs["max"] == first_ticket.availability
+    assert form.fields["quantity"].max_value == first_ticket.availability
+
+
+def test_order_form_preselect_sold_out(event_for_ordering, ticket_info_early_soldout):
+    """Test that a preselected ticket with 0 availability sets quantity max to 0."""
+    form = OrderForm(
+        event=event_for_ordering,
+        preselect_ticket_category_id=ticket_info_early_soldout.id,
+    )
+
+    first_available = form.fields["ticket_info"].queryset.first()
+    max_availability = first_available.availability if first_available else 0
+
+    assert form.fields["quantity"].widget.attrs["max"] == max_availability
+    assert form.fields["quantity"].max_value == max_availability

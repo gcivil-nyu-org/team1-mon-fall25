@@ -19,6 +19,7 @@ from .models import BillingInfo, Order
 
 def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+    preselect_ticket_category_id = request.GET.get("ticket_category_id", None)
 
     if request.method == "POST":
         # Pass the event object to the form constructor
@@ -50,11 +51,12 @@ def order(request, event_id):
 
                 return redirect("orders:process_payment", order_id=order.id)
             except Exception as e:  # pragma: no cover (optional)
-                # You may want to log this instead of print in production
                 print(e)
     else:
         # For a GET request, pass the event object to the form
-        form = OrderForm(event=event)
+        form = OrderForm(
+            event=event, preselect_ticket_category_id=preselect_ticket_category_id
+        )
 
     available_tickets = TicketInfo.objects.filter(
         event=event, availability__gt=0, is_active=True
