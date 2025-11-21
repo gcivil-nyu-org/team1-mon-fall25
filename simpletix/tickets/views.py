@@ -1,7 +1,6 @@
 from django.shortcuts import get_object_or_404, render, redirect
 
 from accounts.models import UserProfile
-from events.models import Event
 from .models import Ticket
 import json
 from django.views.decorators.csrf import csrf_exempt
@@ -40,7 +39,7 @@ def details(request, id):
         "tickets/ticket_details.html",
         {"event": event, "ticket": ticket, "qr_data_url": qr_data_url},
     )
-    
+
 
 @login_required(login_url=reverse_lazy("accounts:login"))
 def ticket_list(request):
