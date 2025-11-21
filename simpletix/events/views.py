@@ -23,6 +23,10 @@ from django.db.models.functions import Coalesce
 from django.db.models import F
 from django.db.models.functions import ACos, Cos, Sin, Radians
 
+from django.views.decorators.http import require_POST
+from django.db import IntegrityError
+from events.models import Event, EventNotificationSubscription  # Update this line
+
 # --- Algolia integration helpers -------------------------------------------
 
 try:
@@ -408,8 +412,101 @@ def event_list(request):
 
     return render(request, "events/event_list.html", context)
 
-
 # Event Detail
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    return render(request, "events/event_detail.html", {"event": event})
+    
+    # NEW: Check if event is sold out
+    from tickets.models import TicketInfo
+    
+    active_tickets = TicketInfo.objects.filter(event=event, is_active=True)
+    available_tickets = active_tickets.filter(availability__gt=0)
+    
+    is_sold_out = active_tickets.exists() and not available_tickets.exists()
+    
+    # NEW: Count subscribers
+    subscriber_count = EventNotificationSubscription.objects.filter(
+        event=event
+    ).count()
+    
+    return render(request, "events/event_detail.html", {
+        "event": event,
+        "is_sold_out": is_sold_out,
+        "subscriber_count": subscriber_count,
+
+    })
+# NEW: Subscribe to notifications
+@require_POST
+def subscribe_notification(request, event_id):
+    """
+    Subscribe user to notifications when tickets become available.
+    Email sending will be implemented later.
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    email = request.POST.get('email', '').strip()
+    name = request.POST.get('name', '').strip()
+    
+    # If user is logged in, use their info
+    if request.user.is_authenticated:
+        if not email:
+            email = request.user.email
+        if not name:
+            name = request.user.get_full_name() or request.user.username
+    
+    # Validate email
+    if not email:
+        messages.error(request, "Email address is required.")
+        return redirect('events:event_detail', event_id=event_id)
+    
+    try:
+        # Create subscription
+        subscription, created = EventNotificationSubscription.objects.get_or_create(
+            event=event,
+            email=email,
+            defaults={'name': name}
+        )
+        
+        if created:
+            messages.success(
+                request, 
+                f"✅ You're on the list! We'll notify {email} when tickets are available."
+            )
+        else:
+            messages.info(
+                request, 
+                "You're already subscribed to notifications for this event."
+            )
+    
+    except IntegrityError:
+        messages.error(request, "Error subscribing. Please try again.")
+    
+    return redirect('events:event_detail', event_id=event_id)
+
+
+# NEW: View subscriber list (organizer only)
+def notification_subscribers(request, event_id):
+    """
+    Show list of people waiting for ticket notifications.
+    Only accessible to event organizer.
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Check if user is organizer
+    if request.session.get('desired_role') != 'organizer':
+        messages.error(request, "Only organizers can view subscribers.")
+        return redirect('events:event_detail', event_id=event_id)
+    
+    if event.organizer.user != request.user:
+        messages.error(request, "You can only view subscribers for your own events.")
+        return redirect('events:event_detail', event_id=event_id)
+    
+    # Get all subscribers
+    subscribers = EventNotificationSubscription.objects.filter(
+        event=event
+    ).order_by('-created_at')
+    
+    return render(request, 'events/notification_subscribers.html', {
+        'event': event,
+        'subscribers': subscribers,
+    })
