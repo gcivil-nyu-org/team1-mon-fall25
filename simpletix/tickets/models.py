@@ -13,11 +13,13 @@ class TicketInfo(models.Model):
         related_name="distributes",
         null=True,
     )
+
     CATEGORY_CHOICES = [
+        ("Early Bird", "Early Bird"),
         ("General Admission", "General Admission"),
         ("VIP", "VIP"),
-        ("Early Bird", "Early Bird"),
     ]
+
     event = models.ForeignKey(
         Event, related_name="ticketInfo", on_delete=models.CASCADE
     )
@@ -33,6 +35,7 @@ class TicketInfo(models.Model):
 
     class Meta:
         unique_together = ("event", "category")
+        ordering = ["category"]  # always sort alphabetically by category
 
     def __str__(self):
         return f"{self.event.title} - {self.category}"
