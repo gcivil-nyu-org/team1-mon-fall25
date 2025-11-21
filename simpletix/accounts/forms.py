@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 
 from io import BytesIO
+import re
 from PIL import Image, ImageOps  # for EXIF orientation fix
 
 from .models import OrganizerProfile
@@ -55,6 +56,36 @@ class OrganizerProfileForm(forms.ModelForm):
             ),
             "profile_photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
+
+    def clean_full_name(self):
+        """
+        Enforce a human-looking full name:
+
+        - required (non-empty after trimming)
+        - must contain at least one alphabetic character
+        - only allow letters, spaces, hyphens, apostrophes and periods
+        """
+        full_name = (self.cleaned_data.get("full_name") or "").strip()
+
+        if not full_name:
+            raise ValidationError("Please enter your full name.")
+
+        # Require at least one alphabetic character
+        if not re.search(r"[A-Za-z]", full_name):
+            raise ValidationError(
+                "Full name must include at least one letter."
+            )
+
+        # Only allow safe character set
+        allowed_pattern = r"^[A-Za-z\s\-\.'’]+$"
+        if not re.match(allowed_pattern, full_name):
+            raise ValidationError(
+                "Full name can only contain letters, spaces, hyphens, "
+                "apostrophes, and periods."
+            )
+
+        return full_name
+
 
     def clean_profile_photo(self):
         """
