@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 
 from io import BytesIO
 import re
-from PIL import Image, ImageOps  # for EXIF orientation fix
+from PIL import Image, ImageOps
 
 from .models import OrganizerProfile
 
@@ -57,7 +57,6 @@ class OrganizerProfileForm(forms.ModelForm):
             "profile_photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
-
     def clean_full_name(self):
         """
         Enforce a human-looking full name when provided:
@@ -75,9 +74,7 @@ class OrganizerProfileForm(forms.ModelForm):
 
         # Require at least one alphabetic character
         if not re.search(r"[A-Za-z]", full_name):
-            raise ValidationError(
-                "Full name must include at least one letter."
-            )
+            raise ValidationError("Full name must include at least one letter.")
 
         # Only allow safe character set
         allowed_pattern = r"^[A-Za-z\s\-\.'’]+$"
@@ -88,6 +85,39 @@ class OrganizerProfileForm(forms.ModelForm):
             )
 
         return full_name
+    
+    def clean_phone(self):
+        """
+        Validate phone numbers:
+
+        - Optional: if left blank, keep existing behavior.
+        - If provided, allow only digits, spaces, +, -, (, ).
+        - Enforce a realistic digit length (7–15 digits).
+        """
+        phone = (self.cleaned_data.get("phone") or "").strip()
+
+        # Phone is optional
+        if not phone:
+            return phone
+
+        # Only allow digits and common phone punctuation
+        allowed_pattern = r"^[0-9+\-\s()]+$"
+        if not re.match(allowed_pattern, phone):
+            raise ValidationError(
+                "Phone number can only contain digits and the characters "
+                "+, -, spaces, and parentheses."
+            )
+
+        # Count only the digits to validate length
+        digit_count = sum(ch.isdigit() for ch in phone)
+        if digit_count < 10 or digit_count > 10:
+            raise ValidationError(
+                "Phone number is invalid"
+            )
+
+        return phone
+
+
 
     def clean_profile_photo(self):
         """
