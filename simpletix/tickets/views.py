@@ -63,7 +63,6 @@ def ticket_list(request):
     )
 
 
-
 @csrf_exempt
 def payment_confirm(request):
     """
