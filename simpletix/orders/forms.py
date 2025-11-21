@@ -43,7 +43,7 @@ class OrderForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         event = kwargs.pop("event", None)
-        preselect_ticket_category_id = kwargs.pop("preselect_ticket_category_id")
+        preselect_ticket_category_id = kwargs.pop("preselect_ticket_category_id", None)
         super().__init__(*args, **kwargs)
 
         if event:
