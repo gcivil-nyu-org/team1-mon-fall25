@@ -9,6 +9,7 @@ from . import services
 from .models import TicketInfo
 from django.http import JsonResponse, HttpResponseNotAllowed
 
+from django.contrib.auth.decorators import login_required
 import base64
 from io import BytesIO
 import qrcode
@@ -16,38 +17,44 @@ from django.contrib import messages
 from django.http import Http404
 from django.views.decorators.http import require_POST
 from .services import build_tickets_pdf, send_ticket_email
+from django.urls import reverse_lazy
 
 
 def index(request):
     return render(request, "tickets/index.html")
 
 
+@login_required(login_url=reverse_lazy("accounts:login"))
 def details(request, id):
-    ticket = get_object_or_404(Ticket, id=id)
-    event = get_object_or_404(Event, id=ticket.ticketInfo.event.id)
+    attendee = UserProfile.objects.filter(user=request.user).first()
+    if attendee:
+        ticket = get_object_or_404(Ticket, id=id, attendee=attendee)
+    else:
+        raise Http404("Ticket not found.")
 
-    # Build a data: URL for the ticket's QR code
+    event = ticket.ticketInfo.event
     qr_data_url = _qr_data_url_for_ticket(ticket)
 
     return render(
         request,
         "tickets/ticket_details.html",
-        {
-            "event": event,
-            "ticket": ticket,
-            "qr_data_url": qr_data_url,
-        },
+        {"event": event, "ticket": ticket, "qr_data_url": qr_data_url},
     )
+    
 
-
+@login_required(login_url=reverse_lazy("accounts:login"))
 def ticket_list(request):
-    if request.session.get("desired_role") == "attendee":
+    try:
         attendee = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        attendee = None
+
+    if attendee is not None:
         filtername = str(attendee.user)
         tickets = Ticket.objects.filter(attendee=attendee)
     else:
-        filtername = "all"
-        tickets = Ticket.objects.all()
+        filtername = str(request.user)
+        tickets = Ticket.objects.none()
 
     return render(
         request,
