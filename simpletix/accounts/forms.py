@@ -8,7 +8,6 @@ from django.core.files.base import ContentFile
 from io import BytesIO
 import re
 from PIL import Image, ImageOps
-
 from .models import OrganizerProfile
 
 
@@ -85,7 +84,7 @@ class OrganizerProfileForm(forms.ModelForm):
             )
 
         return full_name
-    
+
     def clean_phone(self):
         """
         Validate phone numbers:
@@ -111,13 +110,9 @@ class OrganizerProfileForm(forms.ModelForm):
         # Count only the digits to validate length
         digit_count = sum(ch.isdigit() for ch in phone)
         if digit_count < 10 or digit_count > 10:
-            raise ValidationError(
-                "Phone number is invalid"
-            )
+            raise ValidationError("Phone number is invalid")
 
         return phone
-
-
 
     def clean_profile_photo(self):
         """
