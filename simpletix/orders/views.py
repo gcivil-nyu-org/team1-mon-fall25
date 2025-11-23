@@ -20,7 +20,10 @@ from .models import BillingInfo, Order
 def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     preselect_ticket_category_id = request.GET.get("ticket_category_id", None)
-    profile, _ = OrganizerProfile.objects.get_or_create(user=request.user)
+    if request.user and request.user.is_authenticated:
+        profile, _ = OrganizerProfile.objects.get_or_create(user=request.user)
+    else:
+        profile = None
 
     if request.method == "POST":
         # Pass the event object to the form constructor
