@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
-from accounts.models import UserProfile
+from accounts.models import UserProfile, OrganizerProfile
 from events.models import Event
 from tickets.models import TicketInfo
 from tickets import services as ticket_services
@@ -20,10 +20,11 @@ from .models import BillingInfo, Order
 def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     preselect_ticket_category_id = request.GET.get("ticket_category_id", None)
+    profile, _ = OrganizerProfile.objects.get_or_create(user=request.user)
 
     if request.method == "POST":
         # Pass the event object to the form constructor
-        form = OrderForm(request.POST, event=event)
+        form = OrderForm(request.POST, event=event, profile=profile)
 
         if form.is_valid():
             try:
@@ -55,7 +56,9 @@ def order(request, event_id):
     else:
         # For a GET request, pass the event object to the form
         form = OrderForm(
-            event=event, preselect_ticket_category_id=preselect_ticket_category_id
+            event=event,
+            preselect_ticket_category_id=preselect_ticket_category_id,
+            profile=profile,
         )
 
     available_tickets = TicketInfo.objects.filter(
