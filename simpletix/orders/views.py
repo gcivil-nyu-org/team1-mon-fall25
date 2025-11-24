@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
-from accounts.models import UserProfile, OrganizerProfile
+from accounts.models import UserProfile
 from events.models import Event
 from tickets.models import TicketInfo
 from tickets import services as ticket_services
@@ -72,6 +72,18 @@ def order(request, event_id):
             initial=initial,
             event=event,
         )
+
+        if "ticket_info" in initial:
+            try:
+                selected_ticket = TicketInfo.objects.get(
+                    id=int(initial["ticket_info"]),
+                    event=event,
+                    availability__gt=0
+                )
+                form.fields["quantity"].widget.attrs["max"] = selected_ticket.availability
+            except TicketInfo.DoesNotExist:
+                pass
+
 
     available_tickets = TicketInfo.objects.filter(
         event=event, availability__gt=0, is_active=True
