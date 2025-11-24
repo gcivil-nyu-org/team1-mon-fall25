@@ -412,15 +412,4 @@ def event_list(request):
 # Event Detail
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-
-    # Use the role toggle, not profiles
-    is_organizer = request.session.get("desired_role") == "organizer"
-
-    return render(
-        request,
-        "events/event_detail.html",
-        {
-            "event": event,
-            "is_organizer": is_organizer,
-        },
-    )
+    return render(request, "events/event_detail.html", {"event": event})

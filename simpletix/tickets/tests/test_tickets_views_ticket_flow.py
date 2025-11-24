@@ -314,13 +314,8 @@ def test_details_view_renders_ticket_and_qr(client):
     event = _make_event()
     ticket_info = _make_ticket_info(event)
 
-    # create attendee user + profile and log them in
-    user = User.objects.create_user(username="detailuser", password="Passw0rd1!")
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-
     ticket = Ticket.objects.create(
         ticketInfo=ticket_info,
-        attendee=profile,
         order_id="detail-123",
         full_name="Detail User",
         email="detail@example.com",
@@ -329,8 +324,6 @@ def test_details_view_renders_ticket_and_qr(client):
     # ensure ticket starts without qr_code
     ticket.qr_code = None
     ticket.save(update_fields=["qr_code"])
-
-    client.force_login(user)
 
     url = reverse("tickets:ticket_details", kwargs={"id": ticket.id})
     response = client.get(url)
@@ -350,11 +343,6 @@ def test_details_view_renders_ticket_and_qr(client):
 
 @pytest.mark.django_db
 def test_details_view_nonexistent_ticket_404(client):
-    # user must be logged in as attendee to hit 404 branch (otherwise redirected)
-    user = User.objects.create_user(username="detailuser2", password="Passw0rd1!")
-    UserProfile.objects.get_or_create(user=user)
-    client.force_login(user)
-
     url = reverse("tickets:ticket_details", kwargs={"id": 999999})
     response = client.get(url)
     assert response.status_code == 404
@@ -403,39 +391,33 @@ def test_ticket_list_for_attendee_shows_only_their_tickets(client):
 
 
 @pytest.mark.django_db
-def test_ticket_list_without_attendee_role_shows_no_tickets_for_logged_in_user(
-    client,
-):
+def test_ticket_list_without_attendee_role_shows_all_tickets(client):
     """
-    When user is logged in but has no attendee profile,
-    My Tickets should return an empty list (no leakage of other tickets).
+    When desired_role is not 'attendee', we default to showing all tickets.
     """
     event = _make_event()
     ticket_info = _make_ticket_info(event)
 
-    # Create tickets with no attendee set
-    Ticket.objects.create(
+    t1 = Ticket.objects.create(
         ticketInfo=ticket_info,
         full_name="User A",
         email="a@example.com",
         phone="111",
     )
-    Ticket.objects.create(
+    t2 = Ticket.objects.create(
         ticketInfo=ticket_info,
         full_name="User B",
         email="b@example.com",
         phone="222",
     )
 
-    # Logged-in user without UserProfile attendee
-    user = User.objects.create_user(username="plainuser", password="pw")
-    client.force_login(user)
-
     url = reverse("tickets:ticket_list")
     response = client.get(url)
 
     assert response.status_code == 200
     ctx = response.context
-    # tickets queryset should be empty
+    assert ctx["filtername"] == "all"
     tickets_in_ctx = list(ctx["tickets"])
-    assert tickets_in_ctx == []
+    assert len(tickets_in_ctx) == 2
+    # order by default pk, so this assertion is safe:
+    assert {t.id for t in tickets_in_ctx} == {t1.id, t2.id}

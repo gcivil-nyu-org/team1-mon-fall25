@@ -1,115 +1,65 @@
 from django.shortcuts import get_object_or_404, render, redirect
 
 from accounts.models import UserProfile
-from .models import Ticket, TicketInfo
+from events.models import Event
+from .models import Ticket
 import json
 from django.views.decorators.csrf import csrf_exempt
 from . import services
-from django.http import JsonResponse, HttpResponseNotAllowed, Http404
+from .models import TicketInfo
+from django.http import JsonResponse, HttpResponseNotAllowed
 
-from django.contrib.auth.decorators import login_required
 import base64
 from io import BytesIO
 import qrcode
 from django.contrib import messages
+from django.http import Http404
 from django.views.decorators.http import require_POST
 from .services import build_tickets_pdf, send_ticket_email
-from django.urls import reverse_lazy
-from django.db.models import Q
 
 
 def index(request):
     return render(request, "tickets/index.html")
 
 
-@login_required(login_url=reverse_lazy("accounts:login"))
 def details(request, id):
-    """
-    Show ticket details for the current user.
+    ticket = get_object_or_404(Ticket, id=id)
+    event = get_object_or_404(Event, id=ticket.ticketInfo.event.id)
 
-    If the ticket doesn't exist OR doesn't belong to this user,
-    raise 404 (as tests expect).
-    """
-    attendee = UserProfile.objects.filter(user=request.user).first()
-    if attendee is None:
-        raise Http404("Ticket not found.")
-
-    ticket = (
-        Ticket.objects.filter(id=id, attendee=attendee)
-        .select_related("ticketInfo__event")
-        .first()
-    )
-
-    if ticket is None:
-        raise Http404("Ticket not found.")
-
-    event = ticket.ticketInfo.event
+    # Build a data: URL for the ticket's QR code
     qr_data_url = _qr_data_url_for_ticket(ticket)
 
     return render(
         request,
         "tickets/ticket_details.html",
-        {"event": event, "ticket": ticket, "qr_data_url": qr_data_url},
+        {
+            "event": event,
+            "ticket": ticket,
+            "qr_data_url": qr_data_url,
+        },
     )
 
 
-@login_required(login_url=reverse_lazy("accounts:login"))
 def ticket_list(request):
-    """
-    For attendees: show their tickets.
-
-    For current-role organizers: show an informational message and no tickets.
-    """
-    is_organizer = request.session.get("desired_role") == "organizer"
-
-    if is_organizer:
-        messages.info(
-            request,
-            (
-                "Organizer accounts cannot purchase tickets. "
-                "Please log in with an attendee account to buy tickets."
-            ),
-        )
-        return render(
-            request,
-            "tickets/ticket_list.html",
-            {
-                "filtername": str(request.user),
-                "tickets": [],
-                "is_organizer": True,
-            },
-        )
-
-    # Attendee view
-    profile = UserProfile.objects.filter(user=request.user).first()
-
-    qs = Ticket.objects.select_related("ticketInfo__event")
-
-    filters = Q()
-    if profile is not None:
-        filters |= Q(attendee=profile)
-    if request.user.email:
-        filters |= Q(email__iexact=request.user.email)
-
-    tickets = qs.filter(filters).order_by("-id").distinct()
+    if request.session.get("desired_role") == "attendee":
+        attendee = UserProfile.objects.get(user=request.user)
+        filtername = str(attendee.user)
+        tickets = Ticket.objects.filter(attendee=attendee)
+    else:
+        filtername = "all"
+        tickets = Ticket.objects.all()
 
     return render(
         request,
         "tickets/ticket_list.html",
-        {
-            "filtername": str(request.user),
-            "tickets": tickets,
-            "is_organizer": False,
-        },
+        {"filtername": filtername, "tickets": tickets},
     )
 
 
 @csrf_exempt
 def payment_confirm(request):
     """
-    Endpoint to be called AFTER payment is confirmed (e.g. by Stripe success
-    handler).
-
+    Endpoint to be called AFTER payment is confirmed (e.g. by Stripe success handler).
     Expected JSON body:
     {
         "order_id": "ch_123" or "sess_123" or your own id,
@@ -191,27 +141,6 @@ def _qr_data_url_for_ticket(ticket):
     return f"data:image/png;base64,{encoded}"
 
 
-def _user_owns_tickets(user, tickets):
-    """
-    Returns True if the given user is allowed to see these tickets.
-    A user 'owns' tickets if:
-      - they are the attendee (UserProfile) OR
-      - the ticket email matches their account email.
-    """
-    if not user.is_authenticated:
-        return False
-
-    profile = UserProfile.objects.filter(user=user).first()
-
-    for t in tickets:
-        if profile is not None and t.attendee_id == profile.id:
-            return True
-        if t.email and user.email and t.email.lower() == user.email.lower():
-            return True
-
-    return False
-
-
 def ticket_thank_you(request, order_id):
     """
     Show a modern confirmation page after payment:
@@ -220,13 +149,8 @@ def ticket_thank_you(request, order_id):
     - event info
     - primary ticket QR code
     - 'resend tickets' button
-
-    If the user is authenticated and does NOT own the tickets,
-    redirect them to their ticket list.
-
-    Anonymous users are allowed (tests expect 200/404 without login).
     """
-    tickets = list(
+    tickets = (
         Ticket.objects.filter(order_id=order_id)
         .select_related("ticketInfo__event")
         .order_by("id")
@@ -234,10 +158,6 @@ def ticket_thank_you(request, order_id):
 
     if not tickets:
         raise Http404("No tickets found for this order.")
-
-    if request.user.is_authenticated and not _user_owns_tickets(request.user, tickets):
-        messages.error(request, "You do not have access to that order.")
-        return redirect("tickets:ticket_list")
 
     primary = tickets[0]
     event = primary.ticketInfo.event if primary.ticketInfo else None
@@ -258,12 +178,7 @@ def ticket_thank_you(request, order_id):
 def ticket_resend(request, order_id):
     """
     Re-send ticket email (with PDF) for this order.
-
-    Tests call this without login; when there are tickets, they expect
-    a redirect to the thank-you page.
-
-    If the current user is logged in and does NOT own the tickets,
-    we block it.
+    Uses the same email + PDF logic as payment_confirm.
     """
     tickets = list(
         Ticket.objects.filter(order_id=order_id).select_related("ticketInfo__event")
@@ -272,10 +187,6 @@ def ticket_resend(request, order_id):
     if not tickets:
         messages.error(request, "We couldn't find any tickets for that order.")
         return redirect("tickets:ticket_thank_you", order_id=order_id)
-
-    if request.user.is_authenticated and not _user_owns_tickets(request.user, tickets):
-        messages.error(request, "You do not have permission to resend those tickets.")
-        return redirect("tickets:ticket_list")
 
     email = tickets[0].email
     if not email:
