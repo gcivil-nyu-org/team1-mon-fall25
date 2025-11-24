@@ -278,10 +278,19 @@ def test_ticket_list_guest_role(
     ticket1_user2,
     ticket_guest,  # Include all ticket fixtures
 ):
-    """Guest users should be redirected to login when accessing My Tickets."""
+    """Test list view when user does not have 'attendee' role."""
     response = client.get(list_url)
-    assert response.status_code == 302
-    assert response.url.startswith(reverse("accounts:login"))
+    assert response.status_code == 200
+    assert len(response.templates) > 0
+    assert response.templates[0].name == "tickets/ticket_list.html"
+    assert response.context["filtername"] == "all"
+
+    # Check that ALL tickets are present
+    tickets_in_context = response.context["tickets"]
+    expected_tickets = sorted(
+        [ticket1_user1, ticket2_user1, ticket1_user2, ticket_guest], key=lambda t: t.id
+    )
+    assert list(tickets_in_context.order_by("id")) == expected_tickets
 
 
 def test_ticket_list_org_role(
@@ -294,10 +303,8 @@ def test_ticket_list_org_role(
     ticket1_user2,
     ticket_guest,  # Include all ticket fixtures
 ):
-    """
-    When a logged-in organizer (non-attendee) visits My Tickets,
-    they should see an empty list scoped to themselves.
-    """
+    """Test list view when user does not have 'attendee' role."""
+    # Log in user1 AS attendee using the custom login view
     login_data = {"username": org_list_user.username, "password": "Passw0rd1!"}
     client.post(login_url_org, login_data, follow=True)
     # Verify session is set
@@ -307,9 +314,11 @@ def test_ticket_list_org_role(
     assert response.status_code == 200
     assert len(response.templates) > 0
     assert response.templates[0].name == "tickets/ticket_list.html"
-    # filtername is the username of the logged-in organizer
-    assert response.context["filtername"] == org_list_user.username
+    assert response.context["filtername"] == "all"
 
-    # Organizer should not see any attendee tickets on their My Tickets page
-    tickets_in_context = list(response.context["tickets"])
-    assert tickets_in_context == []
+    # Check that ALL tickets are present
+    tickets_in_context = response.context["tickets"]
+    expected_tickets = sorted(
+        [ticket1_user1, ticket2_user1, ticket1_user2, ticket_guest], key=lambda t: t.id
+    )
+    assert list(tickets_in_context.order_by("id")) == expected_tickets
