@@ -8,6 +8,7 @@ from accounts.models import OrganizerProfile, UserProfile
 from events.models import Event
 from tickets.models import TicketInfo, Ticket
 from tickets import services
+from django.core import mail
 
 
 pytestmark = pytest.mark.django_db
@@ -195,3 +196,113 @@ def test_send_ticket_email_without_pdf_bytes(ticket_info, settings):
     )
 
     assert result is None
+
+
+def test_issue_ticket_for_order_with_blank_fields(ticket_info):
+    """
+    Covers the branches where name/email/phone are empty or None and attendee is None.
+    """
+    ticket = services.issue_ticket_for_order(
+        order_id="order-blank-fields",
+        ticket_info=ticket_info,
+        full_name="",
+        email="",
+        phone="",
+        attendee=None,
+    )
+
+    ticket.refresh_from_db()
+
+    assert ticket.full_name == ""
+    assert ticket.email == ""
+    assert ticket.phone == ""
+    assert ticket.attendee is None
+    assert ticket.status == "ISSUED"
+    assert ticket.issued_at is not None
+    assert ticket.qr_code.startswith("TCKT-")
+
+
+def test_issue_ticket_for_order_with_blank_inputs(ticket_info):
+    """
+    Covers the branches where name/email/phone are empty or None and attendee is None.
+    """
+    ticket = services.issue_ticket_for_order(
+        order_id="order-blank-fields",
+        ticket_info=ticket_info,
+        full_name="",
+        email="",
+        phone="",
+        attendee=None,
+    )
+
+    ticket.refresh_from_db()
+
+    assert ticket.full_name == ""
+    assert ticket.email == ""
+    assert ticket.phone == ""
+    assert ticket.attendee is None
+    assert ticket.status == "ISSUED"
+    assert ticket.issued_at is not None
+    assert ticket.qr_code.startswith("TCKT-")
+
+
+def test_build_tickets_pdf_multiple_tickets(ticket_info):
+    """
+    Covers the multiple-ticket pagination branch (PageBreak).
+    """
+    ticket1 = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        full_name="User One",
+        email="one@example.com",
+        phone="1111111111",
+    )
+    ticket2 = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        full_name="User Two",
+        email="two@example.com",
+        phone="2222222222",
+    )
+
+    result = services.build_tickets_pdf([ticket1, ticket2])
+
+    assert result is None or isinstance(result, (bytes, bytearray))
+
+
+def test_send_ticket_email_with_empty_recipient(ticket_info):
+    """
+    Covers early return: if not to_email: return
+    """
+    ticket = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        full_name="Nobody",
+        email="",
+        phone="000000",
+    )
+
+    result = services.send_ticket_email(
+        "",
+        [ticket],
+        b"PDF",
+    )
+
+    assert result is None
+
+
+def test_send_ticket_email_subject_contains_event_name(ticket_info):
+    ticket = Ticket.objects.create(
+        ticketInfo=ticket_info,
+        full_name="Event User",
+        email="eventuser@example.com",
+        phone="8888888888",
+    )
+
+    services.send_ticket_email(
+        "eventuser@example.com",
+        [ticket],
+        None,
+    )
+
+    assert len(mail.outbox) == 1
+    email = mail.outbox[0]
+
+    assert ticket_info.event.title in email.subject
