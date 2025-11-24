@@ -210,18 +210,13 @@ def _user_owns_tickets(user, tickets):
     return False
 
 
+@login_required(login_url=reverse_lazy("accounts:login"))
 def ticket_thank_you(request, order_id):
     """
-    Show a modern confirmation page after payment:
-    - order number
-    - email we sent tickets to
-    - event info
-    - primary ticket QR code
-    - 'resend tickets' button
-
-    If the user is authenticated and does NOT own the tickets,
-    redirect them to their ticket list. Anonymous users are allowed
-    (tests expect 200/404 without login).
+    Show the confirmation page after payment:
+    - Only for the logged-in user who owns these tickets.
+    - If another logged-in user tries, redirect them to My Tickets.
+    - If the order_id has no tickets, raise 404.
     """
     tickets = list(
         Ticket.objects.filter(order_id=order_id)
@@ -232,13 +227,13 @@ def ticket_thank_you(request, order_id):
     if not tickets:
         raise Http404("No tickets found for this order.")
 
-    if request.user.is_authenticated and not _user_owns_tickets(request.user, tickets):
+    # Permission check: does this logged-in user own these tickets?
+    if not _user_owns_tickets(request.user, tickets):
         messages.error(request, "You do not have access to that order.")
         return redirect("tickets:ticket_list")
 
     primary = tickets[0]
     event = primary.ticketInfo.event if primary.ticketInfo else None
-
     qr_data_url = _qr_data_url_for_ticket(primary)
 
     context = {
@@ -251,15 +246,14 @@ def ticket_thank_you(request, order_id):
     return render(request, "tickets/thank_you.html", context)
 
 
+@login_required(login_url=reverse_lazy("accounts:login"))
 @require_POST
 def ticket_resend(request, order_id):
     """
     Re-send ticket email (with PDF) for this order.
-    Uses the same email + PDF logic as payment_confirm.
 
-    Tests call this without login; when there are tickets, they expect
-    a redirect to the thank-you page. If the current user is logged in
-    and does NOT own the tickets, we block it.
+    - Only the logged-in owner of the tickets can trigger this.
+    - If no tickets are found, set an error and redirect back to thank-you.
     """
     tickets = list(
         Ticket.objects.filter(order_id=order_id).select_related("ticketInfo__event")
@@ -269,7 +263,7 @@ def ticket_resend(request, order_id):
         messages.error(request, "We couldn't find any tickets for that order.")
         return redirect("tickets:ticket_thank_you", order_id=order_id)
 
-    if request.user.is_authenticated and not _user_owns_tickets(request.user, tickets):
+    if not _user_owns_tickets(request.user, tickets):
         messages.error(request, "You do not have permission to resend those tickets.")
         return redirect("tickets:ticket_list")
 
