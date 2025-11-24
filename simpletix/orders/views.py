@@ -58,12 +58,15 @@ def order(request, event_id):
         ticket = request.GET.get("ticket")
 
         initial = {}
+        ticket_qs = TicketInfo.objects.filter(
+            event=event, availability__gt=0, is_active=True
+        )
 
-        # Test suite requires this exact behavior:
-        if ticket_category_id:
-            initial["ticket_info"] = ticket_category_id
-        elif ticket:
-            initial["ticket_info"] = ticket
+        # Only preselect if valid & available, AND cast to int
+        if ticket_category_id and ticket_qs.filter(id=ticket_category_id).exists():
+            initial["ticket_info"] = int(ticket_category_id)
+        elif ticket and ticket_qs.filter(id=ticket).exists():
+            initial["ticket_info"] = int(ticket)
 
         form = OrderForm(
             initial=initial,
