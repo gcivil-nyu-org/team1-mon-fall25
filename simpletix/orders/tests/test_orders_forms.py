@@ -6,9 +6,9 @@ from events.models import Event
 from accounts.models import OrganizerProfile
 from tickets.models import TicketInfo
 from orders.forms import OrderForm
+from accounts.forms import OrganizerProfileForm
 
 pytestmark = pytest.mark.django_db
-
 
 # --- forms:OrderForm ---
 
@@ -208,3 +208,56 @@ def test_order_form_preselect_sold_out(event_for_ordering, ticket_info_early_sol
 
     assert form.fields["quantity"].widget.attrs["max"] == max_availability
     assert form.fields["quantity"].max_value == max_availability
+
+
+# requried and prefilled email
+
+
+@pytest.fixture
+def order_organizer_profile_with_email():
+    """Fixture for the organizer profile in OrderForm tests."""
+    test_user_order_org = User.objects.create_user(
+        username="username", password="Passw0rd1!"
+    )
+    op = OrganizerProfile.objects.create(user=test_user_order_org)
+    form = OrganizerProfileForm(
+        data={
+            "full_name": "A",
+            "contact_email": "user@example.com",
+            "phone": "1234567890",
+        },
+        instance=op,
+    )
+    return form.save()
+
+
+# --- Form Tests ---
+
+
+def test_order_form_email_mandatory(event_for_ordering, ticket_info_ga):
+    """Test that email is required even if model says blank=True."""
+    data = {
+        "ticket_info": ticket_info_ga.pk,
+        "quantity": 1,
+        "full_name": "No Email User",
+        "phone": "555-1212-3333",
+        # "email" is intentionally missing
+    }
+    form = OrderForm(data, event=event_for_ordering, profile=None)
+
+    assert not form.is_valid()
+    assert "email" in form.errors
+    assert "This field is required." in form.errors["email"]
+
+
+def test_order_form_prefills_email_from_user(
+    event_for_ordering, order_organizer_profile_with_email
+):
+    """Test that the form prefills email from the logged-in user."""
+    # Initialize form with the user object, but NO data (GET request scenario)
+    form = OrderForm(
+        event=event_for_ordering, profile=order_organizer_profile_with_email
+    )
+
+    # Check the initial value of the email field
+    assert form.fields["email"].initial == "user@example.com"
