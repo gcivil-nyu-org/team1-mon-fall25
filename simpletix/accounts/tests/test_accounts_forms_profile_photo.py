@@ -37,7 +37,11 @@ def test_profile_photo_png_alpha_normalized_to_jpeg_and_saved(tmp_path, settings
     f = SimpleUploadedFile("avatar.png", png_bytes, content_type="image/png")
 
     form = OrganizerProfileForm(
-        data={"full_name": "A", "contact_email": "a@example.com", "phone": "123"},
+        data={
+            "full_name": "A",
+            "contact_email": "a@example.com",
+            "phone": "1234567890",
+        },
         files={"profile_photo": f},
         instance=op,
     )

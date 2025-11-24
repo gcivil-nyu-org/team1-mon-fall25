@@ -3,6 +3,7 @@ from django.urls import reverse
 import stripe
 import os
 
+from orders.forms import OrderForm
 from orders.models import Order, BillingInfo
 from tickets.models import Ticket
 
@@ -384,3 +385,89 @@ def test_webhook_handler_env_not_found(client, webhook_url, mock_stripe, pending
     response = post_webhook(client, webhook_url, mock_event)
     # Should not crash, just prints an error and returns 200
     assert response.status_code == 200
+
+
+def test_order_view_get_preselect_valid_ticket(
+    logged_in_attendee_client, test_event, ticket_info_vip, ticket_info_ga
+):
+    """
+    If a valid ticket_category_id is provided in GET params, it should
+    preselect that ticket in the form.
+    """
+    url = reverse("orders:order", args=[test_event.id])
+    url += f"?ticket_category_id={ticket_info_vip.id}"
+
+    response = logged_in_attendee_client.get(url)
+
+    assert response.status_code == 200
+    form = response.context["form"]
+    assert isinstance(form, OrderForm)
+
+    # The correct ticket is preselected
+    assert form.initial["ticket_info"] == ticket_info_vip.id
+    assert form.fields["quantity"].widget.attrs["max"] == ticket_info_vip.availability
+    assert form.fields["quantity"].max_value == ticket_info_vip.availability
+
+
+def test_order_view_get_preselect_invalid_ticket(
+    logged_in_attendee_client, test_event, ticket_info_vip, ticket_info_ga
+):
+    """
+    If an invalid ticket_category_id is provided, the form should fall
+    back to the first available ticket.
+    """
+    invalid_id = 9999
+    url = reverse("orders:order", args=[test_event.id])
+    url += f"?ticket_category_id={invalid_id}"
+
+    response = logged_in_attendee_client.get(url)
+    assert response.status_code == 200
+
+    form = response.context["form"]
+    first_ticket = form.fields["ticket_info"].queryset.first()
+
+    # No initial preselection
+    assert form.initial.get("ticket_info") is None
+
+    # Quantity max falls back to the first available ticket
+    assert form.fields["quantity"].widget.attrs["max"] == first_ticket.availability
+    assert form.fields["quantity"].max_value == first_ticket.availability
+
+
+def test_order_view_get_preselect_sold_out_ticket(
+    logged_in_attendee_client, test_event, ticket_info_vip, ticket_info_soldout
+):
+    """
+    A sold-out ticket in ticket_category_id param should not be preselected.
+    """
+    url = reverse("orders:order", args=[test_event.id])
+    url += f"?ticket_category_id={ticket_info_soldout.id}"
+
+    response = logged_in_attendee_client.get(url)
+    assert response.status_code == 200
+
+    form = response.context["form"]
+    # Sold-out ticket should not be in the queryset, so no initial selection
+    assert form.initial.get("ticket_info") is None
+
+    # Quantity max falls back to first available ticket
+    first_ticket = form.fields["ticket_info"].queryset.first()
+    assert form.fields["quantity"].widget.attrs["max"] == first_ticket.availability
+    assert form.fields["quantity"].max_value == first_ticket.availability
+
+
+def test_order_view_ticket_availability_data(
+    logged_in_attendee_client, test_event, ticket_info_vip, ticket_info_ga
+):
+    """
+    Context should include ticket_availability_data mapping ticket IDs to availability.
+    """
+    url = reverse("orders:order", args=[test_event.id])
+    response = logged_in_attendee_client.get(url)
+
+    expected_data = {
+        str(ticket_info_vip.id): ticket_info_vip.availability,
+        str(ticket_info_ga.id): ticket_info_ga.availability,
+    }
+
+    assert response.context["ticket_availability_data"] == expected_data
