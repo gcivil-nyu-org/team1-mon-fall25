@@ -54,7 +54,13 @@ def order(request, event_id):
                 print(e)
     else:
         # For a GET request, pass the event object to the form
-        form = OrderForm(event=event)
+        preselected_ticket = request.GET.get("ticket")
+
+        initial = {}
+        if preselected_ticket:
+            initial["ticket_info"] = preselected_ticket
+
+        form = OrderForm(initial=initial, event=event)
 
     available_tickets = TicketInfo.objects.filter(
         event=event, availability__gt=0, is_active=True

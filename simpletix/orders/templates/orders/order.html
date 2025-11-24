@@ -84,6 +84,13 @@
         <br>
         <div class="mt-4 d-flex justify-content-between">
             <div>
+                <button
+                    type="button"
+                    onclick="window.history.back()"
+                    class="btn btn-secondary"
+                >
+                    ← Back
+                </button>
                 <a href="{% url 'events:event_detail' event.id %}" class="btn btn-secondary">Event Details</a>
                 <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Event List</a>
             </div>
