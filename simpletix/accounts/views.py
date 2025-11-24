@@ -164,7 +164,14 @@ def signup(request):
 
 @login_required
 def profile_edit(request):
+
     profile, _ = OrganizerProfile.objects.get_or_create(user=request.user)
+
+    session_role = request.session.get("desired_role")
+    db_role = getattr(getattr(request.user, "uprofile", None), "role", None)
+    effective_role = (session_role or db_role or "attendee").lower()
+
+    profile_role = "Organizer" if effective_role == "organizer" else "Attendee"
 
     if request.method == "POST":
         form = OrganizerProfileForm(request.POST, request.FILES, instance=profile)
@@ -179,7 +186,11 @@ def profile_edit(request):
     return render(
         request,
         "accounts/profile_edit.html",
-        {"form": form, "next": request.GET.get("next", "/")},
+        {
+            "form": form,
+            "next": request.GET.get("next", "/"),
+            "profile_role": profile_role,
+        },
     )
 
 

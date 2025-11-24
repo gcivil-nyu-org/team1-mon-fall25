@@ -8,7 +8,6 @@ from events.models import Event
 from accounts.models import OrganizerProfile, UserProfile
 from tickets.models import TicketInfo, Ticket
 
-# Mark all tests in this file as needing database access
 pytestmark = pytest.mark.django_db
 
 
@@ -131,3 +130,74 @@ def test_create_ticket(attendee_profile, ticket_info_ga):
     assert ticket.full_name == "Test Attendee"
     assert ticket.email == "test@example.com"
     assert ticket.phone == "123-456-7890"
+
+
+# --- TicketInfo ordering behaviour (bug #149 regression tests) ---
+
+
+def test_ticket_info_ordering_is_alphabetical_by_category(test_event):
+    """
+    For a given event, TicketInfo entries should appear in alphabetical
+    order by category, regardless of creation order.
+    This protects the fix for:
+    'Ticket Categories Shift Display Order' (Bug #149).
+    """
+    # Create in a non-alphabetical order
+    TicketInfo.objects.create(
+        event=test_event,
+        category="VIP",
+        price=Decimal("100.00"),
+        availability=25,
+    )
+    TicketInfo.objects.create(
+        event=test_event,
+        category="General Admission",
+        price=Decimal("50.00"),
+        availability=50,
+    )
+    TicketInfo.objects.create(
+        event=test_event,
+        category="Early Bird",
+        price=Decimal("35.00"),
+        availability=15,
+    )
+
+    categories = list(test_event.ticketInfo.values_list("category", flat=True))
+
+    # Expected stable alphabetical order
+    assert categories == ["Early Bird", "General Admission", "VIP"]
+
+
+def test_editing_ticket_info_does_not_change_display_order(test_event):
+    """
+    Editing a TicketInfo (e.g., changing availability/quantity) should
+    not change the relative order of categories for an event.
+    This matches the expected behaviour in the organizer edit event UI.
+    """
+    TicketInfo.objects.create(
+        event=test_event,
+        category="General Admission",
+        price=Decimal("50.00"),
+        availability=50,
+    )
+    vip = TicketInfo.objects.create(
+        event=test_event,
+        category="VIP",
+        price=Decimal("100.00"),
+        availability=25,
+    )
+    TicketInfo.objects.create(
+        event=test_event,
+        category="Early Bird",
+        price=Decimal("35.00"),
+        availability=15,
+    )
+
+    # Simulate the organizer editing just this ticket (like changing quantity)
+    vip.availability = 99
+    vip.save()
+
+    categories = list(test_event.ticketInfo.values_list("category", flat=True))
+
+    # Order should still be alphabetical, not "VIP last-edited goes to bottom"
+    assert categories == ["Early Bird", "General Admission", "VIP"]

@@ -93,6 +93,7 @@
     overflow: hidden;
     transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     backdrop-filter: blur(12px);
+    cursor: pointer;
 }
 
 /* Glow edge on hover */
@@ -285,3 +286,62 @@
         border-radius: 1.1rem;
     }
 }
+
+/* ========== FILTER BAR (Compact Modern UI) ========== */
+
+.filter-bar {
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 1rem 1.4rem;
+    border-radius: 16px;
+    margin: 1.5rem auto 2rem;
+    max-width: 1200px;
+}
+
+/* Darker text for Ticket Type labels */
+.filter-bar .form-check-inline .form-check-label {
+    color: #1f2937 !important; /* darker gray (Tailwind gray-800) */
+    font-weight: 500;
+}
+
+.filter-bar .form-label {
+    font-size: 0.82rem;
+    color: #4b5563;
+    margin-bottom: 0.25rem;
+}
+
+.filter-bar .form-select,
+.filter-bar .form-control {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    border-radius: 10px;
+}
+
+.filter-bar .form-check-label {
+    font-size: 0.82rem;
+}
+
+.filter-bar .form-check-input {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+.filter-bar .btn {
+    font-size: 0.85rem;
+    border-radius: 10px;
+    padding: 0.45rem 1rem;
+}
+
+/* Make entire filter bar feel tighter */
+.filter-bar .row {
+    row-gap: 0.6rem !important;
+}
+
+@media (max-width: 768px) {
+    .filter-bar {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+}
+
