@@ -1,0 +1,1 @@
+[{"model": "accounts.userprofile", "pk": 1, "fields": {"user": 1, "role": "attendee"}}, {"model": "accounts.userprofile", "pk": 2, "fields": {"user": 2, "role": "organizer"}}, {"model": "accounts.organizerprofile", "pk": 1, "fields": {"user": 2, "full_name": "", "contact_email": "", "phone": "", "profile_photo": ""}}]

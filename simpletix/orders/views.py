@@ -76,14 +76,15 @@ def order(request, event_id):
         if "ticket_info" in initial:
             try:
                 selected_ticket = TicketInfo.objects.get(
-                    id=int(initial["ticket_info"]),
-                    event=event,
-                    availability__gt=0
+                    id=int(initial["ticket_info"]), event=event, availability__gt=0
                 )
-                form.fields["quantity"].widget.attrs["max"] = selected_ticket.availability
+                qty_field = form.fields["quantity"]
+                qty_field.widget.attrs["max"] = selected_ticket.availability
+
+                form.fields["quantity"].max_value = selected_ticket.availability
+
             except TicketInfo.DoesNotExist:
                 pass
-
 
     available_tickets = TicketInfo.objects.filter(
         event=event, availability__gt=0, is_active=True
