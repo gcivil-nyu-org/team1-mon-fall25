@@ -1,11 +1,10 @@
 from django.shortcuts import get_object_or_404, render, redirect
 
 from accounts.models import UserProfile
-from .models import Ticket
+from .models import Ticket, TicketInfo
 import json
 from django.views.decorators.csrf import csrf_exempt
 from . import services
-from .models import TicketInfo
 from django.http import JsonResponse, HttpResponseNotAllowed
 
 from django.contrib.auth.decorators import login_required
@@ -17,6 +16,8 @@ from django.http import Http404
 from django.views.decorators.http import require_POST
 from .services import build_tickets_pdf, send_ticket_email
 from django.urls import reverse_lazy
+from django.db.models import Q
+from accounts.models import UserProfile, OrganizerProfile
 
 
 def index(request):
@@ -25,11 +26,36 @@ def index(request):
 
 @login_required(login_url=reverse_lazy("accounts:login"))
 def details(request, id):
-    attendee = UserProfile.objects.filter(user=request.user).first()
-    if attendee:
-        ticket = get_object_or_404(Ticket, id=id, attendee=attendee)
-    else:
-        raise Http404("Ticket not found.")
+    """
+    Show ticket details for the current user.
+
+    A user can view a ticket if:
+      - they are the attendee for that ticket, OR
+      - the ticket email matches their account email.
+
+    If the ticket doesn't exist OR doesn't belong to this user,
+    show a friendly message and send them back to "My Tickets".
+    """
+    profile = UserProfile.objects.filter(user=request.user).first()
+
+    # Base queryset: this ticket id
+    qs = Ticket.objects.filter(id=id).select_related("ticketInfo__event")
+
+    # Ownership conditions
+    conditions = Q()
+    if profile is not None:
+        conditions |= Q(attendee=profile)
+    if request.user.email:
+        conditions |= Q(email__iexact=request.user.email)
+
+    ticket = qs.filter(conditions).first()
+
+    if ticket is None:
+        messages.error(
+            request,
+            "We couldn't find that ticket, or you don't have permission to view it.",
+        )
+        return redirect("tickets:ticket_list")
 
     event = ticket.ticketInfo.event
     qr_data_url = _qr_data_url_for_ticket(ticket)
@@ -43,26 +69,52 @@ def details(request, id):
 
 @login_required(login_url=reverse_lazy("accounts:login"))
 def ticket_list(request):
-    try:
-        attendee = UserProfile.objects.get(user=request.user)
-    except UserProfile.DoesNotExist:
-        attendee = None
+    """
+    For attendees: show their tickets.
 
-    if attendee is not None:
-        filtername = str(attendee.user)
-        tickets = Ticket.objects.filter(attendee=attendee)
-    else:
-        # non-attendee (organizer/other) – no tickets, but label "all"
-        filtername = "all"
-        tickets = Ticket.objects.none()
+    For current-role organizers: show an informational message and no tickets.
+    """
+    is_organizer = request.session.get("desired_role") == "organizer"
+
+    if is_organizer:
+        messages.info(
+            request,
+            "Organizer accounts cannot purchase tickets. Please log in with an attendee account to buy tickets.",
+        )
+        return render(
+            request,
+            "tickets/ticket_list.html",
+            {
+                "filtername": str(request.user),
+                "tickets": [],
+                "is_organizer": True,
+            },
+        )
+
+    # Attendee view
+    profile = UserProfile.objects.filter(user=request.user).first()
+
+    qs = Ticket.objects.select_related("ticketInfo__event")
+
+    filters = Q()
+    if profile is not None:
+        filters |= Q(attendee=profile)
+    if request.user.email:
+        filters |= Q(email__iexact=request.user.email)
+
+    tickets = qs.filter(filters).order_by("-id").distinct()
 
     return render(
         request,
         "tickets/ticket_list.html",
-        {"filtername": filtername, "tickets": tickets},
+        {
+            "filtername": str(request.user),
+            "tickets": tickets,
+            "is_organizer": False,
+        },
     )
-
-
+    
+    
 @csrf_exempt
 def payment_confirm(request):
     """
@@ -148,23 +200,60 @@ def _qr_data_url_for_ticket(ticket):
     return f"data:image/png;base64,{encoded}"
 
 
+def _user_owns_tickets(user, tickets):
+    """
+    Returns True if the given user is allowed to see these tickets.
+    A user 'owns' tickets if:
+      - they are the attendee (UserProfile) OR
+      - the ticket email matches their account email.
+    """
+    if not user.is_authenticated:
+        return False
+
+    profile = UserProfile.objects.filter(user=user).first()
+
+    for t in tickets:
+        if profile is not None and t.attendee_id == profile.id:
+            return True
+        if (
+            t.email
+            and user.email
+            and t.email.lower() == user.email.lower()
+        ):
+            return True
+
+    return False
+
+
+@login_required(login_url=reverse_lazy("accounts:login"))
 def ticket_thank_you(request, order_id):
     """
-    Show a modern confirmation page after payment:
-    - order number
-    - email we sent tickets to
-    - event info
-    - primary ticket QR code
-    - 'resend tickets' button
+    Show a modern confirmation page after payment.
+
+    Security fix:
+    - Require login
+    - Only show if the current user 'owns' at least one ticket for this order
+      (attendee or matching ticket.email).
+    - Otherwise, redirect to My Tickets with an error message.
+
+    This keeps the previous flow:
+      Payment success -> thank you page -> My Tickets
+    but stops other logged-in accounts from viewing someone else's thank-you
+    just by guessing the URL.
     """
-    tickets = (
-        Ticket.objects.filter(order_id=order_id)
+    tickets = list(
+        Ticket.objects.filter(order_id=str(order_id))
         .select_related("ticketInfo__event")
         .order_by("id")
     )
 
     if not tickets:
-        raise Http404("No tickets found for this order.")
+        messages.error(request, "We couldn't find any tickets for that order.")
+        return redirect("tickets:ticket_list")
+
+    if not _user_owns_tickets(request.user, tickets):
+        messages.error(request, "You do not have access to that order.")
+        return redirect("tickets:ticket_list")
 
     primary = tickets[0]
     event = primary.ticketInfo.event if primary.ticketInfo else None
@@ -181,19 +270,27 @@ def ticket_thank_you(request, order_id):
     return render(request, "tickets/thank_you.html", context)
 
 
+@login_required(login_url=reverse_lazy("accounts:login"))
 @require_POST
 def ticket_resend(request, order_id):
     """
     Re-send ticket email (with PDF) for this order.
-    Uses the same email + PDF logic as payment_confirm.
+
+    Only allowed if the current user owns tickets for this order
+    (same logic as ticket_thank_you).
     """
     tickets = list(
-        Ticket.objects.filter(order_id=order_id).select_related("ticketInfo__event")
+        Ticket.objects.filter(order_id=str(order_id))
+        .select_related("ticketInfo__event")
     )
 
     if not tickets:
         messages.error(request, "We couldn't find any tickets for that order.")
-        return redirect("tickets:ticket_thank_you", order_id=order_id)
+        return redirect("tickets:ticket_list")
+
+    if not _user_owns_tickets(request.user, tickets):
+        messages.error(request, "You do not have permission to resend those tickets.")
+        return redirect("tickets:ticket_list")
 
     email = tickets[0].email
     if not email:

@@ -1,6 +1,6 @@
 {% extends 'events/base.html' %}
 
-{% block title %}{{ event.title }}{% endblock %}
+{% block title %}{{ event.title }}{% endblock title %}
 
 {% block head %}
   {{ block.super }}
@@ -117,8 +117,14 @@
       width: 100%;
       height: auto;
     }
+
+    .organizer-note {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
   </style>
-{% endblock %}
+{% endblock head %}
 
 {% block content %}
 <div class="event-detail-shell">
@@ -166,7 +172,7 @@
           </thead>
           <tbody>
             {% for ticket in event.ticketInfo.all %}
-              {% if ticket.is_active == True %}
+              {% if ticket.is_active %}
                 <tr>
                   <td>{{ ticket.get_category_display }}</td>
                   <td>${{ ticket.price }}</td>
@@ -179,7 +185,21 @@
                   </td>
                   <td class="text-end">
                     {% if ticket.availability > 0 %}
-                      <a href="{% url 'orders:order' event.id %}" class="btn btn-primary btn-sm">Buy</a>
+                      {% if user.is_authenticated and is_organizer %}
+                        <button class="btn btn-secondary btn-sm" disabled>
+                          Organizers cannot buy
+                        </button>
+                      {% elif user.is_authenticated %}
+                        <a href="{% url 'orders:order' event.id %}"
+                           class="btn btn-primary btn-sm">
+                          Buy
+                        </a>
+                      {% else %}
+                        <a href="{% url 'accounts:login' %}?next={% url 'events:event_detail' event.id %}"
+                           class="btn btn-primary btn-sm">
+                          Log in to buy
+                        </a>
+                      {% endif %}
                     {% else %}
                       <button class="btn btn-secondary btn-sm" disabled>Sold out</button>
                     {% endif %}
@@ -191,21 +211,43 @@
         </table>
       </div>
 
+      {% if user.is_authenticated and is_organizer %}
+        <p class="organizer-note">
+          Organizer accounts cannot purchase tickets. Please use an attendee account to test the checkout and ticket flows.
+        </p>
+      {% endif %}
+
       <div class="event-actions">
         <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary">
           Back to Events
         </a>
 
         <div class="event-actions-right">
-          {% if request.session.desired_role == 'organizer' and event.organizer.user == user %}
-            <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning">Edit Event</a>
-            <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
-          {% elif request.session.desired_role != 'organizer' %}
-            <a href="{% url 'orders:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
+          {# ORGANIZER: can edit/delete own event, but never see Buy button #}
+          {% if user.is_authenticated and is_organizer %}
+            {% if event.organizer.user == user %}
+              <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning">
+                Edit Event
+              </a>
+              <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">
+                Delete Event
+              </a>
+            {% endif %}
+          {% else %}
+            {% if user.is_authenticated %}
+              <a href="{% url 'orders:order' event.id %}" class="btn btn-primary">
+                Buy Ticket
+              </a>
+            {% else %}
+              <a href="{% url 'accounts:login' %}?next={% url 'events:event_detail' event.id %}"
+                 class="btn btn-primary">
+                Log in to buy tickets
+              </a>
+            {% endif %}
           {% endif %}
         </div>
       </div>
     </div>
   </div>
 </div>
-{% endblock %}
+{% endblock content %}

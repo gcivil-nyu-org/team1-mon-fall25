@@ -16,50 +16,72 @@ from tickets import services as ticket_services
 from .forms import OrderForm
 from .models import BillingInfo, Order
 
-
 def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    desired_role = request.session.get("desired_role")
+
+    # Block current-role "organizer" from purchasing
+    if request.user.is_authenticated and desired_role == "organizer":
+        messages.error(
+            request,
+            "Organizer accounts cannot purchase tickets. "
+            "Please log in with an attendee account to buy tickets.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
+
     if request.method == "POST":
-        # Pass the event object to the form constructor
+        # Bind POST data to form
         form = OrderForm(request.POST, event=event)
 
         if form.is_valid():
-            try:
-                # Use a database transaction to ensure data integrity
-                with transaction.atomic():
-                    # Decrement the availability of the chosen TicketInfo
-                    ticket_info = form.cleaned_data["ticket_info"]
-                    ticket_info = TicketInfo.objects.select_for_update().get(
-                        id=ticket_info.id
+            # Use a database transaction to ensure data integrity
+            with transaction.atomic():
+                # Lock and update TicketInfo availability
+                ticket_info = form.cleaned_data["ticket_info"]
+                ticket_info = TicketInfo.objects.select_for_update().get(
+                    pk=ticket_info.pk
+                )
+                quantity = form.cleaned_data["quantity"]
+
+                # Check that there are enough tickets
+                if quantity < 1:
+                    messages.error(request, "Please select at least one ticket.")
+                    return redirect("orders:order", event_id=event.id)
+
+                if ticket_info.availability < quantity:
+                    messages.error(
+                        request,
+                        "Sorry, there are not enough tickets available for that quantity.",
                     )
-                    quantity = form.cleaned_data["quantity"]
+                    return redirect("orders:order", event_id=event.id)
 
-                    if ticket_info.availability < 1:
-                        messages.error(request, "Sorry, this ticket is now sold out.")
-                        return redirect("orders:order", event_id=event.id)
+                ticket_info.availability -= quantity
+                ticket_info.save()
 
-                    ticket_info.availability -= quantity
-                    ticket_info.save()
+                # Create the Order instance
+                order = form.save(commit=False)
 
-                    # Save the form to create the order instance
-                    order = form.save(commit=False)
-                    if request.session.get("desired_role") == "attendee":
-                        order.attendee = UserProfile.objects.get(user=request.user)
-                    order.save()
+                if desired_role == "attendee" and request.user.is_authenticated:
+                    attendee_profile = UserProfile.objects.filter(
+                        user=request.user
+                    ).first()
+                    if attendee_profile:
+                        order.attendee = attendee_profile
+                    # If no profile, leave attendee as None (still valid)
 
-                return redirect("orders:process_payment", order_id=order.id)
-            except Exception as e:  # pragma: no cover (optional)
-                # You may want to log this instead of print in production
-                print(e)
+                order.save()
+
+            return redirect("orders:process_payment", order_id=order.id)
+        # If form is invalid, fall through and re-render with errors
     else:
-        # For a GET request, pass the event object to the form
         form = OrderForm(event=event)
 
     available_tickets = TicketInfo.objects.filter(
         event=event, availability__gt=0, is_active=True
     )
     ticket_availability_data = {str(t.id): t.availability for t in available_tickets}
+
     return render(
         request,
         "orders/order.html",
@@ -69,7 +91,6 @@ def order(request, event_id):
             "ticket_availability_data": ticket_availability_data,
         },
     )
-
 
 def order_failed(order):
     """
