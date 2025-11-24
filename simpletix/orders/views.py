@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
-from accounts.models import UserProfile
+from accounts.models import UserProfile, OrganizerProfile
 from events.models import Event
 from tickets.models import TicketInfo
 from tickets import services as ticket_services
@@ -18,6 +18,11 @@ from .models import BillingInfo, Order
 
 def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+    preselect_ticket_category_id = request.GET.get("ticket_category_id", None)
+    if request.user and request.user.is_authenticated:
+        profile, _ = OrganizerProfile.objects.get_or_create(user=request.user)
+    else:
+        profile = None
 
     desired_role = request.session.get("desired_role")
 
@@ -31,6 +36,8 @@ def order(request, event_id):
         return redirect("events:event_detail", event_id=event.id)
 
     if request.method == "POST":
+        # Pass the event object to the form constructor
+        form = OrderForm(request.POST, event=event, profile=profile)
         # Bind POST data to form
         form = OrderForm(request.POST, event=event)
 
@@ -72,9 +79,16 @@ def order(request, event_id):
 
                 order.save()
 
+                return redirect("orders:process_payment", order_id=order.id)
             return redirect("orders:process_payment", order_id=order.id)
         # If form is invalid, fall through and re-render with errors
     else:
+        # For a GET request, pass the event object to the form
+        form = OrderForm(
+            event=event,
+            preselect_ticket_category_id=preselect_ticket_category_id,
+            profile=profile,
+        )
         form = OrderForm(event=event)
 
     available_tickets = TicketInfo.objects.filter(

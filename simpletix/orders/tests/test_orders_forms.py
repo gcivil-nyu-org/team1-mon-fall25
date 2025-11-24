@@ -6,9 +6,9 @@ from events.models import Event
 from accounts.models import OrganizerProfile
 from tickets.models import TicketInfo
 from orders.forms import OrderForm
+from accounts.forms import OrganizerProfileForm
 
 pytestmark = pytest.mark.django_db
-
 
 # --- forms:OrderForm ---
 
@@ -172,3 +172,92 @@ def test_order_form_invalid_ticket_choice(
     assert (
         "ticket_info" in form.errors
     )  # Fails validation against the filtered queryset
+
+
+def test_order_form_preselect_valid_ticket(event_for_ordering, ticket_info_vip):
+    """Test that a valid preselected ticket is set as initial value."""
+    form = OrderForm(
+        event=event_for_ordering, preselect_ticket_category_id=ticket_info_vip.id
+    )
+    assert form.initial["ticket_info"] == ticket_info_vip.id
+    assert form.fields["quantity"].widget.attrs["max"] == ticket_info_vip.availability
+    assert form.fields["quantity"].max_value == ticket_info_vip.availability
+
+
+def test_order_form_preselect_invalid_ticket(event_for_ordering, ticket_info_vip):
+    """Test an invalid preselected ticket falls back to the first available ticket."""
+    invalid_id = 9999
+    form = OrderForm(event=event_for_ordering, preselect_ticket_category_id=invalid_id)
+
+    assert form.initial.get("ticket_info") is None
+    first_ticket = form.fields["ticket_info"].queryset.first()
+
+    assert form.fields["quantity"].widget.attrs["max"] == first_ticket.availability
+    assert form.fields["quantity"].max_value == first_ticket.availability
+
+
+def test_order_form_preselect_sold_out(event_for_ordering, ticket_info_early_soldout):
+    """Test that a preselected ticket with 0 availability sets quantity max to 0."""
+    form = OrderForm(
+        event=event_for_ordering,
+        preselect_ticket_category_id=ticket_info_early_soldout.id,
+    )
+
+    first_available = form.fields["ticket_info"].queryset.first()
+    max_availability = first_available.availability if first_available else 0
+
+    assert form.fields["quantity"].widget.attrs["max"] == max_availability
+    assert form.fields["quantity"].max_value == max_availability
+
+
+# requried and prefilled email
+
+
+@pytest.fixture
+def order_organizer_profile_with_email():
+    """Fixture for the organizer profile in OrderForm tests."""
+    test_user_order_org = User.objects.create_user(
+        username="username", password="Passw0rd1!"
+    )
+    op = OrganizerProfile.objects.create(user=test_user_order_org)
+    form = OrganizerProfileForm(
+        data={
+            "full_name": "A",
+            "contact_email": "user@example.com",
+            "phone": "1234567890",
+        },
+        instance=op,
+    )
+    return form.save()
+
+
+# --- Form Tests ---
+
+
+def test_order_form_email_mandatory(event_for_ordering, ticket_info_ga):
+    """Test that email is required even if model says blank=True."""
+    data = {
+        "ticket_info": ticket_info_ga.pk,
+        "quantity": 1,
+        "full_name": "No Email User",
+        "phone": "555-1212-3333",
+        # "email" is intentionally missing
+    }
+    form = OrderForm(data, event=event_for_ordering, profile=None)
+
+    assert not form.is_valid()
+    assert "email" in form.errors
+    assert "This field is required." in form.errors["email"]
+
+
+def test_order_form_prefills_email_from_user(
+    event_for_ordering, order_organizer_profile_with_email
+):
+    """Test that the form prefills email from the logged-in user."""
+    # Initialize form with the user object, but NO data (GET request scenario)
+    form = OrderForm(
+        event=event_for_ordering, profile=order_organizer_profile_with_email
+    )
+
+    # Check the initial value of the email field
+    assert form.fields["email"].initial == "user@example.com"

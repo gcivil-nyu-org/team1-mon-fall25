@@ -160,7 +160,7 @@
     <div class="row g-4 events-grid">
         {% for event in events %}
         <div class="col-md-4">
-            <div class="card event-card futuristic-card">
+            <div class="card event-card futuristic-card clickable-card" data-url="{% url 'events:event_detail' event.id %}">
                 <div class="event-card-media">
                     {% if event.banner %}
                         <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}">
@@ -304,4 +304,25 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.clickable-card');
+
+    cards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // CHECK: Did the user click on a link (a) or a button?
+            // If yes, do nothing (let the button do its job).
+            if (e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+
+            // Otherwise, go to the card's URL
+            const url = this.getAttribute('data-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

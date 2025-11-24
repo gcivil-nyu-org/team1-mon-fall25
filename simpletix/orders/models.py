@@ -44,7 +44,7 @@ class Order(models.Model):
 
     # Store attendee info
     full_name = models.CharField(max_length=120, blank=True)
-    email = models.EmailField(blank=True)
+    email = models.EmailField()
     phone = models.CharField(max_length=30, blank=True)
 
     # Order status and tracking

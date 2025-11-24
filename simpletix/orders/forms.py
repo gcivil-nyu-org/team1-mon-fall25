@@ -42,25 +42,39 @@ class OrderForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        profile = kwargs.pop("profile", None)
         event = kwargs.pop("event", None)
+        preselect_ticket_category_id = kwargs.pop("preselect_ticket_category_id", None)
         super().__init__(*args, **kwargs)
+
+        self.fields["email"].required = True
+        if profile and profile.contact_email:
+            self.fields["email"].initial = profile.contact_email
 
         if event:
             # Only include tickets for this event with availability > 0.
             available = TicketInfo.objects.filter(event=event, availability__gt=0)
             self.fields["ticket_info"].queryset = available
 
-            # Pretty dropdown labels, wrapped to stay under 88 chars.
+            # Pretty dropdown labels
             self.fields["ticket_info"].label_from_instance = lambda obj: (
                 f"{obj.get_category_display()} (${obj.price}) - "
                 f"{obj.availability} available"
             )
 
-            if available.exists():
-                # Get the availability of the first ticket in the list
-                first_ticket_max = available.first().availability
-                self.fields["quantity"].widget.attrs["max"] = first_ticket_max
-                self.fields["quantity"].max_value = first_ticket_max
+            # Handle preselected ticket category field default
+            selected_ticket = available.filter(id=preselect_ticket_category_id).first()
+
+            if selected_ticket:
+                self.initial["ticket_info"] = selected_ticket.id
+                max_availability = selected_ticket.availability
+            else:
+                max_availability = (
+                    available.first().availability if available.exists() else 0
+                )
+
+            self.fields["quantity"].widget.attrs["max"] = max_availability
+            self.fields["quantity"].max_value = max_availability
 
     def clean(self):
         """
