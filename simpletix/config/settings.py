@@ -104,9 +104,32 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "simpletix-dev.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
     "simpletix-prod.eba-fygzzpfp.us-east-1.elasticbeanstalk.com",
-    "172.31.0.0/16",
+    "simpletix.net",
+    "dev.simpletix.net",
+    "www.simpletix.net",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://simpletix.net",
+    "https://dev.simpletix.net",
+    "https://www.simpletix.net",
+]
+
+if ENVIRONMENT in ["production", "development"]:
+    SECURE_SSL_REDIRECT = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+else:
+    SECURE_SSL_REDIRECT = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    USE_X_FORWARDED_HOST = False
 
 # Application definition
 
