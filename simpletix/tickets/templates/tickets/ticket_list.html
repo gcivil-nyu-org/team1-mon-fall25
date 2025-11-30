@@ -16,12 +16,13 @@
         <header class="stx-ticket-hero">
           <p class="stx-ticket-breadcrumb">My Tickets</p>
           <p class="stx-ticket-hero-subtitle">
-            Organizer accounts cannot purchase tickets. Please log in with an attendee account to buy and view tickets.
+            You’re currently signed in as an organizer. Organizer accounts are used to
+            create and manage events, not to hold tickets.
           </p>
         </header>
 
         <p class="stx-ticket-empty-state">
-          This page is only used for attendee ticket purchases. Use a separate attendee account to test the checkout and ticket flows.
+          To buy tickets for an event, please sign in with an attendee account.
         </p>
 
       {% else %}
@@ -110,6 +111,7 @@
     </div>
   </div>
 {% else %}
+  {# Guest view: no tickets, prompt to sign in #}
   <div class="stx-ticket-page">
     <div class="stx-ticket-inner">
       <header class="stx-ticket-hero">
@@ -121,6 +123,12 @@
       <p class="stx-ticket-empty-state">
         Please sign in to see your tickets.
       </p>
+      <a
+        href="{% url 'accounts:login' %}?next={% url 'tickets:ticket_list' %}"
+        class="stx-ticket-view-button"
+      >
+        Sign in
+      </a>
     </div>
   </div>
 {% endif %}

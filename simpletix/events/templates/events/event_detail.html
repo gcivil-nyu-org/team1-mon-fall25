@@ -190,7 +190,7 @@
                           Organizers cannot buy
                         </button>
                       {% elif user.is_authenticated %}
-                        <a href="{% url 'orders:order' event.id %}"
+                        <a href="{% url 'orders:order' event.id %}?ticket_category_id={{ ticket.id }}"
                            class="btn btn-primary btn-sm">
                           Buy
                         </a>

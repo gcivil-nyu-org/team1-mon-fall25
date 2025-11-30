@@ -2,12 +2,11 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.http import JsonResponse, HttpResponseNotAllowed, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse_lazy
+
 from django.contrib import messages
 from django.db.models import Q
 
-from accounts.models import UserProfile
+from accounts.models import UserProfile, OrganizerProfile
 from .models import Ticket, TicketInfo
 from . import services
 from .services import build_tickets_pdf, send_ticket_email
@@ -22,32 +21,36 @@ def index(request):
     return render(request, "tickets/index.html")
 
 
-from django.http import Http404
-
 def details(request, id):
     """
-    Show ticket details.
+    Ticket details view.
 
-    - If ticket doesn't exist → 404.
-    - If a user IS logged in and does NOT own the ticket → 404.
-    - Anonymous users can see the page if they have the direct link
-      (tests for this flow expect 200).
+    Behaviour:
+
+    - If ticket does not exist at all → 404 with our ticket_not_found template.
+    - If user is logged in AND does NOT own the ticket → 404 with the same template.
+    - Otherwise (guest or rightful owner) → render ticket details (200).
     """
-    ticket = (
-        Ticket.objects.select_related("ticketInfo__event")
-        .filter(id=id)
-        .first()
-    )
-    if ticket is None:
-        raise Http404("Ticket not found.")
 
-    # If the user is logged in, enforce ownership:
+    # Look up the ticket (with event) or show our friendly 404 template
+    ticket = Ticket.objects.select_related("ticketInfo__event").filter(id=id).first()
+    if ticket is None:
+        return render(
+            request,
+            "tickets/ticket_not_found.html",
+            status=404,
+        )
+
+    # Ownership enforcement only for logged-in users
     if request.user.is_authenticated:
         profile = UserProfile.objects.filter(user=request.user).first()
         owns = False
 
+        # Match by attendee profile
         if profile and ticket.attendee_id == profile.id:
             owns = True
+
+        # Or match by email
         if (
             ticket.email
             and request.user.email
@@ -56,10 +59,17 @@ def details(request, id):
             owns = True
 
         if not owns:
-            # Pretend it doesn't exist for this user
-            raise Http404("Ticket not found.")
+            # Ticket exists but belongs to someone else → friendly 404
+            return render(
+                request,
+                "tickets/ticket_not_found.html",
+                status=404,
+            )
 
-    event = ticket.ticketInfo.event
+    # At this point, either:
+    # - user is anonymous (guest) and the ticket exists, or
+    # - user is logged in and owns the ticket
+    event = ticket.ticketInfo.event if ticket.ticketInfo else None
     qr_data_url = _qr_data_url_for_ticket(ticket)
 
     return render(
@@ -71,54 +81,67 @@ def details(request, id):
             "qr_data_url": qr_data_url,
         },
     )
-    
+
 
 def ticket_list(request):
     """
-    Ticket list behaviour (matches tests):
+    Behaviour required by tests:
 
-    - attendee role: show only this user's tickets (by attendee profile OR email)
-    - organizer role: show all tickets, but with an info message
-    - guest / anything else: show all tickets
+    - If desired_role == 'attendee' and the user is authenticated:
+        * filtername:
+            - request.GET['filtername'] if present
+            - otherwise str(request.user) (e.g. "u1")
+        * tickets:
+            - only tickets owned by this user (via attendee profile or email)
+
+    - For all other cases (including guest, organizer, or no desired_role):
+        * filtername:
+            - request.GET['filtername'] if present
+            - otherwise "all"
+        * tickets:
+            - all tickets in the system
+
+    - ctx['tickets'] is always a QuerySet (never a plain list).
     """
+
     role = request.session.get("desired_role")
 
-    if role == "attendee" and request.user.is_authenticated:
-        profile = UserProfile.objects.filter(user=request.user).first()
-        filtername = str(profile.user) if profile else str(request.user)
+    # For templates: is this user an organizer in "organizer" role?
+    is_organizer = False
+    if request.user.is_authenticated:
+        has_org_profile = OrganizerProfile.objects.filter(user=request.user).exists()
+        is_organizer = has_org_profile and role == "organizer"
 
-        qs = Ticket.objects.select_related("ticketInfo__event")
+    # Base queryset for tickets for all branches
+    base_qs = Ticket.objects.select_related("ticketInfo__event").order_by("-id")
+
+    if request.user.is_authenticated and role == "attendee":
+        # Attendee role: default filtername is the username unless overridden
+        filtername = request.GET.get("filtername", str(request.user))
+
+        profile = UserProfile.objects.filter(user=request.user).first()
         filters = Q()
+
         if profile is not None:
             filters |= Q(attendee=profile)
         if request.user.email:
             filters |= Q(email__iexact=request.user.email)
 
-        tickets = qs.filter(filters).order_by("-id").distinct()
-
-    elif role == "organizer":
-        # ✅ Tests expect 'all' here, not 'org_list'
-        filtername = "all"
-        tickets = Ticket.objects.all().order_by("-id")
-        messages.info(
-            request,
-            (
-                "Organizer accounts cannot purchase tickets. "
-                "Please log in with an attendee account to buy tickets."
-            ),
-        )
+        tickets = base_qs.filter(filters).distinct()
 
     else:
-        # Guest / no role → tests expect filtername == "all"
-        filtername = "all"
-        tickets = Ticket.objects.all().order_by("-id")
+        # Any non-attendee role (including guest, organizer, or None):
+        # show all tickets, default filtername "all"
+        filtername = request.GET.get("filtername", "all")
+        tickets = base_qs
 
     return render(
         request,
         "tickets/ticket_list.html",
         {
-            "filtername": filtername,
             "tickets": tickets,
+            "is_organizer": is_organizer,
+            "filtername": filtername,
         },
     )
 

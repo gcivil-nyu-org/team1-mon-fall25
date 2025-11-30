@@ -23,7 +23,7 @@ def order(request, event_id):
 
     Behaviour required by tests:
     - GET:
-      * Renders orders/order.html with an OrderForm(event=event).
+      * Renders orders/order.html with an OrderForm(event=event, profile=profile).
       * If ?ticket_category_id=<valid available id> is provided:
           - form.initial["ticket_info"] == that ticket's ID
           - quantity max / max_value == that ticket's availability
@@ -38,7 +38,7 @@ def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     desired_role = request.session.get("desired_role")
 
-    # 🚫 Block current-role "organizer" from purchasing
+    # Block organizers from purchasing
     if request.user.is_authenticated and desired_role == "organizer":
         messages.error(
             request,
@@ -49,16 +49,19 @@ def order(request, event_id):
         )
         return redirect("events:event_detail", event_id=event.id)
 
+    # Build profile (if any) so the form can pre-populate email
+    profile = None
+    if request.user.is_authenticated:
+        profile = UserProfile.objects.filter(user=request.user).first()
+
     if request.method == "POST":
-        # Bind POST data to form
-        form = OrderForm(request.POST, event=event)
+        form = OrderForm(request.POST, event=event, profile=profile)
 
         if form.is_valid():
             with transaction.atomic():
                 ticket_info = form.cleaned_data.get("ticket_info")
                 quantity = form.cleaned_data.get("quantity", 1)
 
-                # Defensive: if somehow missing, just re-render form
                 if ticket_info is None:
                     available_tickets = TicketInfo.objects.filter(
                         event=event, availability__gt=0, is_active=True
@@ -100,9 +103,7 @@ def order(request, event_id):
                 order_obj = form.save(commit=False)
 
                 if desired_role == "attendee" and request.user.is_authenticated:
-                    attendee_profile = UserProfile.objects.filter(
-                        user=request.user
-                    ).first()
+                    attendee_profile = profile
                     if attendee_profile:
                         order_obj.attendee = attendee_profile
 
@@ -111,7 +112,6 @@ def order(request, event_id):
             # Successful POST → go to payment step
             return redirect("orders:process_payment", order_id=order_obj.id)
 
-        # If form is invalid, we'll drop down and re-render with errors
     else:
         # GET: preselect via ?ticket_category_id= and adjust quantity max
         available_tickets = TicketInfo.objects.filter(
@@ -125,14 +125,12 @@ def order(request, event_id):
         if ticket_category_id:
             try:
                 tid = int(ticket_category_id)
-                # Must be in the available set (not sold-out, correct event)
                 selected_ticket = available_tickets.get(pk=tid)
-                # Tests expect the ID here, not the object
                 initial["ticket_info"] = selected_ticket.id
             except (ValueError, TicketInfo.DoesNotExist):
                 selected_ticket = None  # fall back to first ticket
 
-        form = OrderForm(event=event, initial=initial)
+        form = OrderForm(event=event, profile=profile, initial=initial)
 
         if available_tickets.exists():
             if selected_ticket is not None:
@@ -144,7 +142,6 @@ def order(request, event_id):
             form.fields["quantity"].widget.attrs["max"] = max_avail
             form.fields["quantity"].max_value = max_avail
 
-    # For both GET and POST re-render, include availability map in context
     available_tickets = TicketInfo.objects.filter(
         event=event, availability__gt=0, is_active=True
     )

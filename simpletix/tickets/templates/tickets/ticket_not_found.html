@@ -1,0 +1,25 @@
+{% extends "simpletix/nav.html" %}
+
+{% block title %}Ticket not found · SimpleTix{% endblock %}
+
+{% block body %}
+<div class="stx-ticket-page">
+  <div class="stx-ticket-inner">
+    <header class="stx-ticket-hero">
+      <p class="stx-ticket-breadcrumb">Ticket Details</p>
+      <p class="stx-ticket-hero-subtitle">
+        We couldn’t find this ticket.
+      </p>
+    </header>
+
+    <p class="stx-ticket-empty-state">
+      This ticket may not exist, may have been removed, or it may belong to a
+      different account.
+    </p>
+
+    <a href="{% url 'tickets:ticket_list' %}" class="stx-ticket-view-button">
+      Go to My Tickets
+    </a>
+  </div>
+</div>
+{% endblock %}
