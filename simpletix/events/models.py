@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from accounts.models import OrganizerProfile
 
+
 class Event(models.Model):
     organizer = models.ForeignKey(
         OrganizerProfile, on_delete=models.CASCADE, related_name="creates", null=True
@@ -69,20 +70,21 @@ class Event(models.Model):
             return value.strftime("%H:%M:%S")
         # Fallback: already a string or something string-like
         return str(value)
+
+
 class EventNotificationSubscription(models.Model):
     """Tracks users who want to be notified when tickets become available."""
+
     event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name="notification_subscriptions"
+        Event, on_delete=models.CASCADE, related_name="notification_subscriptions"
     )
     email = models.EmailField()
     name = models.CharField(max_length=120, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        unique_together = ('event', 'email')
-        ordering = ['-created_at']
-    
+        unique_together = ("event", "email")
+        ordering = ["-created_at"]
+
     def __str__(self):
         return f"{self.email} - {self.event.title}"

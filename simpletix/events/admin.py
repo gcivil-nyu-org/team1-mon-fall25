@@ -17,7 +17,7 @@ class EventNotificationSubscriptionAdmin(admin.ModelAdmin):
     search_fields = ("email", "name", "event__title")
     readonly_fields = ("created_at",)
     ordering = ("-created_at",)
-    
+
     def has_add_permission(self, request):
         # Prevent manual adding from admin
         return False

@@ -147,17 +147,19 @@ def notify_subscribers_tickets_available(event):
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com")
 
     base_message = (
-        'Good news!\n\n'
+        "Good news!\n\n"
         'Tickets for "{title}" are now available again.\n'
-        'Event date: {date} at {time}\n\n'
-        'You can book your tickets here:\n'
-        '{url}\n\n'
+        "Event date: {date} at {time}\n\n"
+        "You can book your tickets here:\n"
+        "{url}\n\n"
         "We recommend booking soon, as availability may be limited.\n\n"
         "Thanks,\nSimpleTix Team"
     )
 
     messages = []
-    event_url = settings.SITE_BASE_URL + f"/events/{event.id}/"  # or reverse + build_absolute_uri
+    event_url = (
+        settings.SITE_BASE_URL + f"/events/{event.id}/"
+    )  # or reverse + build_absolute_uri
 
     for sub in subscribers:
         message = base_message.format(
@@ -173,4 +175,3 @@ def notify_subscribers_tickets_available(event):
 
     send_mass_mail(messages, fail_silently=True)
     return len(messages)
-
