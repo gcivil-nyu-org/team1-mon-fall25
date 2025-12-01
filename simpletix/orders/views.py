@@ -19,6 +19,12 @@ from .models import BillingInfo, Order
 
 def order(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+    if event.is_cancelled:
+        messages.error(
+            request,
+            "This event has been cancelled. Ticket purchases are no longer available.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
     preselect_ticket_category_id = request.GET.get("ticket_category_id", None)
     if request.user and request.user.is_authenticated:
         profile, _ = OrganizerProfile.objects.get_or_create(user=request.user)

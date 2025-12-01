@@ -1,0 +1,31 @@
+{% extends "simpletix/nav.html" %}
+
+{% block title %}Cancel {{ event.title }} · SimpleTix{% endblock %}
+
+{% block body %}
+<div class="stx-confirm-shell">
+  <div class="stx-confirm-card">
+    <h1>Cancel event</h1>
+    <p class="stx-confirm-text">
+      Are you sure you want to cancel
+      <strong>{{ event.title }}</strong> scheduled on
+      <strong>{{ event.date|date:"M d, Y" }}</strong> at
+      <strong>{{ event.time|time:"H:i" }}</strong>?
+    </p>
+    <p class="stx-confirm-subtext">
+      All attendees who purchased tickets will receive an email letting them know
+      the event has been cancelled, and their refunds will be initiated.
+    </p>
+
+    <form method="post" class="stx-confirm-actions">
+      {% csrf_token %}
+      <a href="{% url 'events:event_management_dashboard' %}" class="stx-btn-secondary">
+        Go back
+      </a>
+      <button type="submit" class="stx-btn-danger">
+        Yes, cancel this event
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

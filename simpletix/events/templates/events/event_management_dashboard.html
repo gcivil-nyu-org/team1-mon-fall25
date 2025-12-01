@@ -1,0 +1,81 @@
+{% extends "simpletix/nav.html" %}
+{% load static %}
+
+{% block title %}Event Management · SimpleTix{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'events/event_management_dashboard.css' %}">
+
+<div class="stx-dashboard-shell">
+  <div class="stx-dashboard-card">
+    <header class="stx-dashboard-header">
+      <p class="stx-dashboard-kicker">Organizer · My Events</p>
+      <h1 class="stx-dashboard-title">Event Management</h1>
+      <p class="stx-dashboard-subtitle">
+        View, monitor, and cancel the events you’ve created.
+      </p>
+    </header>
+
+    {% if events %}
+      <div class="stx-dashboard-table-wrapper">
+        <table class="stx-dashboard-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Date &amp; Time</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th class="stx-col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in events %}
+              <tr class="stx-dashboard-row {% if event.is_cancelled %}stx-row-cancelled{% endif %}">
+                <td class="stx-cell-title">
+                  <div class="stx-event-title">{{ event.title }}</div>
+                  <div class="stx-event-meta">
+                    Created {{ event.created_at|date:"M d, Y" }}
+                  </div>
+                </td>
+                <td>
+                  <div>{{ event.date|date:"M d, Y" }}</div>
+                  <div class="stx-event-meta">
+                    {{ event.time|time:"H:i" }}
+                  </div>
+                </td>
+                <td>
+                  <div class="stx-event-location">{{ event.location }}</div>
+                </td>
+                <td>
+                  {% if event.is_cancelled %}
+                    <span class="stx-badge stx-badge-cancelled">Cancelled</span>
+                  {% else %}
+                    <span class="stx-badge stx-badge-live">Scheduled</span>
+                  {% endif %}
+                </td>
+                <td class="stx-cell-actions">
+                  {% if not event.is_cancelled %}
+                    <a href="{% url 'events:cancel_event' event.id %}" class="stx-btn-ghost-danger">
+                      Cancel event
+                    </a>
+                  {% else %}
+                    <span class="stx-text-muted">No actions</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="stx-empty-state">
+        <h2>No events yet</h2>
+        <p>
+          You haven’t created any events as an organizer.
+          Once you do, they’ll appear here for easy management.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

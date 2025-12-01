@@ -160,7 +160,9 @@
     <div class="row g-4 events-grid">
         {% for event in events %}
         <div class="col-md-4">
-            <div class="card event-card futuristic-card clickable-card" data-url="{% url 'events:event_detail' event.id %}">
+            {# CHANGE 1: add optional event-card-cancelled class #}
+            <div class="card event-card futuristic-card clickable-card{% if event.is_cancelled %} event-card-cancelled{% endif %}"
+                 data-url="{% url 'events:event_detail' event.id %}">
                 <div class="event-card-media">
                     {% if event.banner %}
                         <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}">
@@ -171,6 +173,13 @@
                     <div class="event-card-tag">
                         <span class="event-chip">{{ event.date }} · {{ event.time }}</span>
                     </div>
+
+                    {# CHANGE 2: show "Cancelled" pill on card when event is cancelled #}
+                    {% if event.is_cancelled %}
+                        <div class="event-card-status-cancelled">
+                            Cancelled
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="card-body event-card-body">
@@ -180,17 +189,24 @@
                     </p>
 
                     <div class="event-ticket-badges mb-3">
-                        {% for ticket in event.ticketInfo.all %}
-                            {% if ticket.availability > 0 %}
-                                <span class="badge ticket-badge-available">
-                                    {{ ticket.get_category_display }}: {{ ticket.availability }} left
-                                </span>
-                            {% else %}
-                                <span class="badge ticket-badge-soldout">
-                                    {{ ticket.get_category_display }} · Sold out
-                                </span>
-                            {% endif %}
-                        {% endfor %}
+                        {# CHANGE 3: badges for cancelled event #}
+                        {% if event.is_cancelled %}
+                            <span class="badge ticket-badge-cancelled">
+                                Event cancelled
+                            </span>
+                        {% else %}
+                            {% for ticket in event.ticketInfo.all %}
+                                {% if ticket.availability > 0 %}
+                                    <span class="badge ticket-badge-available">
+                                        {{ ticket.get_category_display }}: {{ ticket.availability }} left
+                                    </span>
+                                {% else %}
+                                    <span class="badge ticket-badge-soldout">
+                                        {{ ticket.get_category_display }} · Sold out
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">

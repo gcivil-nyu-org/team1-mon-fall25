@@ -35,8 +35,6 @@
             </div>
           </div>
 
-
-
           <ul class="navbar-nav">
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -46,7 +44,9 @@
                 <li><a class="dropdown-item" href="{% url 'simpletix:webpage' 'Find Event Page' %}">Find Event</a></li>
                 <li><a class="dropdown-item" href="{% url 'events:event_list' %}">Event List</a></li>
                 {% if request.session.desired_role == 'organizer' %}
-                <li><a class="dropdown-item" href="{% url 'events:create_event' %}">Create Event</a></li>
+                  <li><a class="dropdown-item" href="{% url 'events:create_event' %}">Create Event</a></li>
+                  {# NEW: organizer-only manage dashboard link #}
+                  <li><a class="dropdown-item" href="{% url 'events:event_management_dashboard' %}">Manage Events</a></li>
                 {% endif %}
               </ul>
             </li>
