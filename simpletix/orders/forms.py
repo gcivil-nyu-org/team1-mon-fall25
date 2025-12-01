@@ -42,9 +42,14 @@ class OrderForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        profile = kwargs.pop("profile", None)
         event = kwargs.pop("event", None)
         preselect_ticket_category_id = kwargs.pop("preselect_ticket_category_id", None)
         super().__init__(*args, **kwargs)
+
+        self.fields["email"].required = True
+        if profile and profile.contact_email:
+            self.fields["email"].initial = profile.contact_email
 
         if event:
             # Only include tickets for this event with availability > 0.

@@ -3,17 +3,21 @@
 <!-- ignore flash messages in this template -->
 {% block flash_messages %}{% endblock %}
 
-{% block title %}Edit Organizer Profile · SimpleTix{% endblock %}
+{% block title %}Edit Profile · SimpleTix{% endblock %}
 
 {% block content %}
   <div class="card">
     <h1 class="mb-1">
-      Edit {{ request.user.uprofile.role|default:"attendee"|title }} Profile
+      Edit {{ profile_role }} Profile
     </h1>
     <p class="muted">Keep your public info up to date.</p>
 
     <!-- Important: action points to the view, include csrf, include hidden next -->
-    <form method="post" enctype="multipart/form-data" action="{% url 'accounts:profile_edit' %}" class="form" novalidate>
+    <form method="post"
+          enctype="multipart/form-data"
+          action="{% url 'accounts:profile_edit' %}"
+          class="form"
+          novalidate>
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ next }}">
 
