@@ -25,7 +25,9 @@ from django.db.models.functions import ACos, Cos, Sin, Radians
 
 from django.views.decorators.http import require_POST
 from django.db import IntegrityError
-from events.models import Event, EventNotificationSubscription  # Update this line
+from events.models import Event, EventNotificationSubscription 
+from django.core.mail import send_mail 
+
 
 # --- Algolia integration helpers -------------------------------------------
 
@@ -510,3 +512,84 @@ def notification_subscribers(request, event_id):
         'event': event,
         'subscribers': subscribers,
     })
+    
+
+
+@require_POST
+def subscribe_notification(request, event_id):
+    """
+    Subscribe user to notifications when tickets become available.
+    Sends a confirmation email when subscription is first created.
+    """
+    event = get_object_or_404(Event, id=event_id)
+
+    email = request.POST.get("email", "").strip()
+    name = request.POST.get("name", "").strip()
+
+    # If user is logged in, use their info as fallback
+    if request.user.is_authenticated:
+        if not email:
+            email = request.user.email
+        if not name:
+            name = request.user.get_full_name() or request.user.username
+
+    # Validate email
+    if not email:
+        messages.error(request, "Email address is required.")
+        return redirect("events:event_detail", event_id=event_id)
+
+    try:
+        subscription, created = EventNotificationSubscription.objects.get_or_create(
+            event=event,
+            email=email,
+            defaults={"name": name},
+        )
+
+        if created:
+            # Flash message
+            messages.success(
+                request,
+                f" You're on the list! We'll notify {email} when tickets are available.",
+            )
+
+            # --- NEW: confirmation email ---
+            subject = f"You're on the waitlist for {event.title}"
+            greeting_name = (
+                subscription.name
+                or (request.user.get_full_name() if request.user.is_authenticated else "")
+                or "there"
+            )
+
+            message = (
+                f"Hi {greeting_name},\n\n"
+                f"Thanks for your interest in '{event.title}'. "
+                "Tickets are currently sold out, but we've added you to the waitlist.\n\n"
+                "We'll email you at this address as soon as more tickets become "
+                "available for this event.\n\n"
+                "Best,\n"
+                "SimpleTix Team"
+            )
+
+            from_email = getattr(
+                settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com"
+            )
+
+            send_mail(
+                subject,
+                message,
+                from_email,
+                [email],
+                fail_silently=True,  
+            )
+
+        else:
+            messages.info(
+                request,
+                "You're already subscribed to notifications for this event.",
+            )
+
+    except IntegrityError:
+        messages.error(request, "Error subscribing. Please try again.")
+
+    return redirect("events:event_detail", event_id=event_id)
+    
