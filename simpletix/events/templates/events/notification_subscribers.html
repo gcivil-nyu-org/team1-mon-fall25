@@ -36,8 +36,10 @@
 
       {# Info Alert #}
       <div class="alert alert-info" role="alert">
-        <strong>📧 Coming Soon:</strong> Email notifications will be automatically sent when you add more tickets to this event.
-        For now, you can contact these subscribers manually if needed.
+        <strong>📧 Email notifications:</strong>
+        After you add more tickets to this event, use the
+        <em>"Notify subscribers"</em> button below to email everyone on this list.
+        You can also copy their email addresses if you’d like to contact them manually.
       </div>
 
       {# Subscribers Table #}
@@ -94,13 +96,21 @@
         </div>
       </div>
 
-      {# Back Button #}
-      <div class="mt-4 d-flex gap-2">
+      {# Back + Actions #}
+      <div class="mt-4 d-flex flex-wrap gap-2 align-items-center">
         <a href="{% url 'events:event_detail' event.id %}" class="btn btn-outline-secondary">
           ← Back to Event
         </a>
+
         {% if subscribers %}
-          <button class="btn btn-outline-primary" onclick="exportEmails()">
+          <form method="post" action="{% url 'events:notify_subscribers_send' event.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">
+              ✉️ Notify subscribers about new tickets
+            </button>
+          </form>
+
+          <button type="button" class="btn btn-outline-primary" onclick="exportEmails()">
             📋 Copy All Emails
           </button>
         {% endif %}

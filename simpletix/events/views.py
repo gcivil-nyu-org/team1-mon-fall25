@@ -17,6 +17,8 @@ from tickets.models import TicketInfo
 from orders.models import Order
 from .forms import EventForm
 from .models import Event
+from django.urls import reverse
+
 
 from django.db import models, transaction
 from django.db.models.functions import Coalesce
@@ -610,8 +612,91 @@ def subscribe_notification(request, event_id):
         messages.error(request, "Error subscribing. Please try again.")
 
     return redirect("events:event_detail", event_id=event_id)
-    
-    return render(request, "events/event_detail.html", {"event": event})
+
+
+
+@login_required
+@organizer_owns_event
+@require_POST
+def notify_subscribers_tickets_available(request, event_id):
+    """
+    Organizer action: email all subscribers that new tickets are available.
+    """
+    event = get_object_or_404(Event, id=event_id)
+
+    subscribers = EventNotificationSubscription.objects.filter(event=event)
+    if not subscribers.exists():
+        messages.info(request, "There are no subscribers to notify for this event.")
+        return redirect("events:notification_subscribers", event_id=event.id)
+
+    # --- Build absolute event URL safely ---
+    # Prefer SITE_BASE_URL if defined, otherwise fall back to request.build_absolute_uri
+    try:
+        base_url = getattr(settings, "SITE_BASE_URL")
+    except AttributeError:
+        base_url = None
+
+    event_path = reverse("events:event_detail", args=[event.id])
+
+    if base_url:
+        event_url = base_url.rstrip("/") + event_path
+    else:
+        event_url = request.build_absolute_uri(event_path)
+
+    subject = f"Tickets available again: {event.title}"
+    base_message = (
+        'Good news! More tickets are now available for "{title}".\n\n'
+        "You can book your spot here:\n"
+        "{event_url}\n\n"
+        "Tickets are limited and may sell out again quickly, so we recommend "
+        "booking as soon as possible.\n\n"
+        "Thank you,\n"
+        "SimpleTix Team"
+    )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com")
+
+    sent_count = 0
+    for sub in subscribers:
+        # Basic guard against empty / invalid email
+        email = (sub.email or "").strip()
+        if not email:
+            continue
+
+        greeting_name = (sub.name or "").strip()
+        if greeting_name:
+            greeting = f"Hi {greeting_name},"
+        else:
+            greeting = "Hi there,"
+
+        message = f"{greeting}\n\n" + base_message.format(
+            title=event.title,
+            event_url=event_url,
+        )
+
+        send_mail(
+            subject,
+            message,
+            from_email,
+            [email],
+            fail_silently=True,  
+        )
+        sent_count += 1
+
+    if sent_count:
+        messages.success(
+            request,
+            f"Notification email sent to {sent_count} subscriber"
+            f"{'' if sent_count == 1 else 's'}.",
+        )
+    else:
+        messages.warning(
+            request,
+            "No valid subscriber email addresses were found to notify.",
+        )
+
+    return redirect("events:notification_subscribers", event_id=event.id)
+
 
 
 def _get_organizer_profile(user):

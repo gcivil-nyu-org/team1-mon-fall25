@@ -12,4 +12,6 @@ urlpatterns = [
     path("<int:event_id>/cancel/", views.cancel_event, name="cancel_event"),
     path("<int:event_id>/notify/subscribe/", views.subscribe_notification, name="subscribe_notification"),
     path("<int:event_id>/notify/subscribers/", views.notification_subscribers, name="notification_subscribers"),
+    path("<int:event_id>/notify/subscribers/send/", views.notify_subscribers_tickets_available, name="notify_subscribers_send"),
 ]
+
