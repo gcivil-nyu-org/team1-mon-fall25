@@ -322,6 +322,8 @@
                 Event cancelled · Tickets unavailable
               </span>
             {% endif %}
+          {% endif %}  
+          
           {# ORGANIZER: can edit/delete own event, but never see Buy button #}
           {% if user.is_authenticated and is_organizer %}
             {% if event.organizer.user == user %}
