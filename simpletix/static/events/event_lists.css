@@ -345,3 +345,28 @@
     }
 }
 
+.event-card-status-cancelled {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.92);
+  color: #fef2f2;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.event-card-cancelled {
+  opacity: 0.9;
+}
+
+.ticket-badge-cancelled {
+  background: rgba(248, 113, 113, 0.08);
+  color: #b91c1c;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  font-weight: 600;
+}
+
