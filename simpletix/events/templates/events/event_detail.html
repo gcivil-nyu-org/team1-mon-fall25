@@ -117,6 +117,93 @@
       width: 100%;
       height: auto;
     }
+
+    /* NEW: Notification banner styles */
+    .notify-banner {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1.5rem;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .notify-banner h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .notify-banner p {
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      opacity: 0.95;
+    }
+
+    .notify-form {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .notify-form input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.75rem 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .notify-form input::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+
+    .notify-form input:focus {
+      outline: none;
+      border-color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.25);
+    }
+
+    .notify-form button {
+      padding: 0.75rem 2rem;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .notify-form button:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .notify-form button:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 576px) {
+      .notify-form {
+        flex-direction: column;
+      }
+      
+      .notify-form input,
+      .notify-form button {
+        width: 100%;
+        min-width: auto;
+      }
+    }
   </style>
 {% endblock %}
 
@@ -174,12 +261,12 @@
                     {% if ticket.availability > 0 %}
                       {{ ticket.availability }} left
                     {% else %}
-                      Sold out
+                      <span class="text-danger fw-bold">Sold out</span>
                     {% endif %}
                   </td>
                   <td class="text-end">
                     {% if ticket.availability > 0 %}
-                      <a href="{% url 'orders:order' event.id %}?ticket_category_id={{ ticket.id }}" class="btn btn-primary btn-sm">Buy</a>
+                      <a href="{% url 'orders:order' event.id %}" class="btn btn-primary btn-sm">Buy</a>
                     {% else %}
                       <button class="btn btn-secondary btn-sm" disabled>Sold out</button>
                     {% endif %}
@@ -191,6 +278,35 @@
         </table>
       </div>
 
+      {# NEW: Show notification banner if event is sold out #}
+      {% if is_sold_out %}
+        <div class="notify-banner">
+          <h4>
+            <span>🔔</span>
+            <span>Sold Out? Get Notified!</span>
+          </h4>
+          <p>Enter your email and we'll notify you when tickets become available again.</p>
+          
+          <form method="post" action="{% url 'events:subscribe_notification' event.id %}" class="notify-form">
+            {% csrf_token %}
+            <input 
+              type="email" 
+              name="email" 
+              placeholder="your.email@example.com" 
+              required
+              {% if user.is_authenticated %}value="{{ user.email }}"{% endif %}
+            >
+            <input 
+              type="text" 
+              name="name" 
+              placeholder="Your name (optional)"
+              {% if user.is_authenticated %}value="{{ user.get_full_name|default:user.username }}"{% endif %}
+            >
+            <button type="submit">Notify Me</button>
+          </form>
+        </div>
+      {% endif %}
+
       <div class="event-actions">
         <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary">
           Back to Events
@@ -200,6 +316,12 @@
           {% if request.session.desired_role == 'organizer' and event.organizer.user == user %}
             <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning">Edit Event</a>
             <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">Delete Event</a>
+            {# NEW: Show subscriber count to organizer #}
+            {% if subscriber_count > 0 %}
+              <a href="{% url 'events:notification_subscribers' event.id %}" class="btn btn-info">
+                👥 Subscribers ({{ subscriber_count }})
+              </a>
+            {% endif %}
           {% elif request.session.desired_role != 'organizer' %}
             <a href="{% url 'orders:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
           {% endif %}
