@@ -12,7 +12,6 @@ from django.views.generic import TemplateView
 
 from .forms import SignupForm, OrganizerProfileForm
 from .models import OrganizerProfile, UserProfile
-from django.contrib.auth import views as auth_views
 from django.urls import reverse_lazy
 
 
@@ -183,16 +182,44 @@ def profile_edit(request):
             form.save()
 
             # sync email into User model so password reset works
+            # accounts/views.py — inside profile_edit()
+
             new_email = form.cleaned_data.get("contact_email")
+
             if new_email:
+                # user entered a new email — update it
                 request.user.email = new_email
                 request.user.save()
+            elif not new_email:
+                if request.user.email:
+                    # restore the existing email so the field shows it again
+                    form.data = form.data.copy()
+                    form.data["contact_email"] = request.user.email
+
+                    form.add_error(
+                        "contact_email",
+                        "You cannot remove your email — you may only change it.",
+                    )
+
+                    return render(
+                        request,
+                        "accounts/profile_edit.html",
+                        {
+                            "form": form,
+                            "next": request.GET.get("next", "/"),
+                            "profile_role": profile_role,
+                        },
+                    )
 
             messages.success(request, "Profile updated successfully.")
             next_url = request.POST.get("next") or request.GET.get("next") or "/"
             return redirect(next_url)
     else:
         form = OrganizerProfileForm(instance=profile)
+
+        # Prefill contact_email from User.email if profile doesn’t have its own.
+        if not profile.contact_email and request.user.email:
+            form.initial["contact_email"] = request.user.email
 
     return render(
         request,
