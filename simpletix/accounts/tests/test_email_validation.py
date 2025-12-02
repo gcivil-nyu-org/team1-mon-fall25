@@ -10,12 +10,14 @@ from accounts.models import OrganizerProfile
 def test_signup_rejects_duplicate_email():
     User.objects.create_user(username="u1", password="x", email="a@example.com")
 
-    form = SignupForm(data={
-        "username": "u2",
-        "email": "a@example.com",
-        "password1": "pass12345",
-        "password2": "pass12345",
-    })
+    form = SignupForm(
+        data={
+            "username": "u2",
+            "email": "a@example.com",
+            "password1": "pass12345",
+            "password2": "pass12345",
+        }
+    )
 
     assert not form.is_valid()
     assert "email" in form.errors
@@ -23,7 +25,6 @@ def test_signup_rejects_duplicate_email():
 
 @pytest.mark.django_db
 def test_profile_edit_rejects_duplicate_email():
-    u1 = User.objects.create_user(username="u1", password="x", email="a@example.com")
     u2 = User.objects.create_user(username="u2", password="x", email="")
 
     profile2, _ = OrganizerProfile.objects.get_or_create(user=u2)
@@ -44,11 +45,14 @@ def test_cannot_remove_existing_email(monkeypatch, client):
 
     profile, _ = OrganizerProfile.objects.get_or_create(user=user)
 
-    resp = client.post(reverse("accounts:profile_edit"), {
-        "full_name": profile.full_name,
-        "contact_email": "",  # trying to remove email
-        "phone": "",
-    })
+    resp = client.post(
+        reverse("accounts:profile_edit"),
+        {
+            "full_name": profile.full_name,
+            "contact_email": "",  # trying to remove email
+            "phone": "",
+        },
+    )
 
     assert "You cannot remove your email" in resp.content.decode()
     assert User.objects.get(username="u1").email == "a@example.com"
@@ -64,4 +68,4 @@ def test_profile_edit_prefills_existing_email(client):
     html = resp.content.decode()
 
     # field value should be in the HTML
-    assert "value=\"a@example.com\"" in html
+    assert 'value="a@example.com"' in html
