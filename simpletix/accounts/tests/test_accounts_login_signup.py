@@ -43,6 +43,7 @@ def test_organizer_signup_success_flow(client):
         reverse(f"{APP}:signup"),
         {
             "username": "neworg",
+            "email": "neworg@example.com",   # ← REQUIRED NOW
             "password1": "Passw0rd1!",
             "password2": "Passw0rd1!",
             "terms": "on",  # keep if your form enforces it; harmless otherwise
@@ -60,6 +61,7 @@ def test_attendee_signup_success_flow(client):
         reverse(f"{APP}:signup"),
         {
             "username": "newatt",
+            "email": "newatt@example.com",   # ← REQUIRED NOW
             "password1": "Passw0rd1!",
             "password2": "Passw0rd1!",
             "terms": "on",
