@@ -64,9 +64,7 @@ def test_signup_terms_unchecked(client):
         form = r.context.get("form")
         assert form is not None
         assert (
-            "terms" in form.errors
-            or "__all__" in form.errors
-            or "email" in form.errors
+            "terms" in form.errors or "__all__" in form.errors or "email" in form.errors
         )
     else:
         assert r.status_code in (302, 303)
