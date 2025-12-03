@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from decimal import Decimal
 
 from accounts.models import UserProfile
 from tickets.models import TicketInfo
@@ -20,6 +21,9 @@ class Order(models.Model):
         ("pending", "Pending"),
         ("completed", "Completed"),
         ("failed", "Failed"),
+        ("refunded", "Refunded"),
+        ("refund_processing", "Refund Processing"),
+        ("partially_refunded", "Partially Refunded"),
     ]
 
     attendee = models.ForeignKey(
@@ -48,13 +52,15 @@ class Order(models.Model):
     phone = models.CharField(max_length=30, blank=True)
 
     # Order status and tracking
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
 
     # Store the price at the time of purchase
     price_at_purchase = models.DecimalField(max_digits=8, decimal_places=2)
 
     # Store the quantity of tickets
     quantity = models.IntegerField(default=1, validators=[MinValueValidator(1)])
+
+    amount_refunded = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -65,6 +71,16 @@ class Order(models.Model):
     def total_price(self):
         """Calculates the total price for this order."""
         return self.price_at_purchase * self.quantity
+
+    @property
+    def refund_percentage(self):
+        """Calculates the percentage of the order that has been refunded."""
+        if self.total_price == 0:
+            return 0
+
+        refunded = self.amount_refunded or Decimal(0)
+        percentage = (refunded / self.total_price) * 100
+        return int(percentage)  # Return as integer for display
 
     def __str__(self):
         order_info = (
