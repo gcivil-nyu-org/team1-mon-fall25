@@ -1,8 +1,10 @@
 import pytest
-from django.urls import reverse
+from unittest.mock import MagicMock
 import stripe
 import os
 
+from django.urls import reverse
+from django.core import mail
 from orders.forms import OrderForm
 from orders.models import Order, BillingInfo
 from tickets.models import Ticket
@@ -471,3 +473,142 @@ def test_order_view_ticket_availability_data(
     }
 
     assert response.context["ticket_availability_data"] == expected_data
+
+
+def test_webhook_refund_succeeded_sends_email(
+    client, webhook_url, mock_stripe, pending_order
+):
+    """
+    Tests that a successful refund webhook updates the order status
+    and triggers the send_refund_email service.
+    """
+    # 1. Setup: Move order to 'completed' state so it's eligible for refund
+    pending_order.status = "completed"
+    pending_order.save()
+
+    # Calculate full refund amount in cents
+    refund_amount_cents = int(pending_order.total_price * 100)
+
+    # 2. Mock the Stripe Refund Event
+    mock_event = {
+        "type": "refund.updated",
+        "data": {
+            "object": {
+                "id": "sess_123",
+                "amount": refund_amount_cents,
+                "status": "succeeded",
+                "metadata": {
+                    "order_id": pending_order.id,
+                    "environment": os.getenv("ENVIRONMENT"),
+                },
+            }
+        },
+    }
+    mock_stripe.Webhook.construct_event.return_value = mock_event
+
+    # 3. Clear outbox and fire webhook
+    mail.outbox = []
+    response = post_webhook(client, webhook_url, mock_event)
+
+    assert response.status_code == 200
+
+    # 4. Verify Order Status Update
+    pending_order.refresh_from_db()
+    assert pending_order.status == "refunded"
+    assert pending_order.amount_refunded == pending_order.total_price
+
+    # 5. Verify Email was Sent
+    assert len(mail.outbox) == 1
+    email = mail.outbox[0]
+
+    # Check Subject
+    assert "Full Refund Notification" in email.subject
+    assert f"Order #{pending_order.id}" in email.subject
+
+    # Check Body Content
+    assert f"Refund Amount: ${pending_order.total_price:,.2f}" in email.body
+    assert "SimpleTix Team" in email.body
+
+    event = pending_order.ticket_info.event
+    organizer = event.organizer
+
+    # Check Event Info block
+    assert "Event Information:" in email.body
+    assert f"Event: {event.title}" in email.body
+    assert f"Location: {event.location}" in email.body
+
+    # Check Organizer Info block
+    assert "Organizer Information:" in email.body
+    organizer_name = organizer.full_name or organizer.user.username
+    assert f"Name: {organizer_name}" in email.body
+
+
+def test_refund_full_success(
+    organizer_client, test_event, completed_order, mock_stripe
+):
+    """
+    Test that 'refund_full' action calls Stripe API and updates status.
+    """
+    url = reverse("orders:event_order_list", args=[test_event.id])
+
+    # Mock Session Retrieve (to get payment_intent)
+    mock_session = MagicMock()
+    mock_session.payment_intent = "pi_test_123"
+    mock_stripe.checkout.Session.retrieve.return_value = mock_session
+
+    data = {"action": "refund_full", "selected_orders": [completed_order.id]}
+
+    response = organizer_client.post(url, data, follow=True)
+
+    # 1. Check Stripe API call
+    mock_stripe.Refund.create.assert_called_once()
+    call_args = mock_stripe.Refund.create.call_args[1]
+    assert call_args["payment_intent"] == "pi_test_123"
+    assert call_args["reason"] == "requested_by_customer"
+
+    # 2. Check Database Update
+    completed_order.refresh_from_db()
+    assert completed_order.status == "refund_processing"
+
+    # 3. Check Message
+    messages = list(response.context["messages"])
+    assert len(messages) > 0
+    assert "Refund is being processed" in str(messages[0])
+
+
+def test_refund_partial_success(
+    organizer_client, test_event, completed_order, mock_stripe
+):
+    """
+    Test that 'refund_partial' calculates the correct amount and calls Stripe API.
+    """
+    url = reverse("orders:event_order_list", args=[test_event.id])
+
+    # Setup Order: 2 tickets @ $50 each = $100 Total
+    # (Fixture already sets price=50, quantity=2)
+
+    # Mock Session
+    mock_session = MagicMock()
+    mock_session.payment_intent = "pi_test_123"
+    mock_stripe.checkout.Session.retrieve.return_value = mock_session
+
+    # Refund 50% ($50.00)
+    data = {
+        "action": "refund_partial",
+        "selected_orders": [completed_order.id],
+        "refund_percentage": "50",
+    }
+
+    organizer_client.post(url, data, follow=True)
+
+    # 1. Check Stripe API call amount
+    mock_stripe.Refund.create.assert_called_once()
+    call_args = mock_stripe.Refund.create.call_args[1]
+
+    # Expected: 50% of (50 * 2) = $50.00 = 5000 cents
+    assert call_args["amount"] == 5000
+    assert call_args["payment_intent"] == "pi_test_123"
+
+    # 2. Check Database Update
+    completed_order.refresh_from_db()
+    assert completed_order.status == "refund_processing"

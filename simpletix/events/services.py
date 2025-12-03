@@ -1,5 +1,9 @@
 from typing import Iterable
+import stripe
+import os
+from decimal import Decimal
 
+from django.db import transaction
 from django.conf import settings
 from django.core.mail import send_mail
 
@@ -19,8 +23,7 @@ def get_event_orders(event: Event) -> Iterable[Order]:
     """
     return (
         Order.objects.filter(
-            ticket_info__event=event,
-            status="completed",
+            ticket_info__event=event, status__in=["completed", "partially_refunded"]
         )
         .select_related("ticket_info", "attendee__user", "billing_info")
         .order_by("created_at")
@@ -108,23 +111,61 @@ def notify_event_cancellation(event: Event) -> None:
 
 def initiate_event_refunds(event: Event) -> None:
     """
-    TODO: @Xiangping to implement refund logic.
-
-    Here we provide a clean "API": they get all completed orders tied to
-    this event, and can integrate with Stripe or any other payment provider.
-
-    This function currently does nothing, so it will NOT break existing flows.
+    Initiates a full refund process for all completed orders of a cancelled event.
+    Sets status to 'refund_processing'. The webhook handles final confirmation.
     """
-    orders = list(get_event_orders(event))
-    if not orders:
+    orders = get_event_orders(event)
+    if not orders.exists():
         return
 
-    # When implementing real refunds, you can do something like:
-    #
-    # order_ids = [o.id for o in orders if o.id is not None]
-    # tickets = list(get_event_tickets_for_order_ids(event, order_ids))
-    #
-    # and then use `orders` + `tickets` to drive refund + ticket invalidation.
-    #
-    # For now, we leave this as a no-op to avoid side effects.
-    return
+    # Ensure Stripe key is set
+    stripe.api_key = settings.STRIPE.get("STRIPE_SECRET_KEY", "")
+
+    for _order in orders:
+        try:
+            with transaction.atomic():
+                # Lock the order row to prevent concurrent modifications
+                order = Order.objects.select_for_update().get(id=_order.id)
+
+                # Double-check status and session ID
+                if (
+                    order.status in ["completed", "partially_refunded"]
+                    and order.stripe_session_id
+                ):
+
+                    # 1. Retrieve PaymentIntent
+                    session = stripe.checkout.Session.retrieve(order.stripe_session_id)
+                    payment_intent_id = session.payment_intent
+
+                    if payment_intent_id:
+                        refunded_so_far = order.amount_refunded or Decimal(0)
+                        remaining_balance = order.total_price - refunded_so_far
+
+                        # Skip if fully refunded (safeguard)
+                        if remaining_balance <= 0:
+                            continue
+
+                        # Convert to cents
+                        refund_amount_cents = int(remaining_balance * 100)
+
+                        # 2. Create Refund in Stripe
+                        # We use metadata so our webhook knows which order this is
+                        stripe.Refund.create(
+                            payment_intent=payment_intent_id,
+                            amount=refund_amount_cents,
+                            # 'duplicate' or 'fraudulent' are other options
+                            reason="requested_by_customer",
+                            metadata={
+                                "order_id": order.id,
+                                "environment": os.getenv("ENVIRONMENT", "development"),
+                            },
+                        )
+
+                        # 3. Update Status
+                        # We do NOT restock tickets here because the event is cancelled.
+                        # We mark it as processing so the webhook sends the email.
+                        order.status = "refund_processing"
+                        order.save()
+
+        except Exception as e:
+            print(f"Failed to initiate auto-refund for order {_order.id}: {e}")

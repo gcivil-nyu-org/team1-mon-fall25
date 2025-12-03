@@ -91,6 +91,14 @@ def login_url():
 
 
 @pytest.fixture
+def login_url_organizer():
+    """Fixture for the login URL."""
+    # Construct the URL with the role parameter for organizer
+    base_url = reverse("accounts:login")
+    return f"{base_url}?role=organizer"
+
+
+@pytest.fixture
 def logged_in_attendee_client(client, login_url, attendee_user):
     """Fixture for a client logged in as an attendee via the custom view."""
     login_data = {"username": attendee_user.username, "password": "Passw0rd1!"}
@@ -98,6 +106,16 @@ def logged_in_attendee_client(client, login_url, attendee_user):
     client.post(login_url, login_data, follow=True)
     # Verify session is set correctly after login
     assert client.session.get("desired_role") == "attendee"
+    return client
+
+
+@pytest.fixture
+def organizer_client(client, login_url_organizer, organizer_user):
+    login_data = {"username": organizer_user.username, "password": "Passw0rd1!"}
+    # Log in using the actual login view POST
+    client.post(login_url_organizer, login_data, follow=True)
+    # Verify session is set correctly after login
+    assert client.session.get("desired_role") == "organizer"
     return client
 
 
@@ -158,4 +176,21 @@ def order(db, attendee_profile, ticket_info_ga, billing_info):
         quantity=10,
         full_name="Test Order User",
         email="order@example.com",
+    )
+
+
+@pytest.fixture
+def completed_order(db, attendee_profile, ticket_info_ga):
+    """
+    Fixture for a COMPLETED order eligible for refunds.
+    """
+    return Order.objects.create(
+        attendee=attendee_profile,
+        ticket_info=ticket_info_ga,
+        quantity=2,
+        price_at_purchase=50,  # Unit price
+        full_name="Test Refund User",
+        email="refund@example.com",
+        status="completed",
+        stripe_session_id="sess_refund_test",
     )

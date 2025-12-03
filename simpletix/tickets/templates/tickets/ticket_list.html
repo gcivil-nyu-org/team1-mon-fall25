@@ -30,7 +30,11 @@
                       Untitled Event
                     {% endif %}
                   </span>
-                  {% if ticket.ticketInfo.category %}
+                  {% if event.is_cancelled %}
+                    <span class="stx-ticket-category" style="background-color: #fee2e2; color: #dc2626; font-weight: 800;">
+                      Event Cancelled
+                    </span>
+                  {% elif ticket.ticketInfo.category %}
                     <span class="stx-ticket-category">
                       {{ ticket.ticketInfo.category }}
                     </span>
