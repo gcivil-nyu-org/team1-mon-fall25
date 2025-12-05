@@ -126,6 +126,7 @@
   white-space: nowrap;
 }
 
+/* legacy cancel style (safe to keep for any old uses) */
 .stx-btn-ghost-danger {
   border-radius: 999px;
   padding: 6px 14px;
@@ -166,4 +167,62 @@
 
 .stx-col-actions {
   width: 160px;
+}
+
+/* unified pill buttons for Edit / Manage Orders / Cancel */
+.stx-btn-table {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none !important;
+  color: #111827 !important;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.stx-btn-table:hover {
+  transform: translateY(-1px);
+}
+
+/* primary (Manage Orders) – solid blue pill */
+.stx-btn-table-primary {
+  border-color: #4778e0 !important;
+  background: #4778e0 !important;
+  color: #ffffff !important;
+}
+
+.stx-btn-table-primary:hover {
+  background: #1d4ed8 !important;
+}
+
+/* secondary (Edit) – subtle grey-outline pill */
+.stx-btn-table-secondary {
+  border-color: #e5e7eb !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+}
+
+.stx-btn-table-secondary:hover {
+  background: #f3f4f6 !important;
+}
+
+/* danger (Cancel event) – solid red pill */
+.stx-btn-table-danger {
+  border-color: #941515 !important;
+  background: #941515 !important;
+  color: #ffffff !important;
+}
+
+.stx-btn-table-danger:hover {
+  background: #b91c1c !important;
 }
