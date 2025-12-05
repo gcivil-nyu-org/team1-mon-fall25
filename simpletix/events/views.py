@@ -692,7 +692,7 @@ def cancel_event(request, event_id):
 
     if organizer_profile is None:
         messages.error(request, "You must be an organizer to cancel an event.")
-        return redirect("home")
+        return redirect("events:event_list")
 
     event = get_object_or_404(Event, id=event_id)
 
