@@ -16,12 +16,20 @@ class SignupForm(UserCreationForm):
         max_length=150,
         help_text="Pick a unique username.",
     )
+
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+        help_text="We'll send password resets here.",
+    )
+
     password1 = forms.CharField(
         label="Password",
         strip=False,
         widget=forms.PasswordInput,
         help_text="Use a strong password (Django validators enforced).",
     )
+
     password2 = forms.CharField(
         label="Confirm password",
         strip=False,
@@ -30,12 +38,20 @@ class SignupForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "password1", "password2")
+        fields = ("username", "email", "password1", "password2")
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower()
+
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("An account with this email already exists.")
+
+        return email
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Bootstrap styling
-        for name in ["username", "password1", "password2"]:
+        for name in ["username", "email", "password1", "password2"]:
             self.fields[name].widget.attrs.update({"class": "form-control"})
 
 
@@ -168,3 +184,19 @@ class OrganizerProfileForm(forms.ModelForm):
         ).replace(" ", "_")
         new_name = f"{base_name}.jpg"
         return ContentFile(buf.read(), name=new_name)
+
+    def clean_contact_email(self):
+        email = (self.cleaned_data.get("contact_email") or "").lower().strip()
+
+        # Optional field — empty is allowed
+        if not email:
+            return ""
+
+        # Check if another *User* already uses this email
+        exists = (
+            User.objects.filter(email=email).exclude(id=self.instance.user.id).exists()
+        )
+        if exists:
+            raise ValidationError("This email is already used by another account.")
+
+        return email

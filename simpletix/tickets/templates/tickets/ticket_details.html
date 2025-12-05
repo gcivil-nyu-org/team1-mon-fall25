@@ -19,10 +19,17 @@
             <div class="card-header text-white text-center text-md-start">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                     <div class="text-center text-md-start">
-                        <div class="ticket-pill mb-2">
-                            <span class="ticket-pill-dot"></span>
-                            <span>Confirmed Ticket</span>
-                        </div>
+                        {% if event.is_cancelled %}
+                            <div class="ticket-pill mb-2" style="background-color: #fee2e2; color: #dc2626;">
+                                <span class="ticket-pill-dot" style="background-color: #dc2626;"></span>
+                                <span style="font-weight: 600;">Event Cancelled</span>
+                            </div>
+                        {% else %}
+                            <div class="ticket-pill mb-2">
+                                <span class="ticket-pill-dot"></span>
+                                <span>Confirmed Ticket</span>
+                            </div>
+                        {% endif %}
                         <h1 class="h3 mb-1">{{ event.title }}</h1>
                         <p class="ticket-sub-info mb-1">
                             {{ event.date }} · {{ event.time }}
@@ -73,7 +80,7 @@
                     </div>
 
                     <!-- QR Code (right) -->
-                    {% if qr_data_url %}
+                    {% if not event.is_cancelled and qr_data_url %}
                     <div class="ticket-meta-col">
                         <h2 class="h6 mb-2 text-uppercase text-muted">
                             Ticket QR Code

@@ -1,14 +1,17 @@
 import pytest
 from datetime import date, time
+from unittest.mock import patch, MagicMock
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.contrib.auth.models import User
 
-from accounts.models import OrganizerProfile
+from accounts.models import OrganizerProfile, UserProfile
 from events.models import Event
 from events import services
 from events import views as event_views
-
+from tickets.models import TicketInfo
+from orders.models import Order
 
 pytestmark = pytest.mark.django_db
 
@@ -287,24 +290,86 @@ def test_notify_event_cancellation_uses_order_email(monkeypatch):
     assert "Galaxy Fest" in call["message"]
 
 
-def test_initiate_event_refunds_no_orders(monkeypatch):
+def test_initiate_event_refunds_no_orders():
     """
     initiate_event_refunds should safely no-op when there are no orders.
     """
-
-    class DummyEvent:
-        title = "Refundless Event"
-
-    dummy_event = DummyEvent()
-    calls = {"get_orders": 0}
-
-    def fake_get_event_orders(event):
-        assert event is dummy_event
-        calls["get_orders"] += 1
-        return []
-
-    monkeypatch.setattr(services, "get_event_orders", fake_get_event_orders)
-
+    organizer = OrganizerProfile.objects.create(
+        user=User.objects.create_user(username="testuser", password="pass123"),
+        full_name="Test Organizer",
+        contact_email="testorg@example.com",
+        phone="1234567890",
+    )
+    event_no_order = Event.objects.create(
+        title="Test Event",
+        description="Test Description",
+        date="2025-10-28",
+        time="12:00:00",
+        location="Test Location",
+        organizer=organizer,
+    )
     # Should not raise or do anything
-    services.initiate_event_refunds(dummy_event)
-    assert calls["get_orders"] == 1
+    services.initiate_event_refunds(event_no_order)
+
+
+@pytest.fixture
+def mock_stripe():
+    """Mocks the stripe API calls."""
+    with patch("orders.views.stripe") as mock_stripe_module:
+        # Mock the checkout session
+        mock_session = MagicMock()
+        mock_session.id = "sess_123"
+        mock_session.url = "https://stripe.com/mock_payment_url"
+        mock_stripe_module.checkout.Session.create.return_value = mock_session
+
+        # Mock the webhook construction
+        mock_stripe_module.Webhook.construct_event.return_value = {}
+        yield mock_stripe_module
+
+
+@pytest.mark.django_db
+def test_event_refunds_with_orders(
+    mock_stripe,
+):
+    # 1. Setup Data
+    organizer = OrganizerProfile.objects.create(
+        user=User.objects.create_user(username="testuser", password="pass123"),
+        full_name="Test Organizer",
+        contact_email="testorg@example.com",
+        phone="1234567890",
+    )
+    event = Event.objects.create(
+        title="Test Event",
+        description="Test Description",
+        date="2025-10-28",
+        time="12:00:00",
+        location="Test Location",
+        organizer=organizer,
+    )
+    ticket_info = TicketInfo.objects.create(
+        event=event, category="General Admission", price=50, availability=500
+    )
+    attendee = User.objects.create_user(username="att_viewer", password="Passw0rd1!")
+    profile, _ = UserProfile.objects.get_or_create(user=attendee)
+
+    # 2. Create Order directly in 'completed' state
+    Order.objects.create(
+        attendee=profile,
+        ticket_info=ticket_info,
+        quantity=10,
+        full_name="Test User",
+        email="test@example.com",
+        phone="1234567890",
+        price_at_purchase=500,
+        status="completed",
+        stripe_session_id="sess_123",
+    )
+
+    # 3. Mock the Session.retrieve call logic
+    # We must mock the object returned by retrieve to have a 'payment_intent' attribute.
+    mock_retrieved_session = MagicMock()
+    mock_retrieved_session.payment_intent = "pi_mock_999"  # The Payment Intent ID
+    mock_stripe.checkout.Session.retrieve.return_value = mock_retrieved_session
+
+    # 4. Execute the service function
+    services.initiate_event_refunds(event)

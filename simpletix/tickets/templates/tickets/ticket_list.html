@@ -11,6 +11,7 @@
   <div class="stx-ticket-page">
     <div class="stx-ticket-inner">
 
+<<<<<<< HEAD
       {% if is_organizer %}
         {# Organizer view: no ticket list, just info #}
         <header class="stx-ticket-hero">
@@ -20,6 +21,39 @@
             create and manage events, not to hold tickets.
           </p>
         </header>
+=======
+    {% if tickets %}
+      <section class="stx-ticket-grid">
+        {% for ticket in tickets %}
+          {% with event=ticket.ticketInfo.event %}
+            <article class="stx-ticket-card">
+              <header class="stx-ticket-card-header">
+                <div class="stx-ticket-pill-row">
+                  <span class="stx-ticket-event-name">
+                    {% if event %}
+                      {{ event.title }}
+                    {% else %}
+                      Untitled Event
+                    {% endif %}
+                  </span>
+                  {% if event.is_cancelled %}
+                    <span class="stx-ticket-category" style="background-color: #fee2e2; color: #dc2626; font-weight: 800;">
+                      Event Cancelled
+                    </span>
+                  {% elif ticket.ticketInfo.category %}
+                    <span class="stx-ticket-category">
+                      {{ ticket.ticketInfo.category }}
+                    </span>
+                  {% endif %}
+                </div>
+                <p class="stx-ticket-meta">
+                  Ticket #{{ ticket.id }}
+                  {% if ticket.status %}
+                    · {{ ticket.status|title }}
+                  {% endif %}
+                </p>
+              </header>
+>>>>>>> develop
 
         <p class="stx-ticket-empty-state">
           To buy tickets for an event, please sign in with an attendee account.

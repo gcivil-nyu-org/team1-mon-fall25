@@ -26,6 +26,7 @@
               <th>Location</th>
               <th>Status</th>
               <th class="stx-col-actions"></th>
+              <th class="stx-col-actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -52,6 +53,11 @@
                   {% else %}
                     <span class="stx-badge stx-badge-live">Scheduled</span>
                   {% endif %}
+                </td>
+                <td class="stx-cell-actions">
+                  <a href="{% url 'orders:event_order_list' event.id %}" class="btn btn-sm btn-outline-primary me-2">
+                    Manage Orders
+                  </a>
                 </td>
                 <td class="stx-cell-actions">
                   {% if not event.is_cancelled %}
