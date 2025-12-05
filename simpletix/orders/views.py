@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from decimal import Decimal
 
-from accounts.models import UserProfile
+from accounts.models import UserProfile, OrganizerProfile
 from events.models import Event
 from events.views import custom_login_required, organizer_owns_event
 from tickets.models import TicketInfo
@@ -59,13 +59,16 @@ def order(request, event_id):
         )
         return redirect("events:event_detail", event_id=event.id)
 
-    # Build profile (if any) so the form can pre-populate email
-    profile = None
+    user_profile = None
+    organizer_profile = None
     if request.user.is_authenticated:
-        profile = UserProfile.objects.filter(user=request.user).first()
+        user_profile = UserProfile.objects.filter(user=request.user).first()
+        organizer_profile = OrganizerProfile.objects.filter(user=request.user).first()
+
+    form_profile = organizer_profile or user_profile
 
     if request.method == "POST":
-        form = OrderForm(request.POST, event=event, profile=profile)
+        form = OrderForm(request.POST, event=event, profile=form_profile)
 
         if form.is_valid():
             with transaction.atomic():
@@ -112,13 +115,14 @@ def order(request, event_id):
                 # Create the Order instance
                 order_obj = form.save(commit=False)
 
-                if desired_role == "attendee" and request.user.is_authenticated:
-                    attendee_profile = profile
-                    if attendee_profile:
-                        order_obj.attendee = attendee_profile
+                if (
+                    desired_role == "attendee"
+                    and request.user.is_authenticated
+                    and user_profile is not None
+                ):
+                    order_obj.attendee = user_profile
 
                 order_obj.save()
-
             # Successful POST → go to payment step
             return redirect("orders:process_payment", order_id=order_obj.id)
 
@@ -140,7 +144,7 @@ def order(request, event_id):
             except (ValueError, TicketInfo.DoesNotExist):
                 selected_ticket = None  # fall back to first ticket
 
-        form = OrderForm(event=event, profile=profile, initial=initial)
+        form = OrderForm(event=event, profile=form_profile, initial=initial)
 
         if available_tickets.exists():
             if selected_ticket is not None:

@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db.models import Q
 
+
 from accounts.models import UserProfile, OrganizerProfile
 from .models import Ticket, TicketInfo
 from . import services
