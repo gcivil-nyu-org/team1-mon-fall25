@@ -276,13 +276,15 @@ def delete_event(request, event_id):
         else:
             messages.success(
                 request,
-                f'"{event.title}" has been cancelled. No attendees had purchased tickets.',
+                (
+                    f'"{event.title}" has been cancelled. '
+                    "No attendees had purchased tickets."
+                ),
             )
 
         return redirect("events:event_management_dashboard")
 
     return render(request, "events/delete_event.html", {"event": event})
-
 
 
 # Event List
@@ -466,9 +468,8 @@ def event_management_dashboard(request):
         return redirect("events:event_list")  # fallback
 
     # Show all events (scheduled + cancelled) for this organizer
-    events = (
-        Event.objects.filter(organizer=organizer_profile)
-        .order_by("-date", "-time")
+    events = Event.objects.filter(organizer=organizer_profile).order_by(
+        "-date", "-time"
     )
 
     return render(
@@ -476,7 +477,6 @@ def event_management_dashboard(request):
         "events/event_management_dashboard.html",
         {"events": events},
     )
-
 
 
 @login_required
