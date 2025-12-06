@@ -55,11 +55,21 @@
                   {% endif %}
                 </td>
                 <td class="stx-cell-actions">
-                  <a href="{% url 'events:edit_event' event.id %}"
-                     class="stx-btn-table stx-btn-table-secondary me-2"
-                     role="button">
-                    Edit
-                  </a>
+                  {# Hide/disable Edit for cancelled events #}
+                  {% if not event.is_cancelled %}
+                    <a href="{% url 'events:edit_event' event.id %}"
+                       class="stx-btn-table stx-btn-table-secondary me-2"
+                       role="button">
+                      Edit
+                    </a>
+                  {% else %}
+                    <button class="stx-btn-table stx-btn-table-secondary stx-btn-table-disabled me-2"
+                            type="button"
+                            disabled
+                            aria-disabled="true">
+                      Edit
+                    </button>
+                  {% endif %}
                   <a href="{% url 'orders:event_order_list' event.id %}"
                      class="stx-btn-table stx-btn-table-primary"
                      role="button">

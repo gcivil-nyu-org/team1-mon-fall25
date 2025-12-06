@@ -226,3 +226,14 @@
 .stx-btn-table-danger:hover {
   background: #b91c1c !important;
 }
+
+/* Disabled table button: used for Edit on cancelled events */
+.stx-btn-table-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #e5e7eb;            /* light grey */
+  color: #6b7280;                 /* muted text */
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: none;
+}
+
