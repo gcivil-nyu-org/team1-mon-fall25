@@ -195,6 +195,13 @@ def create_event(request):
 def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    if event.is_cancelled:
+        messages.error(
+            request,
+            "This event has already been cancelled and " "can no longer be edited.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
+
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES, instance=event)
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
@@ -254,6 +261,13 @@ def edit_event(request, event_id):
 @organizer_owns_event
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+
+    if event.is_cancelled:
+        messages.error(
+            request,
+            "This event has already been cancelled and cannot be deleted.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
 
     if request.method == "POST":
         has_orders = Order.objects.filter(ticket_info__event=event).exists()
@@ -496,6 +510,13 @@ def cancel_event(request, event_id):
     if event.is_cancelled:
         messages.info(request, "This event is already cancelled.")
         return redirect("events:event_management_dashboard")
+
+    if event.is_cancelled:
+        messages.info(
+            request,
+            f'"{event.title}" is already cancelled.',
+        )
+        return redirect("events:event_detail", event_id=event.id)
 
     if request.method == "POST":
         # 1) Update event status
