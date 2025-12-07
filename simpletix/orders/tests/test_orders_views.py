@@ -612,3 +612,34 @@ def test_refund_partial_success(
     # 2. Check Database Update
     completed_order.refresh_from_db()
     assert completed_order.status == "refund_processing"
+
+
+def test_refund_partial_exceeds_limit(
+    organizer_client, test_event, completed_order, mock_stripe
+):
+    """
+    Test that refund is blocked if (previous + new) > 100%.
+    """
+    url = reverse("orders:event_order_list", args=[test_event.id])
+
+    # Setup: Order total $100, already refunded $80
+    completed_order.amount_refunded = 80.00
+    completed_order.status = "partially_refunded"
+    completed_order.save()
+
+    # Try to refund another 50% ($50) -> Total would be $130 (Over limit)
+    data = {
+        "action": "refund_partial",
+        "selected_orders": [completed_order.id],
+        "refund_percentage": "50",
+    }
+
+    response = organizer_client.post(url, data, follow=True)
+
+    # 1. Check Stripe API was NOT called
+    mock_stripe.Refund.create.assert_not_called()
+
+    # 2. Check Error Message
+    messages = list(response.context["messages"])
+    assert any("Cannot refund 50%" in str(m) for m in messages)
+    assert any("At most 20% can be refunded" in str(m) for m in messages)
