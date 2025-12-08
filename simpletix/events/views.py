@@ -462,7 +462,8 @@ def event_detail(request, event_id):
 def notification_subscribers(request, event_id):
     """
     Show list of people waiting for ticket notifications.
-    Only accessible to the organizer who owns this event.
+    Only accessible to the organizer who owns this event and
+    only for events that actually have subscribers.
     """
     event = get_object_or_404(Event, id=event_id)
 
@@ -478,7 +479,6 @@ def notification_subscribers(request, event_id):
         return redirect("events:event_detail", event_id=event_id)
 
     # 3) Must *own* this event (organizer user must match)
-    #    This is the bit the test `organizer_must_own_event` is asserting.
     if event.organizer is None or event.organizer.user != request.user:
         messages.error(
             request,
@@ -486,10 +486,16 @@ def notification_subscribers(request, event_id):
         )
         return redirect("events:event_detail", event_id=event_id)
 
-    # 4) Happy path – owner organizer sees the list
-    subscribers = EventNotificationSubscription.objects.filter(event=event).order_by(
-        "-created_at"
-    )
+    # 4) Event must actually have subscribers; otherwise treat as not viewable
+    subscribers_qs = EventNotificationSubscription.objects.filter(event=event)
+    if not subscribers_qs.exists():
+        messages.error(
+            request,
+            "There are no subscribers for this event yet.",
+        )
+        return redirect("events:event_detail", event_id=event_id)
+
+    subscribers = subscribers_qs.order_by("-created_at")
 
     return render(
         request,
