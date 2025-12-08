@@ -262,12 +262,13 @@ def edit_event(request, event_id):
     )
 
 
-# Delete Event  (now behaves like a soft cancel)
+# Delete Event (hard delete when safe)
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    # Already cancelled → cannot be deleted
     if event.is_cancelled:
         messages.error(
             request,
@@ -278,30 +279,24 @@ def delete_event(request, event_id):
     if request.method == "POST":
         has_orders = Order.objects.filter(ticket_info__event=event).exists()
 
-        # Mark event as cancelled instead of deleting from DB
-        event.cancel()
-
-        # Remove from Algolia search index so it doesn’t appear in search
-        algolia_delete(event)
-
-        # If there were orders, notify + refund
+        # If there are orders, do NOT delete – tests expect the event to remain
         if has_orders:
-            services.notify_event_cancellation(event)
-            services.initiate_event_refunds(event)
-            messages.success(
-                request,
-                f'"{event.title}" has been cancelled. '
-                "Attendees will be notified and refunds will be processed.",
-            )
-        else:
-            messages.success(
+            messages.error(
                 request,
                 (
-                    f'"{event.title}" has been cancelled. '
-                    "No attendees had purchased tickets."
+                    "This event already has orders and cannot be deleted. "
+                    "Please cancel the event instead so attendees can be "
+                    "notified and refunded."
                 ),
             )
+            return redirect("events:event_detail", event_id=event.id)
 
+        # No orders → hard delete from DB
+        title = event.title  # cache before delete
+        algolia_delete(event)
+        event.delete()
+
+        messages.success(request, f'"{title}" has been deleted.')
         return redirect("events:event_management_dashboard")
 
     return render(request, "events/delete_event.html", {"event": event})
