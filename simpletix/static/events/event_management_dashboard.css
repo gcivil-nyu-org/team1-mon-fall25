@@ -1,0 +1,239 @@
+.stx-dashboard-shell {
+  min-height: calc(100vh - 80px);
+  padding: 40px 16px;
+  display: flex;
+  justify-content: center;
+  background: radial-gradient(circle at top, #e0f2fe 0, #f9fafb 45%, #ffffff 100%);
+}
+
+.stx-dashboard-card {
+  width: 100%;
+  max-width: 1100px;
+  border-radius: 24px;
+  padding: 24px 24px 32px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 24px 80px rgba(15, 23, 42, 0.25),
+    0 0 0 1px rgba(148, 163, 184, 0.3);
+}
+
+.stx-dashboard-header {
+  margin-bottom: 24px;
+}
+
+.stx-dashboard-kicker {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.stx-dashboard-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.stx-dashboard-subtitle {
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.stx-dashboard-table-wrapper {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.stx-dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: linear-gradient(180deg, #f9fafb 0%, #ffffff 50%, #f9fafb 100%);
+}
+
+.stx-dashboard-table thead {
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.stx-dashboard-table th,
+.stx-dashboard-table td {
+  padding: 12px 16px;
+  font-size: 0.9rem;
+}
+
+.stx-dashboard-table th {
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.stx-dashboard-row:nth-child(even) {
+  background: rgba(148, 163, 184, 0.04);
+}
+
+.stx-dashboard-row:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.stx-row-cancelled {
+  opacity: 0.7;
+}
+
+.stx-event-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.stx-event-meta {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.stx-event-location {
+  max-width: 260px;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.stx-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stx-badge-live {
+  background: rgba(22, 163, 74, 0.08);
+  color: #15803d;
+  border: 1px solid rgba(22, 163, 74, 0.35);
+}
+
+.stx-badge-cancelled {
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.stx-cell-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* legacy cancel style (safe to keep for any old uses) */
+.stx-btn-ghost-danger {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+  background: rgba(254, 242, 242, 0.8);
+  text-decoration: none;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+}
+
+.stx-btn-ghost-danger:hover {
+  background: rgba(248, 113, 113, 0.08);
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.5);
+  transform: translateY(-1px);
+}
+
+.stx-text-muted {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.stx-empty-state {
+  padding: 32px 12px;
+  text-align: center;
+}
+
+.stx-empty-state h2 {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.stx-empty-state p {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.stx-col-actions {
+  width: 160px;
+}
+
+/* unified pill buttons for Edit / Manage Orders / Cancel */
+.stx-btn-table {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none !important;
+  color: #111827 !important;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.stx-btn-table:hover {
+  transform: translateY(-1px);
+}
+
+/* primary (Manage Orders) – solid blue pill */
+.stx-btn-table-primary {
+  border-color: #4778e0 !important;
+  background: #4778e0 !important;
+  color: #ffffff !important;
+}
+
+.stx-btn-table-primary:hover {
+  background: #1d4ed8 !important;
+}
+
+/* secondary (Edit) – subtle grey-outline pill */
+.stx-btn-table-secondary {
+  border-color: #e5e7eb !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+}
+
+.stx-btn-table-secondary:hover {
+  background: #f3f4f6 !important;
+}
+
+/* danger (Cancel event) – solid red pill */
+.stx-btn-table-danger {
+  border-color: #941515 !important;
+  background: #941515 !important;
+  color: #ffffff !important;
+}
+
+.stx-btn-table-danger:hover {
+  background: #b91c1c !important;
+}
+
+/* Disabled table button: used for Edit on cancelled events */
+.stx-btn-table-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #e5e7eb;            /* light grey */
+  color: #6b7280;                 /* muted text */
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: none;
+}
+

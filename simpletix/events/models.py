@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from accounts.models import OrganizerProfile
 
 
@@ -21,8 +22,21 @@ class Event(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    is_cancelled = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return self.title
+
+    def cancel(self):
+        """
+        Idempotent helper to cancel the event.
+        Safe to call multiple times.
+        """
+        if not self.is_cancelled:
+            self.is_cancelled = True
+            self.cancelled_at = timezone.now()
+            self.save(update_fields=["is_cancelled", "cancelled_at"])
 
     @property
     def date_str(self):

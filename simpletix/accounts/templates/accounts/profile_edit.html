@@ -57,4 +57,39 @@
       </div>
     </form>
   </div>
+
+  <script>
+    (function () {
+      // Adjust this if your actual nginx/Django limit is different
+      var MAX_SIZE_MB = 10;
+      var MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+      var form = document.querySelector("form.form");
+      if (!form) return;
+
+      var fileInput = form.querySelector('input[type="file"][name="profile_photo"]');
+      var errorEl = document.getElementById("profile-photo-error");
+
+      if (!fileInput || !errorEl) return;
+
+      form.addEventListener("submit", function (e) {
+        var file = fileInput.files && fileInput.files[0];
+        // If there is a file and it's too large, block submit
+        if (file && file.size > MAX_SIZE_BYTES) {
+          e.preventDefault();
+          errorEl.textContent =
+            "Maximum file size is " + MAX_SIZE_MB + " MB. Please choose a smaller image.";
+          errorEl.style.display = "block";
+        }
+      });
+
+      fileInput.addEventListener("change", function () {
+        // Clear error when user picks a new file
+        if (errorEl.style.display === "block") {
+          errorEl.textContent = "";
+          errorEl.style.display = "none";
+        }
+      });
+    })();
+  </script>
 {% endblock %}

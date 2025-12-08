@@ -18,10 +18,14 @@ from orders.models import Order
 from .forms import EventForm
 from .models import Event
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models.functions import Coalesce
 from django.db.models import F
 from django.db.models.functions import ACos, Cos, Sin, Radians
+from django.db.utils import IntegrityError
+from django.contrib.auth.decorators import login_required
+
+from . import services
 
 # --- Algolia integration helpers -------------------------------------------
 
@@ -191,6 +195,13 @@ def create_event(request):
 def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    if event.is_cancelled:
+        messages.error(
+            request,
+            "This event has already been cancelled and " "can no longer be edited.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
+
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES, instance=event)
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
@@ -202,12 +213,26 @@ def edit_event(request, event_id):
                 field.required = False
 
         if form.is_valid() and formset.is_valid():
-            form.save()
-            algolia_save(event)
-
-            formset.save()
-            messages.success(request, "Event updated successfully!")
-            return redirect("events:event_detail", event_id=event.id)
+            try:
+                # Save event + tickets in one transaction
+                with transaction.atomic():
+                    form.save()
+                    algolia_save(event)
+                    formset.save()
+            except IntegrityError:
+                # Most likely: duplicate (event, category) for TicketInfo
+                messages.error(
+                    request,
+                    (
+                        "There is already a ticket with that category for this event. "
+                        "Each ticket category must be unique per event. "
+                        "Please adjust your ticket rows and try again."
+                    ),
+                )
+                # fall through to re-render the form with current data
+            else:
+                messages.success(request, "Event updated successfully!")
+                return redirect("events:event_detail", event_id=event.id)
         # No explicit messages.error here — we show inline errors in the template
     else:
         form = EventForm(instance=event)
@@ -231,34 +256,55 @@ def edit_event(request, event_id):
     )
 
 
-# Delete Event
+# Delete Event  (now behaves like a soft cancel)
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    if event.is_cancelled:
+        messages.error(
+            request,
+            "This event has already been cancelled and cannot be deleted.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
+
     if request.method == "POST":
         has_orders = Order.objects.filter(ticket_info__event=event).exists()
-        if has_orders:
-            # If orders exist, stop and send a friendly error
-            messages.error(
-                request, "This event cannot be deleted because it has existing orders."
-            )
-            # Redirect back to the event detail page (or wherever is appropriate)
-            return redirect("events:event_detail", event_id=event.id)
 
+        # Mark event as cancelled instead of deleting from DB
+        event.cancel()
+
+        # Remove from Algolia search index so it doesn’t appear in search
         algolia_delete(event)
 
-        event.delete()
-        messages.success(request, "Event deleted successfully!")
-        return redirect("events:event_list")
+        # If there were orders, notify + refund
+        if has_orders:
+            services.notify_event_cancellation(event)
+            services.initiate_event_refunds(event)
+            messages.success(
+                request,
+                f'"{event.title}" has been cancelled. '
+                "Attendees will be notified and refunds will be processed.",
+            )
+        else:
+            messages.success(
+                request,
+                (
+                    f'"{event.title}" has been cancelled. '
+                    "No attendees had purchased tickets."
+                ),
+            )
+
+        return redirect("events:event_management_dashboard")
+
     return render(request, "events/delete_event.html", {"event": event})
 
 
 # Event List
 # --- Event List (stable + slick-compatible version) ---
 def event_list(request):
-    events = Event.objects.all().distinct()
+    events = Event.objects.filter(is_cancelled=False).distinct()
 
     # --- Sorting Inputs ---
     price_sort = request.GET.get("price_sort")
@@ -413,3 +459,92 @@ def event_list(request):
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     return render(request, "events/event_detail.html", {"event": event})
+
+
+def _get_organizer_profile(user):
+    """
+    Best-effort helper to get OrganizerProfile from user.
+    Handles both `user.organizerprofile` and `user.organizer_profile`.
+    """
+    if not user.is_authenticated:
+        return None
+    return getattr(user, "organizerprofile", None) or getattr(
+        user, "organizer_profile", None
+    )
+
+
+@login_required
+def event_management_dashboard(request):
+    organizer_profile = _get_organizer_profile(request.user)
+
+    if organizer_profile is None:
+        messages.error(request, "You must be an organizer to access this page.")
+        return redirect("events:event_list")  # fallback
+
+    # Show all events (scheduled + cancelled) for this organizer
+    events = Event.objects.filter(organizer=organizer_profile).order_by(
+        "-date", "-time"
+    )
+
+    return render(
+        request,
+        "events/event_management_dashboard.html",
+        {"events": events},
+    )
+
+
+@login_required
+def cancel_event(request, event_id):
+    organizer_profile = _get_organizer_profile(request.user)
+
+    if organizer_profile is None:
+        messages.error(request, "You must be an organizer to cancel an event.")
+        return redirect("home")
+
+    event = get_object_or_404(Event, id=event_id)
+
+    if event.organizer != organizer_profile and not request.user.is_staff:
+        messages.error(request, "You are not allowed to cancel this event.")
+        return redirect("events:event_management_dashboard")
+
+    if event.is_cancelled:
+        messages.info(request, "This event is already cancelled.")
+        return redirect("events:event_management_dashboard")
+
+    if event.is_cancelled:
+        messages.info(
+            request,
+            f'"{event.title}" is already cancelled.',
+        )
+        return redirect("events:event_detail", event_id=event.id)
+
+    if request.method == "POST":
+        # 1) Update event status
+        event.cancel()
+
+        # 2) Notify all attendees with completed orders
+        services.notify_event_cancellation(event)
+
+        # 3) Trigger refund pipeline @Xiangping
+        services.initiate_event_refunds(event)
+
+        messages.success(
+            request,
+            f'"{event.title}" has been cancelled. '
+            "Attendees will be notified and refunds will be processed.",
+        )
+        return redirect("events:event_management_dashboard")
+
+    return render(request, "events/confirm_cancel_event.html", {"event": event})
+
+    # Use the role toggle, not profiles
+    is_organizer = request.session.get("desired_role") == "organizer"
+
+    return render(
+        request,
+        "events/event_detail.html",
+        {
+            "event": event,
+            "is_organizer": is_organizer,
+        },
+    )

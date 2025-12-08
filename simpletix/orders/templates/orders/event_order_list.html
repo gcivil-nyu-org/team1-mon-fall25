@@ -1,0 +1,175 @@
+{% extends "simpletix/nav.html" %}
+
+{% block title %}Manage Orders: {{ event.title }} · SimpleTix{% endblock %}
+
+{% block body %}
+<style>
+    /* Django 'error' messages produce the class .alert-error.
+       Bootstrap uses .alert-danger. This shim maps the style manually.
+    */
+    .alert-error {
+        color: #842029;
+        background-color: #f8d7da;
+        border-color: #f5c2c7;
+        position: relative;
+        padding: 1rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: .25rem;
+    }
+</style>
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3">Orders for: {{ event.title }}</h1>
+            <p class="text-muted">
+                {{ event.date|date:"M d, Y" }} at {{ event.time|time:"H:i" }} | {{ event.location }}
+            </p>
+        </div>
+        <a href="{% url 'events:event_management_dashboard' %}" class="btn btn-outline-secondary">
+            &larr; Back to Dashboard
+        </a>
+    </div>
+
+    <form method="POST" id="bulk-action-form">
+        {% csrf_token %}
+        
+        <!-- Bulk Action Toolbar -->
+        <div class="card p-3 mb-4 bg-light border-0">
+            <div class="d-flex align-items-center">
+                <button type="submit" id="refund-btn" name="action" value="refund_full" class="btn btn-danger me-2" disabled onclick="return confirm('Are you sure you want to fully refund the selected orders? This cannot be undone.');">
+                    Full Refund
+                </button>
+                <select name="refund_percentage" id="refund-percentage" class="form-select w-auto me-2" disabled>
+                    <option value="" disabled selected>Refund %</option>
+                    <option value="10">10%</option>
+                    <option value="20">20%</option>
+                    <option value="30">30%</option>
+                    <option value="40">40%</option>
+                    <option value="50">50%</option>
+                    <option value="60">60%</option>
+                    <option value="70">70%</option>
+                    <option value="80">80%</option>
+                    <option value="90">90%</option>
+                </select>
+                
+                <button type="submit" name="action" value="refund_partial" id="btn-partial-refund" class="btn btn-warning text-dark" disabled onclick="return confirm('Are you sure you want to refund the selected percentage?');">
+                    Partial Refund
+                </button>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4" style="width: 40px;">
+                                    <input type="checkbox" class="form-check-input" id="select-all">
+                                </th>
+                                <th>Order ID</th>
+                                <th>Attendee</th>
+                                <th>Ticket Type</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td class="ps-4">
+                                    {% if order.status == 'completed' %}
+                                        <input type="checkbox" name="selected_orders" value="{{ order.id }}" class="form-check-input order-checkbox" data-status="{{ order.status }}">
+                                    {% elif order.status == 'partially_refunded' and order.refund_percentage < 100 %}
+                                        <input type="checkbox" name="selected_orders" value="{{ order.id }}" class="form-check-input order-checkbox" data-status="{{ order.status }}">
+                                    {% else %}
+                                        <input type="checkbox" disabled class="form-check-input">
+                                    {% endif %}
+                                </td>
+                                <td>#{{ order.id }}</td>
+                                <td>
+                                    <strong>{{ order.full_name }}</strong><br>
+                                    <span class="text-muted small">{{ order.email }}</span>
+                                </td>
+                                <td>{{ order.ticket_info.category }}</td>
+                                <td>{{ order.quantity }}</td>
+                                <td>${{ order.price_at_purchase }}</td>
+                                <td>${{ order.total_price }}</td>
+                                <td>
+                                    {% if order.status == 'completed' %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% elif order.status == 'refunded' %}
+                                        <span class="badge bg-secondary">Refunded</span>
+                                    {% elif order.status == 'refund_processing' %}
+                                        <span class="badge bg-info text-dark">Processing Refund...</span>
+                                    {% elif order.status == 'partially_refunded' %}
+                                        <span class="badge bg-warning text-dark">Refunded {{ order.refund_percentage }}%</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ order.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">
+                                    {{ order.created_at|date:"M d, Y" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    No orders found for this event.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    const refundBtn = document.getElementById('refund-btn');
+    const refundPercentage = document.getElementById('refund-percentage');
+    const btnPartialRefund = document.getElementById('btn-partial-refund');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox:not(:disabled)');
+    const selectAllCheckbox = document.getElementById('select-all');
+
+    // Helper function to toggle button state
+    function updateButtonState() {
+        const checkedBoxes = Array.from(orderCheckboxes).filter(cb => cb.checked);
+        const anyChecked = checkedBoxes.length > 0;
+        const anyPartial = checkedBoxes.some(cb => cb.dataset.status === 'partially_refunded');
+
+        if (!anyChecked && refundPercentage) {
+                refundPercentage.value = "";
+            }
+        const percentageSelected = refundPercentage && refundPercentage.value !== "";
+        refundBtn.disabled = !anyChecked || anyPartial;
+        refundPercentage.disabled = !anyChecked;
+        btnPartialRefund.disabled = !anyChecked || !percentageSelected;
+    }
+
+    // "Select All" functionality
+    selectAllCheckbox.addEventListener('change', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        // Update button state after selecting/deselecting all
+        updateButtonState();
+    });
+
+    // Add listeners to individual checkboxes
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateButtonState();
+            const allChecked = orderCheckboxes.length > 0 && Array.from(orderCheckboxes).every(cb => cb.checked);
+            selectAllCheckbox.checked = allChecked;
+        });
+    });
+    refundPercentage.addEventListener('change', updateButtonState);
+</script>
+{% endblock %}

@@ -18,10 +18,9 @@ class OrderForm(forms.ModelForm):
         widget=forms.NumberInput(
             attrs={
                 "class": "form-control",
-                "id": "id_quantity",  # For JavaScript
+                "id": "id_quantity",
                 "min": "1",
-                # Set a default max. JS will update this.
-                "max": "1",  # A sensible default, will be overridden.
+                "max": "1",
             }
         ),
     )
@@ -42,14 +41,30 @@ class OrderForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        # Extra kwargs passed in from the view
         profile = kwargs.pop("profile", None)
         event = kwargs.pop("event", None)
         preselect_ticket_category_id = kwargs.pop("preselect_ticket_category_id", None)
+
         super().__init__(*args, **kwargs)
 
+        # --- EMAIL INITIALISATION FIX ---
+        # Always require email
         self.fields["email"].required = True
-        if profile and profile.contact_email:
-            self.fields["email"].initial = profile.contact_email
+
+        # Try to derive an initial email safely:
+        # 1) If profile has contact_email, use that (e.g. OrganizerProfile)
+        # 2) Otherwise, fall back to profile.user.email for normal attendees
+        initial_email = None
+        if profile:
+            if hasattr(profile, "contact_email") and profile.contact_email:
+                initial_email = profile.contact_email
+            elif getattr(profile, "user", None) and profile.user.email:
+                initial_email = profile.user.email
+
+        if initial_email:
+            self.fields["email"].initial = initial_email
+        # --- END EMAIL FIX ---
 
         if event:
             # Only include tickets for this event with availability > 0.
@@ -88,7 +103,6 @@ class OrderForm(forms.ModelForm):
         # Only run validation if both fields are present
         if ticket_info and quantity:
             if quantity > ticket_info.availability:
-                # This adds an error to the 'quantity' field specifically
                 t_a = ticket_info.availability
                 self.add_error(
                     "quantity",

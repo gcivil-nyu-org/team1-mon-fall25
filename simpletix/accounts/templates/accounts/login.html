@@ -48,6 +48,10 @@
         <button class="btn btn-primary" type="submit">Log in</button>
         <a class="btn btn-outline-secondary" href="/">Cancel</a>
 
+        <a class="ms-3 small text-decoration-none" href="{% url 'accounts:password_reset' %}">
+          Reset password
+        </a>
+
         <span class="ms-auto">
           Don’t have an account?
           <a href="{% url 'accounts:signup' %}{% if request.GET.role %}?role={{ request.GET.role }}{% endif %}">
