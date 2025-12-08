@@ -536,3 +536,15 @@ def cancel_event(request, event_id):
         return redirect("events:event_management_dashboard")
 
     return render(request, "events/confirm_cancel_event.html", {"event": event})
+
+    # Use the role toggle, not profiles
+    is_organizer = request.session.get("desired_role") == "organizer"
+
+    return render(
+        request,
+        "events/event_detail.html",
+        {
+            "event": event,
+            "is_organizer": is_organizer,
+        },
+    )

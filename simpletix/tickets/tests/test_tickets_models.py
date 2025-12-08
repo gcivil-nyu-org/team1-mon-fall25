@@ -1,12 +1,13 @@
 import pytest
+
+from events.models import Event
+from tickets.models import TicketInfo, Ticket
+from accounts.models import OrganizerProfile, UserProfile
+
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
 from decimal import Decimal
 from django.utils import timezone
-
-from events.models import Event
-from accounts.models import OrganizerProfile, UserProfile
-from tickets.models import TicketInfo, Ticket
 
 pytestmark = pytest.mark.django_db
 
@@ -205,3 +206,109 @@ def test_editing_ticket_info_does_not_change_display_order(test_event):
 
     # Order should still be alphabetical, not "VIP last-edited goes to bottom"
     assert categories == ["Early Bird", "General Admission", "VIP"]
+
+
+def test_ticketinfo_str_uses_event_title(ticket_info_ga):
+    """
+    __str__ should include the event title and category.
+    """
+    expected = f"{ticket_info_ga.event.title} - {ticket_info_ga.category}"
+    assert str(ticket_info_ga) == expected
+
+
+def test_ticket_str_with_event_and_attendee(ticket_info_ga, attendee_profile):
+    """
+    When ticketInfo, event title, category, and attendee user are present,
+    __str__ should include all of them.
+    """
+    ticket = Ticket.objects.create(
+        ticketInfo=ticket_info_ga,
+        attendee=attendee_profile,
+        full_name="Test User",
+        email="test@example.com",
+    )
+
+    s = str(ticket)
+
+    # Always starts with Ticket #<id>
+    assert f"Ticket #{ticket.pk}" in s
+    # Includes event title
+    assert ticket_info_ga.event.title in s
+    # Includes category in parentheses
+    assert f"({ticket_info_ga.category})" in s
+    # Includes attendee's user string
+    assert str(attendee_profile.user) in s
+
+
+def test_ticket_str_without_event_title(
+    ticket_info_ga, attendee_profile, django_db_blocker
+):
+    """
+    If event.title is blank/falsey, the 'for <title>' piece should be skipped
+    but the category should still appear.
+    """
+    event = ticket_info_ga.event
+
+    # Temporarily blank out the title, but keep the same event object
+    original_title = event.title
+    event.title = ""
+    event.save()
+
+    ticket = Ticket.objects.create(
+        ticketInfo=ticket_info_ga,
+        attendee=attendee_profile,
+    )
+
+    s = str(ticket)
+
+    # No "for <title>" part because title is empty
+    assert "for " not in s
+    # Category still appears
+    assert f"({ticket_info_ga.category})" in s
+
+    # Restore title so we don't affect other tests
+    event.title = original_title
+    event.save()
+
+
+def test_ticket_str_minimal_ticket():
+    """
+    If there is no ticketInfo and no attendee, __str__ should gracefully
+    fall back to 'Ticket #<id>' with no extra pieces.
+    """
+    ticket = Ticket.objects.create(
+        full_name="Lonely Ticket",
+        email="lonely@example.com",
+    )
+
+    assert str(ticket) == f"Ticket #{ticket.pk}"
+
+
+def test_ensure_qr_generates_and_is_idempotent(ticket_info_ga):
+    """
+    ensure_qr should generate a QR code only if missing, and should not
+    overwrite an existing qr_code if called again. It does NOT save by itself.
+    """
+    ticket = Ticket.objects.create(
+        ticketInfo=ticket_info_ga,
+        full_name="QR User",
+        email="qr@example.com",
+    )
+
+    # Initially no qr_code in memory / DB
+    assert ticket.qr_code is None
+
+    # First call generates the code (in memory)
+    ticket.ensure_qr()
+    assert ticket.qr_code is not None
+    first_code = ticket.qr_code
+    assert first_code.startswith("TCKT-")
+
+    # Second call should NOT change the existing code
+    ticket.ensure_qr()
+    assert ticket.qr_code == first_code
+
+    # Once we save, the code should be persisted to the DB
+    ticket.save()
+    ticket.refresh_from_db()
+    assert ticket.qr_code == first_code
