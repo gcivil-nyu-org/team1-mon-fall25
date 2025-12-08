@@ -131,6 +131,10 @@ def test_create_ticket(attendee_profile, ticket_info_ga):
     assert ticket.full_name == "Test Attendee"
     assert ticket.email == "test@example.com"
     assert ticket.phone == "123-456-7890"
+    expected_str = (
+        f"Ticket #{ticket.pk} for Another Test Event (General Admission) - attendeeuser"
+    )
+    assert str(ticket) == expected_str
 
 
 # --- TicketInfo ordering behaviour (bug #149 regression tests) ---

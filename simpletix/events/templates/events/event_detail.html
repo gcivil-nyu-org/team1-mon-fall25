@@ -280,12 +280,6 @@
                   Event cancelled
                 </span>
               {% endif %}
-              <a href="{% url 'events:edit_event' event.id %}" class="btn btn-warning">
-                Edit Event
-              </a>
-              <a href="{% url 'events:delete_event' event.id %}" class="btn btn-danger">
-                Delete Event
-              </a>
             {% else %}
               {% if event.is_cancelled %}
                 <span class="badge bg-light text-muted">
@@ -313,6 +307,29 @@
           {% endif %}
         </div>
       </div>
+  <div class="event-actions-right">
+    {# Organizer viewing the page #}
+    {% if request.session.desired_role == 'organizer' and event.organizer.user == user %}
+      {% if event.is_cancelled %}
+        <span class="badge bg-danger-subtle text-danger fw-semibold">
+          Event cancelled
+        </span>
+      {% endif %}
+
+
+    {# Attendees / non-organizers #}
+    {% elif request.session.desired_role != 'organizer' %}
+      {% if not event.is_cancelled %}
+        <a href="{% url 'orders:order' event.id %}" class="btn btn-primary">Buy Ticket</a>
+      {% else %}
+        <span class="badge bg-light text-muted">
+          Event cancelled · Tickets unavailable
+        </span>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
     </div>
   </div>
 </div>

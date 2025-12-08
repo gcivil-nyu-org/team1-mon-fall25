@@ -195,6 +195,13 @@ def create_event(request):
 def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    if event.is_cancelled:
+        messages.error(
+            request,
+            "This event has already been cancelled and " "can no longer be edited.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
+
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES, instance=event)
         formset = TicketFormSet(request.POST, request.FILES, instance=event)
@@ -249,34 +256,55 @@ def edit_event(request, event_id):
     )
 
 
-# Delete Event
+# Delete Event  (now behaves like a soft cancel)
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    if event.is_cancelled:
+        messages.error(
+            request,
+            "This event has already been cancelled and cannot be deleted.",
+        )
+        return redirect("events:event_detail", event_id=event.id)
+
     if request.method == "POST":
         has_orders = Order.objects.filter(ticket_info__event=event).exists()
-        if has_orders:
-            # If orders exist, stop and send a friendly error
-            messages.error(
-                request, "This event cannot be deleted because it has existing orders."
-            )
-            # Redirect back to the event detail page (or wherever is appropriate)
-            return redirect("events:event_detail", event_id=event.id)
 
+        # Mark event as cancelled instead of deleting from DB
+        event.cancel()
+
+        # Remove from Algolia search index so it doesn’t appear in search
         algolia_delete(event)
 
-        event.delete()
-        messages.success(request, "Event deleted successfully!")
-        return redirect("events:event_list")
+        # If there were orders, notify + refund
+        if has_orders:
+            services.notify_event_cancellation(event)
+            services.initiate_event_refunds(event)
+            messages.success(
+                request,
+                f'"{event.title}" has been cancelled. '
+                "Attendees will be notified and refunds will be processed.",
+            )
+        else:
+            messages.success(
+                request,
+                (
+                    f'"{event.title}" has been cancelled. '
+                    "No attendees had purchased tickets."
+                ),
+            )
+
+        return redirect("events:event_management_dashboard")
+
     return render(request, "events/delete_event.html", {"event": event})
 
 
 # Event List
 # --- Event List (stable + slick-compatible version) ---
 def event_list(request):
-    events = Event.objects.all().distinct()
+    events = Event.objects.filter(is_cancelled=False).distinct()
 
     # --- Sorting Inputs ---
     price_sort = request.GET.get("price_sort")
@@ -453,6 +481,7 @@ def event_management_dashboard(request):
         messages.error(request, "You must be an organizer to access this page.")
         return redirect("events:event_list")  # fallback
 
+    # Show all events (scheduled + cancelled) for this organizer
     events = Event.objects.filter(organizer=organizer_profile).order_by(
         "-date", "-time"
     )
@@ -481,6 +510,13 @@ def cancel_event(request, event_id):
     if event.is_cancelled:
         messages.info(request, "This event is already cancelled.")
         return redirect("events:event_management_dashboard")
+
+    if event.is_cancelled:
+        messages.info(
+            request,
+            f'"{event.title}" is already cancelled.',
+        )
+        return redirect("events:event_detail", event_id=event.id)
 
     if request.method == "POST":
         # 1) Update event status
