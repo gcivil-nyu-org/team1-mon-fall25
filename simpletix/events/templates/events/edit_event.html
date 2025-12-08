@@ -167,4 +167,97 @@
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
 <script src="{% static 'js/autocomplete.js' %}"></script>
 <script src="{% static 'events/js/toggler.js' %}"></script>
+
+<script>
+  (function () {
+    var MAX_SIZE_MB = 10;
+    var MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+    var form = document.querySelector('form[method="post"][enctype="multipart/form-data"]');
+    if (!form) return;
+
+    function setupFileField(fieldName, errorIdSuffix) {
+      var input = form.querySelector('input[type="file"][name="' + fieldName + '"]');
+      if (!input) {
+        return { input: null, errorEl: null };
+      }
+
+      // Helper text
+      var helper = document.createElement("div");
+      helper.className = "text-muted small";
+      helper.textContent = "Maximum file size: " + MAX_SIZE_MB + " MB.";
+
+      // Error container
+      var errorEl = document.createElement("div");
+      errorEl.id = errorIdSuffix;
+      errorEl.className = "text-danger small";
+      errorEl.style.display = "none";
+
+      // Insert just after the input
+      input.insertAdjacentElement("afterend", errorEl);
+      input.insertAdjacentElement("afterend", helper);
+
+      return { input: input, errorEl: errorEl };
+    }
+
+    var bannerField = setupFileField("banner", "edit-banner-size-error");
+    var videoField = setupFileField("video", "edit-video-size-error");
+
+    function clearError(errorEl) {
+      if (!errorEl) return;
+      errorEl.textContent = "";
+      errorEl.style.display = "none";
+    }
+
+    function setError(errorEl, message) {
+      if (!errorEl) return;
+      errorEl.textContent = message;
+      errorEl.style.display = "block";
+    }
+
+    form.addEventListener("submit", function (e) {
+      var hasError = false;
+
+      if (bannerField.input && bannerField.input.files && bannerField.input.files[0]) {
+        if (bannerField.input.files[0].size > MAX_SIZE_BYTES) {
+          hasError = true;
+          setError(
+            bannerField.errorEl,
+            "Maximum file size is " + MAX_SIZE_MB + " MB. Please choose a smaller banner image."
+          );
+        } else {
+          clearError(bannerField.errorEl);
+        }
+      }
+
+      if (videoField.input && videoField.input.files && videoField.input.files[0]) {
+        if (videoField.input.files[0].size > MAX_SIZE_BYTES) {
+          hasError = true;
+          setError(
+            videoField.errorEl,
+            "Maximum file size is " + MAX_SIZE_MB + " MB. Please choose a smaller video."
+          );
+        } else {
+          clearError(videoField.errorEl);
+        }
+      }
+
+      if (hasError) {
+        e.preventDefault();
+      }
+    });
+
+    if (bannerField.input) {
+      bannerField.input.addEventListener("change", function () {
+        clearError(bannerField.errorEl);
+      });
+    }
+
+    if (videoField.input) {
+      videoField.input.addEventListener("change", function () {
+        clearError(videoField.errorEl);
+      });
+    }
+  })();
+</script>
 {% endblock %}
