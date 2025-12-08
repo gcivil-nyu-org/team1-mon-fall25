@@ -26,6 +26,7 @@
               <th>Location</th>
               <th>Status</th>
               <th class="stx-col-actions"></th>
+              <th class="stx-col-actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -54,8 +55,32 @@
                   {% endif %}
                 </td>
                 <td class="stx-cell-actions">
+                  {# Hide/disable Edit for cancelled events #}
                   {% if not event.is_cancelled %}
-                    <a href="{% url 'events:cancel_event' event.id %}" class="stx-btn-ghost-danger">
+                    <a href="{% url 'events:edit_event' event.id %}"
+                       class="stx-btn-table stx-btn-table-secondary me-2"
+                       role="button">
+                      Edit
+                    </a>
+                  {% else %}
+                    <button class="stx-btn-table stx-btn-table-secondary stx-btn-table-disabled me-2"
+                            type="button"
+                            disabled
+                            aria-disabled="true">
+                      Edit
+                    </button>
+                  {% endif %}
+                  <a href="{% url 'orders:event_order_list' event.id %}"
+                     class="stx-btn-table stx-btn-table-primary"
+                     role="button">
+                    Manage Orders
+                  </a>
+                </td>
+                <td class="stx-cell-actions">
+                  {% if not event.is_cancelled %}
+                    <a href="{% url 'events:cancel_event' event.id %}"
+                       class="stx-btn-table stx-btn-table-danger"
+                       role="button">
                       Cancel event
                     </a>
                   {% else %}
