@@ -25,7 +25,7 @@ class EventListViewTest(TestCase):
 
     def test_event_list_displays_events(self):
         """Test that events appear in the list."""
-        event = Event.objects.create(
+        Event.objects.create(
             title="Test Event",
             description="Test Description",
             date=date.today() + timedelta(days=1),
@@ -40,7 +40,7 @@ class EventListViewTest(TestCase):
         """Test event list with no events."""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context['events']), 0)
+        self.assertEqual(len(response.context["events"]), 0)
 
     def test_event_list_multiple_events(self):
         """Test event list displays multiple events."""
@@ -54,7 +54,7 @@ class EventListViewTest(TestCase):
                 organizer=self.organizer,
             )
         response = self.client.get(self.url)
-        self.assertEqual(len(response.context['events']), 3)
+        self.assertEqual(len(response.context["events"]), 3)
 
     def test_event_list_date_sorting_soon(self):
         """Test sorting events by date (soonest first)."""
@@ -73,16 +73,16 @@ class EventListViewTest(TestCase):
             location="Location",
             organizer=self.organizer,
         )
-        
+
         response = self.client.get(self.url, {"date_sort": "soon"})
-        events = list(response.context['events'])
+        events = list(response.context["events"])
         self.assertEqual(events[0].title, "Event 1")
 
     def test_event_list_date_range_filter(self):
         """Test filtering events by date range."""
         start = date.today() + timedelta(days=5)
         end = date.today() + timedelta(days=10)
-        
+
         # Event within range
         Event.objects.create(
             title="In Range",
@@ -91,7 +91,7 @@ class EventListViewTest(TestCase):
             location="Location",
             organizer=self.organizer,
         )
-        
+
         # Event outside range
         Event.objects.create(
             title="Out of Range",
@@ -100,13 +100,16 @@ class EventListViewTest(TestCase):
             location="Location",
             organizer=self.organizer,
         )
-        
-        response = self.client.get(self.url, {
-            "start_date": start.isoformat(),
-            "end_date": end.isoformat(),
-        })
-        
-        events = list(response.context['events'])
+
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": start.isoformat(),
+                "end_date": end.isoformat(),
+            },
+        )
+
+        events = list(response.context["events"])
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0].title, "In Range")
 
@@ -125,7 +128,7 @@ class EventListViewTest(TestCase):
             price=100.00,
             availability=50,
         )
-        
+
         event2 = Event.objects.create(
             title="Cheap Event",
             date=date.today() + timedelta(days=2),
@@ -139,8 +142,8 @@ class EventListViewTest(TestCase):
             price=20.00,
             availability=50,
         )
-        
+
         # Sort by price ascending
         response = self.client.get(self.url, {"price_sort": "asc"})
-        events = list(response.context['events'])
+        events = list(response.context["events"])
         self.assertEqual(events[0].title, "Cheap Event")

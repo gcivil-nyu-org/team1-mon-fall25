@@ -56,11 +56,11 @@ class EventDetailViewTest(TestCase):
             availability=0,
             is_active=True,
         )
-        
+
         url = reverse("events:event_detail", args=[self.event.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context['is_sold_out'])
+        self.assertTrue(response.context["is_sold_out"])
 
     def test_event_detail_with_available_tickets(self):
         """Test event detail when tickets are available."""
@@ -72,29 +72,25 @@ class EventDetailViewTest(TestCase):
             availability=100,
             is_active=True,
         )
-        
+
         url = reverse("events:event_detail", args=[self.event.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context['is_sold_out'])
+        self.assertFalse(response.context["is_sold_out"])
 
     def test_event_detail_subscriber_count(self):
         """Test that subscriber count is displayed correctly."""
         from events.models import EventNotificationSubscription
-        
+
         # Create some subscribers
         EventNotificationSubscription.objects.create(
-            event=self.event,
-            email="sub1@example.com",
-            name="Subscriber 1"
+            event=self.event, email="sub1@example.com", name="Subscriber 1"
         )
         EventNotificationSubscription.objects.create(
-            event=self.event,
-            email="sub2@example.com",
-            name="Subscriber 2"
+            event=self.event, email="sub2@example.com", name="Subscriber 2"
         )
-        
+
         url = reverse("events:event_detail", args=[self.event.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['subscriber_count'], 2)
+        self.assertEqual(response.context["subscriber_count"], 2)

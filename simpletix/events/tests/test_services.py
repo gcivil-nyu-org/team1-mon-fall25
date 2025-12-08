@@ -1,19 +1,12 @@
-"""
-Save this as: events/tests/test_services.py
-
-SIMPLIFIED VERSION - Compatible with your actual models
-"""
 from django.test import TestCase, override_settings
 from django.contrib.auth.models import User
 from django.core import mail
 from datetime import date, time, timedelta
-from unittest.mock import patch
 
 from events.models import Event, EventNotificationSubscription
 from events import services
 from accounts.models import OrganizerProfile
 from tickets.models import TicketInfo
-from orders.models import Order, BillingInfo
 
 
 class GetEventOrdersTestCase(TestCase):
@@ -50,7 +43,9 @@ class GetEventOrdersTestCase(TestCase):
     def test_get_event_orders_excludes_pending(self):
         """Test that pending orders are excluded."""
         # Skip this test - total_price is a calculated property
-        self.skipTest("Order.total_price is a calculated property, cannot be set directly")
+        self.skipTest(
+            "Order.total_price is a calculated property, cannot be set directly"
+        )
 
 
 class GetEventTicketsForOrderIdsTestCase(TestCase):
@@ -174,14 +169,14 @@ class NotifySubscribersTicketsAvailableTestCase(TestCase):
             organizer=self.organizer,
         )
 
-    @override_settings(SITE_BASE_URL='https://example.com')
+    @override_settings(SITE_BASE_URL="https://example.com")
     def test_notify_subscribers_no_subscribers(self):
         """Test notification when no subscribers exist."""
         count = services.notify_subscribers_tickets_available(self.event)
         self.assertEqual(count, 0)
         self.assertEqual(len(mail.outbox), 0)
 
-    @override_settings(SITE_BASE_URL='https://example.com')
+    @override_settings(SITE_BASE_URL="https://example.com")
     def test_notify_subscribers_single_subscriber(self):
         """Test notification with one subscriber."""
         EventNotificationSubscription.objects.create(
@@ -189,16 +184,16 @@ class NotifySubscribersTicketsAvailableTestCase(TestCase):
             email="subscriber@example.com",
             name="Test Subscriber",
         )
-        
+
         count = services.notify_subscribers_tickets_available(self.event)
-        
+
         self.assertEqual(count, 1)
         self.assertEqual(len(mail.outbox), 1)
         email = mail.outbox[0]
         self.assertIn("Tickets available again", email.subject)
         self.assertIn("subscriber@example.com", email.recipients())
 
-    @override_settings(SITE_BASE_URL='https://example.com')
+    @override_settings(SITE_BASE_URL="https://example.com")
     def test_notify_subscribers_multiple_subscribers(self):
         """Test notification with multiple subscribers."""
         for i in range(3):
@@ -207,9 +202,9 @@ class NotifySubscribersTicketsAvailableTestCase(TestCase):
                 email=f"subscriber{i}@example.com",
                 name=f"Subscriber {i}",
             )
-        
+
         count = services.notify_subscribers_tickets_available(self.event)
-        
+
         self.assertEqual(count, 3)
         # send_mass_mail sends in one batch
         self.assertGreaterEqual(len(mail.outbox), 1)

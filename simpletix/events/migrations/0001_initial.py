@@ -30,9 +30,6 @@ class Migration(migrations.Migration):
                 ("date", models.DateField()),
                 ("time", models.TimeField()),
                 ("location", models.CharField(max_length=255)),
-                ("formatted_address", models.CharField(blank=True, max_length=255)),
-                ("latitude", models.FloatField(blank=True, null=True)),
-                ("longitude", models.FloatField(blank=True, null=True)),
                 (
                     "banner",
                     models.ImageField(blank=True, null=True, upload_to="banners/"),

@@ -266,7 +266,8 @@ def delete_event(request, event_id):
         if has_orders:
             # If orders exist, stop and send a friendly error
             messages.error(
-                request, "This event cannot be deleted because it has existing orders."
+                request,
+                "This event cannot be deleted because it has existing orders.",
             )
             # Redirect back to the event detail page (or wherever is appropriate)
             return redirect("events:event_detail", event_id=event.id)
@@ -444,9 +445,7 @@ def event_detail(request, event_id):
     is_sold_out = active_tickets.exists() and not available_tickets.exists()
 
     # Count subscribers
-    subscriber_count = EventNotificationSubscription.objects.filter(
-        event=event
-    ).count()
+    subscriber_count = EventNotificationSubscription.objects.filter(event=event).count()
 
     return render(
         request,
@@ -459,24 +458,35 @@ def event_detail(request, event_id):
     )
 
 
-# NEW: View subscriber list (organizer only)
+@login_required
 def notification_subscribers(request, event_id):
     """
     Show list of people waiting for ticket notifications.
-    Only accessible to event organizer.
+    Only accessible to the organizer who owns this event.
     """
     event = get_object_or_404(Event, id=event_id)
 
-    # Check if user is organizer
+    # 1) Must be in organizer mode (session role)
     if request.session.get("desired_role") != "organizer":
         messages.error(request, "Only organizers can view subscribers.")
         return redirect("events:event_detail", event_id=event_id)
 
-    if event.organizer.user != request.user:
-        messages.error(request, "You can only view subscribers for your own events.")
+    # 2) Must actually have an organizer profile
+    organizer_profile = getattr(request.user, "organizerprofile", None)
+    if organizer_profile is None:
+        messages.error(request, "Only organizers can view subscribers.")
         return redirect("events:event_detail", event_id=event_id)
 
-    # Get all subscribers
+    # 3) Must *own* this event (organizer user must match)
+    #    This is the bit the test `organizer_must_own_event` is asserting.
+    if event.organizer is None or event.organizer.user != request.user:
+        messages.error(
+            request,
+            "You can only view subscribers for events you organize.",
+        )
+        return redirect("events:event_detail", event_id=event_id)
+
+    # 4) Happy path – owner organizer sees the list
     subscribers = EventNotificationSubscription.objects.filter(event=event).order_by(
         "-created_at"
     )
@@ -525,7 +535,10 @@ def subscribe_notification(request, event_id):
             # Flash message
             messages.success(
                 request,
-                f" You're on the list! We'll notify {email} when tickets are available.",
+                (
+                    f"You're on the list! We'll notify {email} when tickets are "
+                    "available."
+                ),
             )
 
             # --- NEW: confirmation email ---
@@ -543,7 +556,8 @@ def subscribe_notification(request, event_id):
             message = (
                 f"Hi {greeting_name},\n\n"
                 f"Thanks for your interest in '{event.title}'. "
-                "Tickets are currently sold out, but we've added you to the waitlist.\n\n"
+                "Tickets are currently sold out, but we've added you to the "
+                "waitlist.\n\n"
                 "We'll email you at this address as soon as more tickets become "
                 "available for this event.\n\n"
                 "Best,\n"
