@@ -371,6 +371,10 @@
                 Event cancelled
               </span>
             {% endif %}
+            
+            <a href="{% url 'events:event_management_dashboard' %}" class="btn btn-info">
+              📊 Manage Events
+            </a>
 
           {# Attendees / non-organizers #}
           {% elif request.session.desired_role != 'organizer' %}
