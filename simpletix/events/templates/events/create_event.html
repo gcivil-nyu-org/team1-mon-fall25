@@ -72,7 +72,7 @@
 
           <!-- Banner -->
           <div class="col-md-6">
-            <label for="{{ form.banner.id_for_label }}" class="form-label">Banner</label>
+            <label for "{{ form.banner.id_for_label }}" class="form-label">Banner</label>
             {{ form.banner }}
             {% if form.banner.errors %}
               <div class="errorlist">{{ form.banner.errors }}</div>
@@ -80,6 +80,8 @@
             {% if form.banner.help_text %}
               <div class="helptext">{{ form.banner.help_text }}</div>
             {% endif %}
+            <div class="text-muted small">Maximum file size: 10&nbsp;MB.</div>
+            <div id="banner-size-error" class="text-danger small" style="display:none;"></div>
           </div>
 
           <!-- Video -->
@@ -92,6 +94,8 @@
             {% if form.video.help_text %}
               <div class="helptext">{{ form.video.help_text }}</div>
             {% endif %}
+            <div class="text-muted small">Maximum file size: 10&nbsp;MB.</div>
+            <div id="video-size-error" class="text-danger small" style="display:none;"></div>
           </div>
         </div>
 
@@ -167,4 +171,75 @@
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
 <script src="{% static 'js/autocomplete.js' %}"></script>
 <script src="{% static 'events/js/toggler.js' %}"></script>
+
+<script>
+  (function () {
+    var MAX_SIZE_MB = 10;
+    var MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+    var form = document.querySelector('form[method="POST"][enctype="multipart/form-data"]');
+    if (!form) return;
+
+    var bannerInput = form.querySelector('input[type="file"][name="banner"]');
+    var videoInput = form.querySelector('input[type="file"][name="video"]');
+    var bannerError = document.getElementById("banner-size-error");
+    var videoError = document.getElementById("video-size-error");
+
+    function clearError(el) {
+      if (!el) return;
+      el.textContent = "";
+      el.style.display = "none";
+    }
+
+    function setError(el, message) {
+      if (!el) return;
+      el.textContent = message;
+      el.style.display = "block";
+    }
+
+    form.addEventListener("submit", function (e) {
+      var hasError = false;
+
+      if (bannerInput && bannerInput.files && bannerInput.files[0]) {
+        if (bannerInput.files[0].size > MAX_SIZE_BYTES) {
+          hasError = true;
+          setError(
+            bannerError,
+            "Maximum file size is " + MAX_SIZE_MB + " MB. Please choose a smaller banner image."
+          );
+        } else {
+          clearError(bannerError);
+        }
+      }
+
+      if (videoInput && videoInput.files && videoInput.files[0]) {
+        if (videoInput.files[0].size > MAX_SIZE_BYTES) {
+          hasError = true;
+          setError(
+            videoError,
+            "Maximum file size is " + MAX_SIZE_MB + " MB. Please choose a smaller video."
+          );
+        } else {
+          clearError(videoError);
+        }
+      }
+
+      if (hasError) {
+        e.preventDefault();
+      }
+    });
+
+    if (bannerInput) {
+      bannerInput.addEventListener("change", function () {
+        clearError(bannerError);
+      });
+    }
+
+    if (videoInput) {
+      videoInput.addEventListener("change", function () {
+        clearError(videoError);
+      });
+    }
+  })();
+</script>
 {% endblock %}
