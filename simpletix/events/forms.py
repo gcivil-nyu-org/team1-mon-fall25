@@ -33,4 +33,19 @@ class EventForm(forms.ModelForm):
         if date and date < timezone.localdate():
             self.add_error("date", "Event date cannot be in the past.")
 
+        # Validate location fields
+        lat = cleaned_data.get("latitude")
+        lng = cleaned_data.get("longitude")
+
+        if lat in (
+            None,
+            "",
+        ) or lng in (
+            None,
+            "",
+        ):
+            self.add_error(
+                "location", "Please select a valid location from the dropdown."
+            )
+
         return cleaned_data
