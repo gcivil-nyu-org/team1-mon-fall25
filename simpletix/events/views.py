@@ -16,7 +16,8 @@ from tickets.forms import TicketFormSet
 from tickets.models import TicketInfo
 from orders.models import Order
 from .forms import EventForm
-from .models import Event
+from django.urls import reverse
+
 
 from django.db import models, transaction
 from django.db.models.functions import Coalesce
@@ -26,6 +27,11 @@ from django.db.utils import IntegrityError
 from django.contrib.auth.decorators import login_required
 
 from . import services
+
+from django.views.decorators.http import require_POST
+from events.models import Event, EventNotificationSubscription
+from django.core.mail import send_mail
+
 
 # --- Algolia integration helpers -------------------------------------------
 
@@ -256,12 +262,13 @@ def edit_event(request, event_id):
     )
 
 
-# Delete Event  (now behaves like a soft cancel)
+# Delete Event (hard delete when safe)
 @custom_login_required(extra_params={"role": "organizer"})
 @organizer_owns_event
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    # Already cancelled → cannot be deleted
     if event.is_cancelled:
         messages.error(
             request,
@@ -272,30 +279,24 @@ def delete_event(request, event_id):
     if request.method == "POST":
         has_orders = Order.objects.filter(ticket_info__event=event).exists()
 
-        # Mark event as cancelled instead of deleting from DB
-        event.cancel()
-
-        # Remove from Algolia search index so it doesn’t appear in search
-        algolia_delete(event)
-
-        # If there were orders, notify + refund
+        # If there are orders, do NOT delete – tests expect the event to remain
         if has_orders:
-            services.notify_event_cancellation(event)
-            services.initiate_event_refunds(event)
-            messages.success(
-                request,
-                f'"{event.title}" has been cancelled. '
-                "Attendees will be notified and refunds will be processed.",
-            )
-        else:
-            messages.success(
+            messages.error(
                 request,
                 (
-                    f'"{event.title}" has been cancelled. '
-                    "No attendees had purchased tickets."
+                    "This event already has orders and cannot be deleted. "
+                    "Please cancel the event instead so attendees can be "
+                    "notified and refunded."
                 ),
             )
+            return redirect("events:event_detail", event_id=event.id)
 
+        # No orders → hard delete from DB
+        title = event.title  # cache before delete
+        algolia_delete(event)
+        event.delete()
+
+        messages.success(request, f'"{title}" has been deleted.')
         return redirect("events:event_management_dashboard")
 
     return render(request, "events/delete_event.html", {"event": event})
@@ -458,7 +459,242 @@ def event_list(request):
 # Event Detail
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    return render(request, "events/event_detail.html", {"event": event})
+
+    # Check if event is sold out
+    active_tickets = TicketInfo.objects.filter(event=event, is_active=True)
+    available_tickets = active_tickets.filter(availability__gt=0)
+
+    is_sold_out = active_tickets.exists() and not available_tickets.exists()
+
+    # Count subscribers
+    subscriber_count = EventNotificationSubscription.objects.filter(event=event).count()
+
+    return render(
+        request,
+        "events/event_detail.html",
+        {
+            "event": event,
+            "is_sold_out": is_sold_out,
+            "subscriber_count": subscriber_count,
+        },
+    )
+
+
+@login_required
+def notification_subscribers(request, event_id):
+    """
+    Show list of people waiting for ticket notifications.
+    Only accessible to the organizer who owns this event and
+    only for events that actually have subscribers.
+    """
+    event = get_object_or_404(Event, id=event_id)
+
+    # 1) Must be in organizer mode (session role)
+    if request.session.get("desired_role") != "organizer":
+        messages.error(request, "Only organizers can view subscribers.")
+        return redirect("events:event_detail", event_id=event_id)
+
+    # 2) Must actually have an organizer profile
+    organizer_profile = getattr(request.user, "organizerprofile", None)
+    if organizer_profile is None:
+        messages.error(request, "Only organizers can view subscribers.")
+        return redirect("events:event_detail", event_id=event_id)
+
+    # 3) Must *own* this event (organizer user must match)
+    if event.organizer is None or event.organizer.user != request.user:
+        messages.error(
+            request,
+            "You can only view subscribers for events you organize.",
+        )
+        return redirect("events:event_detail", event_id=event_id)
+
+    # 4) Event must actually have subscribers; otherwise treat as not viewable
+    subscribers_qs = EventNotificationSubscription.objects.filter(event=event)
+    if not subscribers_qs.exists():
+        messages.error(
+            request,
+            "There are no subscribers for this event yet.",
+        )
+        return redirect("events:event_detail", event_id=event_id)
+
+    subscribers = subscribers_qs.order_by("-created_at")
+
+    return render(
+        request,
+        "events/notification_subscribers.html",
+        {
+            "event": event,
+            "subscribers": subscribers,
+        },
+    )
+
+
+@require_POST
+def subscribe_notification(request, event_id):
+    """
+    Subscribe user to notifications when tickets become available.
+    Sends a confirmation email when subscription is first created.
+    """
+    event = get_object_or_404(Event, id=event_id)
+
+    email = request.POST.get("email", "").strip()
+    name = request.POST.get("name", "").strip()
+
+    # If user is logged in, use their info as fallback
+    if request.user.is_authenticated:
+        if not email:
+            email = request.user.email
+        if not name:
+            name = request.user.get_full_name() or request.user.username
+
+    # Validate email
+    if not email:
+        messages.error(request, "Email address is required.")
+        return redirect("events:event_detail", event_id=event_id)
+
+    try:
+        subscription, created = EventNotificationSubscription.objects.get_or_create(
+            event=event,
+            email=email,
+            defaults={"name": name},
+        )
+
+        if created:
+            # Flash message
+            messages.success(
+                request,
+                (
+                    f"You're on the list! We'll notify {email} when tickets are "
+                    "available."
+                ),
+            )
+
+            # --- NEW: confirmation email ---
+            subject = f"You're on the waitlist for {event.title}"
+            greeting_name = (
+                subscription.name
+                or (
+                    request.user.get_full_name()
+                    if request.user.is_authenticated
+                    else ""
+                )
+                or "there"
+            )
+
+            message = (
+                f"Hi {greeting_name},\n\n"
+                f"Thanks for your interest in '{event.title}'. "
+                "Tickets are currently sold out, but we've added you to the "
+                "waitlist.\n\n"
+                "We'll email you at this address as soon as more tickets become "
+                "available for this event.\n\n"
+                "Best,\n"
+                "SimpleTix Team"
+            )
+
+            from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com")
+
+            send_mail(
+                subject,
+                message,
+                from_email,
+                [email],
+                fail_silently=True,
+            )
+
+        else:
+            messages.info(
+                request,
+                "You're already subscribed to notifications for this event.",
+            )
+
+    except IntegrityError:
+        messages.error(request, "Error subscribing. Please try again.")
+
+    return redirect("events:event_detail", event_id=event_id)
+
+
+@login_required
+@organizer_owns_event
+@require_POST
+def notify_subscribers_tickets_available(request, event_id):
+    """
+    Organizer action: email all subscribers that new tickets are available.
+    """
+    event = get_object_or_404(Event, id=event_id)
+
+    subscribers = EventNotificationSubscription.objects.filter(event=event)
+    if not subscribers.exists():
+        messages.info(request, "There are no subscribers to notify for this event.")
+        return redirect("events:notification_subscribers", event_id=event.id)
+
+    # --- Build absolute event URL safely ---
+    # Prefer SITE_BASE_URL if defined, otherwise fall back to request.build_absolute_uri
+    try:
+        base_url = getattr(settings, "SITE_BASE_URL")
+    except AttributeError:
+        base_url = None
+
+    event_path = reverse("events:event_detail", args=[event.id])
+
+    if base_url:
+        event_url = base_url.rstrip("/") + event_path
+    else:
+        event_url = request.build_absolute_uri(event_path)
+
+    subject = f"Tickets available again: {event.title}"
+    base_message = (
+        'Good news! More tickets are now available for "{title}".\n\n'
+        "You can book your spot here:\n"
+        "{event_url}\n\n"
+        "Tickets are limited and may sell out again quickly, so we recommend "
+        "booking as soon as possible.\n\n"
+        "Thank you,\n"
+        "SimpleTix Team"
+    )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com")
+
+    sent_count = 0
+    for sub in subscribers:
+        # Basic guard against empty / invalid email
+        email = (sub.email or "").strip()
+        if not email:
+            continue
+
+        greeting_name = (sub.name or "").strip()
+        if greeting_name:
+            greeting = f"Hi {greeting_name},"
+        else:
+            greeting = "Hi there,"
+
+        message = f"{greeting}\n\n" + base_message.format(
+            title=event.title,
+            event_url=event_url,
+        )
+
+        send_mail(
+            subject,
+            message,
+            from_email,
+            [email],
+            fail_silently=True,
+        )
+        sent_count += 1
+
+    if sent_count:
+        messages.success(
+            request,
+            f"Notification email sent to {sent_count} subscriber"
+            f"{'' if sent_count == 1 else 's'}.",
+        )
+    else:
+        messages.warning(
+            request,
+            "No valid subscriber email addresses were found to notify.",
+        )
+
+    return redirect("events:notification_subscribers", event_id=event.id)
 
 
 def _get_organizer_profile(user):
@@ -499,7 +735,7 @@ def cancel_event(request, event_id):
 
     if organizer_profile is None:
         messages.error(request, "You must be an organizer to cancel an event.")
-        return redirect("home")
+        return redirect("events:event_list")
 
     event = get_object_or_404(Event, id=event_id)
 
