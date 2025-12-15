@@ -154,6 +154,93 @@
       font-size: 0.85rem;
       color: #6b7280;
     }
+
+    /* NEW: Notification banner styles */
+    .notify-banner {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1.5rem;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .notify-banner h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .notify-banner p {
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      opacity: 0.95;
+    }
+
+    .notify-form {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .notify-form input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.75rem 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .notify-form input::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+
+    .notify-form input:focus {
+      outline: none;
+      border-color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.25);
+    }
+
+    .notify-form button {
+      padding: 0.75rem 2rem;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .notify-form button:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .notify-form button:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 576px) {
+      .notify-form {
+        flex-direction: column;
+      }
+      
+      .notify-form input,
+      .notify-form button {
+        width: 100%;
+        min-width: auto;
+      }
+    }
   </style>
 {% endblock head %}
 
@@ -173,7 +260,7 @@
           <span>This event has been cancelled. Tickets are no longer available.</span>
         </div>
         <p class="event-cancel-subcopy">
-          If you previously purchased tickets, you’ll receive an email update and a refund will be processed.
+          If you previously purchased tickets, you'll receive an email update and a refund will be processed.
         </p>
       {% endif %}
 
@@ -222,7 +309,7 @@
                       {% if ticket.availability > 0 %}
                         {{ ticket.availability }} left
                       {% else %}
-                        Sold out
+                        <span class="text-danger fw-bold">Sold out</span>
                       {% endif %}
                     </td>
                     <td class="text-end">
@@ -267,6 +354,35 @@
         </p>
       {% endif %}
 
+      {# NEW: Show notification banner if event is sold out (only for non-organizers) #}
+      {% if is_sold_out and request.session.desired_role != 'organizer' %}
+        <div class="notify-banner">
+          <h4>
+            <span>🔔</span>
+            <span>Sold Out? Get Notified!</span>
+          </h4>
+          <p>Enter your email and we'll notify you when tickets become available again.</p>
+          
+          <form method="post" action="{% url 'events:subscribe_notification' event.id %}" class="notify-form">
+            {% csrf_token %}
+            <input 
+              type="email" 
+              name="email" 
+              placeholder="your.email@example.com" 
+              required
+              {% if user.is_authenticated %}value="{{ user.email }}"{% endif %}
+            >
+            <input 
+              type="text" 
+              name="name" 
+              placeholder="Your name (optional)"
+              {% if user.is_authenticated %}value="{{ user.get_full_name|default:user.username }}"{% endif %}
+            >
+            <button type="submit">Notify Me</button>
+          </form>
+        </div>
+      {% endif %}
+
       <div class="event-actions">
         <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary">
           Back to Events
@@ -280,10 +396,15 @@
                 <span class="badge bg-danger-subtle text-danger fw-semibold">
                   Event cancelled
                 </span>
-              {% elif is_sold_out %}
-                <span class="badge bg-light text-muted">
-                  Sold out · No tickets remaining
-                </span>
+              {% else %}
+                {% if is_sold_out %}
+                  <span class="badge bg-light text-muted">
+                    Sold out · No tickets remaining
+                  </span>
+                {% endif %}
+                <a href="{% url 'events:event_management_dashboard' %}" class="btn btn-info">
+                  📊 Manage Events
+                </a>
               {% endif %}
             {% else %}
               {% if event.is_cancelled %}

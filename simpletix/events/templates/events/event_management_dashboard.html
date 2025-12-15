@@ -12,7 +12,7 @@
       <p class="stx-dashboard-kicker">Organizer · My Events</p>
       <h1 class="stx-dashboard-title">Event Management</h1>
       <p class="stx-dashboard-subtitle">
-        View, monitor, and cancel the events you’ve created.
+        View, monitor, and cancel the events you've created.
       </p>
     </header>
 
@@ -25,6 +25,7 @@
               <th>Date &amp; Time</th>
               <th>Location</th>
               <th>Status</th>
+              <th>Subscribers</th>
               <th class="stx-col-actions"></th>
               <th class="stx-col-actions"></th>
             </tr>
@@ -53,6 +54,18 @@
                   {% else %}
                     <span class="stx-badge stx-badge-live">Scheduled</span>
                   {% endif %}
+                </td>
+                <td>
+                  {% with sub_count=event.notification_subscriptions.count %}
+                    {% if sub_count > 0 %}
+                      <a href="{% url 'events:notification_subscribers' event.id %}" 
+                         class="stx-subscribers-link">
+                        🔔 {{ sub_count }} subscriber{{ sub_count|pluralize }}
+                      </a>
+                    {% else %}
+                      <span class="stx-text-muted">—</span>
+                    {% endif %}
+                  {% endwith %}
                 </td>
                 <td class="stx-cell-actions">
                   {# Hide/disable Edit for cancelled events #}
@@ -96,11 +109,25 @@
       <div class="stx-empty-state">
         <h2>No events yet</h2>
         <p>
-          You haven’t created any events as an organizer.
-          Once you do, they’ll appear here for easy management.
+          You haven't created any events as an organizer.
+          Once you do, they'll appear here for easy management.
         </p>
       </div>
     {% endif %}
   </div>
 </div>
+
+<style>
+.stx-subscribers-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.stx-subscribers-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+</style>
 {% endblock %}

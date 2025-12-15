@@ -11,6 +11,9 @@ from .models import Event
 from orders.models import Order
 from tickets.models import Ticket
 
+from django.core.mail import send_mass_mail
+from .models import EventNotificationSubscription
+
 
 def get_event_orders(event: Event) -> Iterable[Order]:
     """
@@ -169,3 +172,56 @@ def initiate_event_refunds(event: Event) -> None:
 
         except Exception as e:
             print(f"Failed to initiate auto-refund for order {_order.id}: {e}")
+    # When implementing real refunds, you can do something like:
+    #
+    # order_ids = [o.id for o in orders if o.id is not None]
+    # tickets = list(get_event_tickets_for_order_ids(event, order_ids))
+    #
+    # and then use `orders` + `tickets` to drive refund + ticket invalidation.
+    #
+    # For now, we leave this as a no-op to avoid side effects.
+    return
+
+
+def notify_subscribers_tickets_available(event):
+    """
+    Send an email to all subscribers that tickets for this event are available.
+    Returns the number of emails queued.
+    """
+
+    subscribers = EventNotificationSubscription.objects.filter(event=event)
+    if not subscribers.exists():
+        return 0
+
+    subject = f"Tickets available again: {event.title}"
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com")
+
+    base_message = (
+        "Good news!\n\n"
+        'Tickets for "{title}" are now available again.\n'
+        "Event date: {date} at {time}\n\n"
+        "You can book your tickets here:\n"
+        "{url}\n\n"
+        "We recommend booking soon, as availability may be limited.\n\n"
+        "Thanks,\nSimpleTix Team"
+    )
+
+    messages = []
+    event_url = (
+        settings.SITE_BASE_URL + f"/events/{event.id}/"
+    )  # or reverse + build_absolute_uri
+
+    for sub in subscribers:
+        message = base_message.format(
+            title=event.title,
+            date=event.date,
+            time=event.time,
+            url=event_url,
+        )
+        messages.append((subject, message, from_email, [sub.email]))
+
+    if not messages:
+        return 0
+
+    send_mass_mail(messages, fail_silently=True)
+    return len(messages)
